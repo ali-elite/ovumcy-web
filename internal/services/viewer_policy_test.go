@@ -38,6 +38,25 @@ func TestSanitizeLogForViewerOwnerKeepsFields(t *testing.T) {
 	}
 }
 
+func TestSanitizeLogsForViewerPartnerHidesPrivateFieldsInAllEntries(t *testing.T) {
+	partner := &models.User{Role: models.RolePartner}
+	logs := []models.DailyLog{
+		{Notes: "a", SymptomIDs: []uint{1}},
+		{Notes: "b", SymptomIDs: []uint{2, 3}},
+	}
+
+	SanitizeLogsForViewer(partner, logs)
+
+	for index := range logs {
+		if logs[index].Notes != "" {
+			t.Fatalf("expected notes to be hidden for entry %d, got %q", index, logs[index].Notes)
+		}
+		if len(logs[index].SymptomIDs) != 0 {
+			t.Fatalf("expected symptom IDs to be hidden for entry %d, got %#v", index, logs[index].SymptomIDs)
+		}
+	}
+}
+
 func TestShouldExposeSymptomsForViewer(t *testing.T) {
 	if !ShouldExposeSymptomsForViewer(&models.User{Role: models.RoleOwner}) {
 		t.Fatal("expected owner to see symptoms")
