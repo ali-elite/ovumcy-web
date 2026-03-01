@@ -140,3 +140,17 @@ func OnboardingDateBounds(now time.Time, location *time.Location) (time.Time, ti
 	}
 	return minDate, today
 }
+
+func RequiresOnboarding(user *models.User) bool {
+	if user == nil {
+		return false
+	}
+	return user.Role == models.RoleOwner && !user.OnboardingCompleted
+}
+
+func PostLoginRedirectPath(user *models.User) string {
+	if RequiresOnboarding(user) {
+		return "/onboarding"
+	}
+	return "/dashboard"
+}

@@ -103,3 +103,36 @@ func TestResolveCycleAndPeriodDefaults(t *testing.T) {
 		}
 	})
 }
+
+func TestOnboardingRedirectPolicy(t *testing.T) {
+	ownerPending := &models.User{Role: models.RoleOwner, OnboardingCompleted: false}
+	if !RequiresOnboarding(ownerPending) {
+		t.Fatalf("expected owner without onboarding to require onboarding")
+	}
+	if path := PostLoginRedirectPath(ownerPending); path != "/onboarding" {
+		t.Fatalf("expected onboarding redirect, got %q", path)
+	}
+
+	ownerCompleted := &models.User{Role: models.RoleOwner, OnboardingCompleted: true}
+	if RequiresOnboarding(ownerCompleted) {
+		t.Fatalf("did not expect completed owner to require onboarding")
+	}
+	if path := PostLoginRedirectPath(ownerCompleted); path != "/dashboard" {
+		t.Fatalf("expected dashboard redirect, got %q", path)
+	}
+
+	partner := &models.User{Role: models.RolePartner, OnboardingCompleted: false}
+	if RequiresOnboarding(partner) {
+		t.Fatalf("did not expect partner to require onboarding")
+	}
+	if path := PostLoginRedirectPath(partner); path != "/dashboard" {
+		t.Fatalf("expected dashboard redirect for partner, got %q", path)
+	}
+
+	if RequiresOnboarding(nil) {
+		t.Fatalf("did not expect nil user to require onboarding")
+	}
+	if path := PostLoginRedirectPath(nil); path != "/dashboard" {
+		t.Fatalf("expected dashboard redirect for nil user, got %q", path)
+	}
+}

@@ -1,17 +1,14 @@
 package api
 
-import "github.com/terraincognita07/ovumcy/internal/models"
+import (
+	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
+)
 
 func postLoginRedirectPath(user *models.User) string {
-	if requiresOnboarding(user) {
-		return "/onboarding"
-	}
-	return "/dashboard"
+	return services.PostLoginRedirectPath(user)
 }
 
 func requiresOnboarding(user *models.User) bool {
-	if user == nil {
-		return false
-	}
-	return user.Role == models.RoleOwner && !user.OnboardingCompleted
+	return services.RequiresOnboarding(user)
 }
