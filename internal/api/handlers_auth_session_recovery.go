@@ -14,19 +14,19 @@ func (handler *Handler) ForgotPassword(c *fiber.Ctx) error {
 
 	now := time.Now().In(handler.location)
 	limiterKey := requestLimiterKey(c)
-	if handler.recoveryLimiter.tooManyRecent(limiterKey, now, recoveryAttemptsLimit, recoveryAttemptsWindow) {
+	if handler.recoveryLimiter.TooManyRecent(limiterKey, now, recoveryAttemptsLimit, recoveryAttemptsWindow) {
 		return handler.respondAuthError(c, fiber.StatusTooManyRequests, "too many recovery attempts")
 	}
 
 	code, parseError := parseForgotPasswordCode(c)
 	if parseError != "" {
-		handler.recoveryLimiter.addFailure(limiterKey, now, recoveryAttemptsWindow)
+		handler.recoveryLimiter.AddFailure(limiterKey, now, recoveryAttemptsWindow)
 		return handler.respondAuthError(c, fiber.StatusBadRequest, parseError)
 	}
 
 	user, err := handler.findUserByRecoveryCode(code)
 	if err != nil {
-		handler.recoveryLimiter.addFailure(limiterKey, now, recoveryAttemptsWindow)
+		handler.recoveryLimiter.AddFailure(limiterKey, now, recoveryAttemptsWindow)
 		return handler.respondAuthError(c, fiber.StatusBadRequest, "invalid recovery code")
 	}
 
@@ -35,7 +35,7 @@ func (handler *Handler) ForgotPassword(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusInternalServerError, "failed to create reset token")
 	}
 	handler.setResetPasswordCookie(c, token, false)
-	handler.recoveryLimiter.reset(limiterKey)
+	handler.recoveryLimiter.Reset(limiterKey)
 
 	if acceptsJSON(c) {
 		return c.JSON(fiber.Map{

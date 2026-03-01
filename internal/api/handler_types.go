@@ -21,7 +21,7 @@ type Handler struct {
 	i18n                *i18n.Manager
 	templates           map[string]*template.Template
 	partials            map[string]*template.Template
-	recoveryLimiter     *attemptLimiter
+	recoveryLimiter     *services.AttemptLimiter
 	repositories        *db.Repositories
 	authService         *services.AuthService
 	dayService          *services.DayService

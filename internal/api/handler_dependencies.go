@@ -55,4 +55,7 @@ func (handler *Handler) ensureDependencies() {
 	if handler.setupService == nil {
 		handler.setupService = services.NewSetupService(handler.repositories.Users)
 	}
+	if handler.recoveryLimiter == nil {
+		handler.recoveryLimiter = services.NewAttemptLimiter()
+	}
 }

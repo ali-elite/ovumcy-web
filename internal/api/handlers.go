@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/i18n"
+	"github.com/terraincognita07/ovumcy/internal/services"
 	"gorm.io/gorm"
 )
 
@@ -36,7 +37,7 @@ func NewHandler(database *gorm.DB, secret string, templateDir string, location *
 		i18n:            i18nManager,
 		templates:       templates,
 		partials:        partials,
-		recoveryLimiter: newAttemptLimiter(),
+		recoveryLimiter: services.NewAttemptLimiter(),
 	}
 	return handler.withDependencies(database), nil
 }
