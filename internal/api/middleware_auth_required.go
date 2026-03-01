@@ -17,20 +17,12 @@ func (handler *Handler) AuthRequired(c *fiber.Ctx) error {
 	}
 
 	c.Locals(contextUserKey, user)
-	if services.RequiresOnboarding(user) && !isOnboardingPath(c.Path()) {
+	if services.RequiresOnboarding(user) && services.ShouldEnforceOnboardingAccess(c.Path()) {
 		if strings.HasPrefix(c.Path(), "/api/") {
-			if c.Path() == "/api/auth/logout" {
-				return c.Next()
-			}
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "onboarding required"})
 		}
 		return c.Redirect("/onboarding", fiber.StatusSeeOther)
 	}
 
 	return c.Next()
-}
-
-func isOnboardingPath(path string) bool {
-	cleanPath := strings.TrimSpace(path)
-	return cleanPath == "/onboarding" || strings.HasPrefix(cleanPath, "/onboarding/")
 }
