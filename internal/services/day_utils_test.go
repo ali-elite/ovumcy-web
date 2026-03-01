@@ -65,3 +65,30 @@ func TestDayRangeNormalizesToLocationMidnight(t *testing.T) {
 		t.Fatalf("expected next day end, got %s", end.Format(time.RFC3339))
 	}
 }
+
+func TestCalendarDayHelpers(t *testing.T) {
+	day := time.Date(2026, time.February, 17, 0, 0, 0, 0, time.UTC)
+	sameDayLater := time.Date(2026, time.February, 17, 23, 59, 0, 0, time.UTC)
+	if !SameCalendarDay(day, sameDayLater) {
+		t.Fatal("expected same calendar day")
+	}
+
+	start := time.Date(2026, time.February, 10, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, time.February, 20, 0, 0, 0, 0, time.UTC)
+	if !BetweenCalendarDaysInclusive(day, start, end) {
+		t.Fatal("expected day to be between inclusive bounds")
+	}
+	if BetweenCalendarDaysInclusive(day, time.Time{}, end) {
+		t.Fatal("expected false when start bound is zero")
+	}
+}
+
+func TestSymptomIDSet(t *testing.T) {
+	set := SymptomIDSet([]uint{3, 3, 5})
+	if len(set) != 2 {
+		t.Fatalf("expected unique set size 2, got %d", len(set))
+	}
+	if !set[3] || !set[5] {
+		t.Fatal("expected set to contain ids 3 and 5")
+	}
+}

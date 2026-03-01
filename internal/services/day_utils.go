@@ -21,6 +21,25 @@ func DayRange(value time.Time, location *time.Location) (time.Time, time.Time) {
 	return start, start.AddDate(0, 0, 1)
 }
 
+func SameCalendarDay(a time.Time, b time.Time) bool {
+	return a.Format("2006-01-02") == b.Format("2006-01-02")
+}
+
+func BetweenCalendarDaysInclusive(day time.Time, start time.Time, end time.Time) bool {
+	if start.IsZero() || end.IsZero() {
+		return false
+	}
+	return (day.Equal(start) || day.After(start)) && (day.Equal(end) || day.Before(end))
+}
+
+func SymptomIDSet(ids []uint) map[uint]bool {
+	set := make(map[uint]bool, len(ids))
+	for _, id := range ids {
+		set[id] = true
+	}
+	return set
+}
+
 func DayHasData(entry models.DailyLog) bool {
 	if entry.IsPeriod {
 		return true

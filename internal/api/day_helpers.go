@@ -12,14 +12,11 @@ func dayHasData(entry models.DailyLog) bool {
 }
 
 func sameCalendarDay(a time.Time, b time.Time) bool {
-	return a.Format("2006-01-02") == b.Format("2006-01-02")
+	return services.SameCalendarDay(a, b)
 }
 
 func betweenCalendarDaysInclusive(day time.Time, start time.Time, end time.Time) bool {
-	if start.IsZero() || end.IsZero() {
-		return false
-	}
-	return (day.Equal(start) || day.After(start)) && (day.Equal(end) || day.Before(end))
+	return services.BetweenCalendarDaysInclusive(day, start, end)
 }
 
 func sanitizeLogForPartner(entry models.DailyLog) models.DailyLog {
@@ -35,9 +32,5 @@ func dayRange(value time.Time, location *time.Location) (time.Time, time.Time) {
 }
 
 func symptomIDSet(ids []uint) map[uint]bool {
-	set := make(map[uint]bool, len(ids))
-	for _, id := range ids {
-		set[id] = true
-	}
-	return set
+	return services.SymptomIDSet(ids)
 }
