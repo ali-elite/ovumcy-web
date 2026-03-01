@@ -1,4 +1,4 @@
-package api
+package services
 
 import (
 	"fmt"
@@ -31,7 +31,7 @@ var monthShortNames = map[string][]string{
 	"ru": {"Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"},
 }
 
-func localizedMonthYear(language string, value time.Time) string {
+func LocalizedMonthYear(language string, value time.Time) string {
 	names, ok := monthNames[strings.ToLower(language)]
 	if !ok || len(names) < 12 {
 		return value.Format("January 2006")
@@ -43,7 +43,7 @@ func localizedMonthYear(language string, value time.Time) string {
 	return fmt.Sprintf("%s %d", names[monthIndex], value.Year())
 }
 
-func localizedDateLabel(language string, value time.Time) string {
+func LocalizedDateLabel(language string, value time.Time) string {
 	lang := strings.ToLower(strings.TrimSpace(language))
 	weekdays, weekdaysOK := weekdayShortNames[lang]
 	months, monthsOK := monthShortNames[lang]
@@ -60,7 +60,7 @@ func localizedDateLabel(language string, value time.Time) string {
 	return fmt.Sprintf("%s, %s %d", weekday, month, value.Day())
 }
 
-func localizedDashboardDate(language string, value time.Time) string {
+func LocalizedDashboardDate(language string, value time.Time) string {
 	lang := strings.ToLower(strings.TrimSpace(language))
 	weekdays, weekdaysOK := weekdayLongNames[lang]
 	months, monthsOK := monthLongNames[lang]
@@ -80,7 +80,7 @@ func localizedDashboardDate(language string, value time.Time) string {
 	return fmt.Sprintf("%s %d, %d, %s", month, value.Day(), value.Year(), weekday)
 }
 
-func localizedDateDisplay(language string, value time.Time) string {
+func LocalizedDateDisplay(language string, value time.Time) string {
 	if value.IsZero() {
 		return ""
 	}
@@ -98,7 +98,7 @@ func localizedDateDisplay(language string, value time.Time) string {
 	return fmt.Sprintf("%s %d, %d", months[monthIndex], value.Day(), value.Year())
 }
 
-func localizedDateShort(language string, value time.Time) string {
+func LocalizedDateShort(language string, value time.Time) string {
 	if value.IsZero() {
 		return ""
 	}

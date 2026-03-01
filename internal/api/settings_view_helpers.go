@@ -79,11 +79,11 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 		data["ExportDateTo"] = summary.DateTo
 		displayFrom := summary.DateFrom
 		if parsedFrom, parseErr := parseDayParam(summary.DateFrom, handler.location); parseErr == nil {
-			displayFrom = localizedDateDisplay(language, parsedFrom)
+			displayFrom = services.LocalizedDateDisplay(language, parsedFrom)
 		}
 		displayTo := summary.DateTo
 		if parsedTo, parseErr := parseDayParam(summary.DateTo, handler.location); parseErr == nil {
-			displayTo = localizedDateDisplay(language, parsedTo)
+			displayTo = services.LocalizedDateDisplay(language, parsedTo)
 		}
 		data["ExportDateFromDisplay"] = displayFrom
 		data["ExportDateToDisplay"] = displayTo

@@ -37,7 +37,7 @@ func (handler *Handler) buildDashboardViewData(user *models.User, language strin
 		"NextPeriodInPast":           cycleContext.NextPeriodInPast,
 		"OvulationInPast":            cycleContext.OvulationInPast,
 		"Today":                      today.Format("2006-01-02"),
-		"FormattedDate":              localizedDashboardDate(language, today),
+		"FormattedDate":              services.LocalizedDashboardDate(language, today),
 		"TodayEntry":                 todayLog,
 		"TodayLog":                   todayLog,
 		"TodayHasData":               dayHasData(todayLog),
@@ -62,7 +62,7 @@ func (handler *Handler) buildDayEditorPartialData(user *models.User, language st
 	payload := fiber.Map{
 		"Date":              day,
 		"DateString":        day.Format("2006-01-02"),
-		"DateLabel":         localizedDateLabel(language, day),
+		"DateLabel":         services.LocalizedDateLabel(language, day),
 		"IsFutureDate":      day.After(dateAtLocation(now.In(handler.location), handler.location)),
 		"NoDataLabel":       translateMessage(messages, "common.not_available"),
 		"Log":               logEntry,

@@ -6,6 +6,8 @@ import (
 	"html/template"
 	"math"
 	"time"
+
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func formatTemplateDate(value time.Time, layout string) string {
@@ -18,9 +20,9 @@ func formatTemplateDate(value time.Time, layout string) string {
 func formatTemplateLocalizedDate(language string, value time.Time, style string) string {
 	switch style {
 	case "short":
-		return localizedDateShort(language, value)
+		return services.LocalizedDateShort(language, value)
 	default:
-		return localizedDateDisplay(language, value)
+		return services.LocalizedDateDisplay(language, value)
 	}
 }
 
