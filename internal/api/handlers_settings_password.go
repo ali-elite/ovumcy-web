@@ -13,9 +13,9 @@ func (handler *Handler) ChangePassword(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	input, parseError := parseChangePasswordInput(c)
-	if parseError != "" {
-		return handler.respondSettingsError(c, fiber.StatusBadRequest, parseError)
+	input := changePasswordInput{}
+	if err := c.BodyParser(&input); err != nil {
+		return handler.respondSettingsError(c, fiber.StatusBadRequest, "invalid settings input")
 	}
 
 	handler.ensureDependencies()
