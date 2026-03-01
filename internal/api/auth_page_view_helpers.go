@@ -45,16 +45,7 @@ func (handler *Handler) buildResetPasswordPageData(c *fiber.Ctx, messages map[st
 	token, forcedReset := handler.readResetPasswordCookie(c)
 	invalidToken := false
 	if token != "" {
-		handler.ensureDependencies()
-		parseToken := func() error {
-			if handler.passwordResetSvc != nil {
-				_, err := handler.passwordResetSvc.ParseResetToken(handler.secretKey, token, time.Now())
-				return err
-			}
-			_, err := services.ParsePasswordResetToken(handler.secretKey, token, time.Now())
-			return err
-		}
-		if err := parseToken(); err != nil {
+		if !services.IsResetPasswordTokenValid(handler.secretKey, token, time.Now()) {
 			invalidToken = true
 			handler.clearResetPasswordCookie(c)
 		}
