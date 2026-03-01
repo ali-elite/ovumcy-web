@@ -7,7 +7,7 @@ func templateTranslate(messages map[string]string, key string) string {
 }
 
 func templatePhaseLabel(messages map[string]string, phase string) string {
-	return translateMessage(messages, phaseTranslationKey(phase))
+	return translateMessage(messages, services.PhaseTranslationKey(phase))
 }
 
 func templatePhaseIcon(phase string) string {
@@ -15,7 +15,7 @@ func templatePhaseIcon(phase string) string {
 }
 
 func templateFlowLabel(messages map[string]string, flow string) string {
-	return translateMessage(messages, flowTranslationKey(flow))
+	return translateMessage(messages, services.FlowTranslationKey(flow))
 }
 
 func templateSymptomLabel(messages map[string]string, name string) string {
@@ -27,5 +27,5 @@ func templateSymptomGroup(name string) string {
 }
 
 func templateRoleLabel(messages map[string]string, role string) string {
-	return translateMessage(messages, roleTranslationKey(role))
+	return translateMessage(messages, services.RoleTranslationKey(role))
 }
