@@ -48,14 +48,6 @@ type CalendarDay struct {
 	OvulationDot bool
 }
 
-type SymptomCount struct {
-	Name             string
-	Icon             string
-	Count            int
-	TotalDays        int
-	FrequencySummary string
-}
-
 type FlashPayload struct {
 	AuthError       string `json:"auth_error,omitempty"`
 	SettingsError   string `json:"settings_error,omitempty"`
