@@ -11,8 +11,13 @@ import (
 const maxStatsTrendPoints = 12
 
 func buildStatsChartData(messages map[string]string, lengths []int, baselineCycleLength int) fiber.Map {
+	cycleLabelPattern := translateMessage(messages, "stats.cycle_label")
+	if cycleLabelPattern == "stats.cycle_label" {
+		cycleLabelPattern = ""
+	}
+
 	chartPayload := fiber.Map{
-		"labels": buildCycleTrendLabels(messages, len(lengths)),
+		"labels": services.BuildCycleTrendLabels(cycleLabelPattern, len(lengths)),
 		"values": lengths,
 	}
 	if baselineCycleLength > 0 {
@@ -44,7 +49,9 @@ func (handler *Handler) buildStatsSymptomCounts(user *models.User, language stri
 			TotalDays: item.TotalDays,
 		})
 	}
-	localizeSymptomFrequencySummaries(language, symptomCounts)
+	for index := range symptomCounts {
+		symptomCounts[index].FrequencySummary = services.LocalizedSymptomFrequencySummary(language, symptomCounts[index].Count, symptomCounts[index].TotalDays)
+	}
 	return symptomCounts, "", nil
 }
 
