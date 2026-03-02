@@ -1,40 +1,15 @@
-package api
+package services
 
 import (
-	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/db"
 	"github.com/terraincognita07/ovumcy/internal/models"
 )
 
-func TestFetchSymptomsBackfillsMissingBuiltinSymptoms(t *testing.T) {
-	databasePath := filepath.Join(t.TempDir(), "ovumcy-symptom-backfill.db")
-	database, err := db.OpenSQLite(databasePath)
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-	sqlDB, err := database.DB()
-	if err != nil {
-		t.Fatalf("open sql db: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = sqlDB.Close()
-	})
-
-	user := models.User{
-		Email:               "symptoms@example.com",
-		PasswordHash:        "hash",
-		Role:                models.RoleOwner,
-		OnboardingCompleted: true,
-		CycleLength:         28,
-		PeriodLength:        5,
-		CreatedAt:           time.Now().UTC(),
-	}
-	if err := database.Create(&user).Error; err != nil {
-		t.Fatalf("create user: %v", err)
-	}
+func TestSymptomServiceFetchSymptomsBackfillsMissingBuiltinSymptoms(t *testing.T) {
+	_, database := newDayServiceIntegration(t)
+	user := createDayServiceTestUser(t, database, "symptoms-service@example.com")
 
 	oldBuiltin := models.DefaultBuiltinSymptoms()[:7]
 	records := make([]models.SymptomType, 0, len(oldBuiltin))
@@ -51,17 +26,18 @@ func TestFetchSymptomsBackfillsMissingBuiltinSymptoms(t *testing.T) {
 		t.Fatalf("seed old builtin symptoms: %v", err)
 	}
 
-	handler := newServiceBackedHandlerForTest(database, time.UTC)
-	symptoms, err := handler.symptomService.FetchSymptoms(user.ID)
+	repositories := db.NewRepositories(database)
+	service := NewSymptomService(repositories.Symptoms, repositories.DailyLogs)
+
+	symptoms, err := service.FetchSymptoms(user.ID)
 	if err != nil {
-		t.Fatalf("fetch symptoms: %v", err)
+		t.Fatalf("FetchSymptoms returned error: %v", err)
 	}
 
 	expected := models.DefaultBuiltinSymptoms()
 	if len(symptoms) != len(expected) {
 		t.Fatalf("expected %d symptoms after backfill, got %d", len(expected), len(symptoms))
 	}
-
 	for index, symptom := range expected {
 		if symptoms[index].Name != symptom.Name {
 			t.Fatalf("expected symptom %q at index %d, got %q", symptom.Name, index, symptoms[index].Name)
