@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,69 +10,65 @@ import (
 )
 
 func (handler *Handler) buildDashboardViewData(user *models.User, language string, messages map[string]string, now time.Time) (fiber.Map, string, error) {
-	today := services.DateAtLocation(now, handler.location)
-
 	handler.ensureDependencies()
-	stats, _, err := handler.statsService.BuildCycleStatsForRange(user, today.AddDate(-2, 0, 0), today, now, handler.location)
+	viewData, err := handler.dashboardViewService.BuildDashboardViewData(user, language, now, handler.location)
 	if err != nil {
-		return nil, "failed to load logs", err
+		switch {
+		case errors.Is(err, services.ErrDashboardViewLoadTodayLog):
+			return nil, "failed to load today log", err
+		default:
+			return nil, "failed to load logs", err
+		}
 	}
-
-	todayLog, symptoms, err := handler.viewerService.FetchDayLogForViewer(user, today, handler.location)
-	if err != nil {
-		return nil, "failed to load today log", err
-	}
-
-	cycleContext := services.BuildDashboardCycleContext(user, stats, today, handler.location)
 
 	data := fiber.Map{
 		"Title":                      localizedPageTitle(messages, "meta.title.dashboard", "Ovumcy | Dashboard"),
 		"CurrentUser":                user,
-		"Stats":                      stats,
-		"CycleDayReference":          cycleContext.CycleDayReference,
-		"CycleDayWarning":            cycleContext.CycleDayWarning,
-		"CycleDataStale":             cycleContext.CycleDataStale,
-		"DisplayNextPeriodStart":     cycleContext.DisplayNextPeriodStart,
-		"DisplayOvulationDate":       cycleContext.DisplayOvulationDate,
-		"DisplayOvulationExact":      cycleContext.DisplayOvulationExact,
-		"DisplayOvulationImpossible": cycleContext.DisplayOvulationImpossible,
-		"NextPeriodInPast":           cycleContext.NextPeriodInPast,
-		"OvulationInPast":            cycleContext.OvulationInPast,
-		"Today":                      today.Format("2006-01-02"),
-		"FormattedDate":              services.LocalizedDashboardDate(language, today),
-		"TodayEntry":                 todayLog,
-		"TodayLog":                   todayLog,
-		"TodayHasData":               services.DayHasData(todayLog),
-		"Symptoms":                   symptoms,
-		"SelectedSymptomID":          services.SymptomIDSet(todayLog.SymptomIDs),
-		"IsOwner":                    services.IsOwnerUser(user),
+		"Stats":                      viewData.Stats,
+		"CycleDayReference":          viewData.CycleContext.CycleDayReference,
+		"CycleDayWarning":            viewData.CycleContext.CycleDayWarning,
+		"CycleDataStale":             viewData.CycleContext.CycleDataStale,
+		"DisplayNextPeriodStart":     viewData.CycleContext.DisplayNextPeriodStart,
+		"DisplayOvulationDate":       viewData.CycleContext.DisplayOvulationDate,
+		"DisplayOvulationExact":      viewData.CycleContext.DisplayOvulationExact,
+		"DisplayOvulationImpossible": viewData.CycleContext.DisplayOvulationImpossible,
+		"NextPeriodInPast":           viewData.CycleContext.NextPeriodInPast,
+		"OvulationInPast":            viewData.CycleContext.OvulationInPast,
+		"Today":                      viewData.Today.Format("2006-01-02"),
+		"FormattedDate":              viewData.FormattedDate,
+		"TodayEntry":                 viewData.TodayLog,
+		"TodayLog":                   viewData.TodayLog,
+		"TodayHasData":               viewData.TodayHasData,
+		"Symptoms":                   viewData.Symptoms,
+		"SelectedSymptomID":          viewData.SelectedSymptomID,
+		"IsOwner":                    viewData.IsOwner,
 	}
 	return data, "", nil
 }
 
 func (handler *Handler) buildDayEditorPartialData(user *models.User, language string, messages map[string]string, day time.Time, now time.Time) (fiber.Map, string, error) {
 	handler.ensureDependencies()
-	hasDayData, err := handler.dayService.DayHasDataForDate(user.ID, day, handler.location)
+	viewData, err := handler.dashboardViewService.BuildDayEditorViewData(user, language, day, now, handler.location)
 	if err != nil {
-		return nil, "failed to load day state", err
-	}
-
-	logEntry, symptoms, err := handler.viewerService.FetchDayLogForViewer(user, day, handler.location)
-	if err != nil {
-		return nil, "failed to load day", err
+		switch {
+		case errors.Is(err, services.ErrDashboardViewLoadDayState):
+			return nil, "failed to load day state", err
+		default:
+			return nil, "failed to load day", err
+		}
 	}
 
 	payload := fiber.Map{
-		"Date":              day,
-		"DateString":        day.Format("2006-01-02"),
-		"DateLabel":         services.LocalizedDateLabel(language, day),
-		"IsFutureDate":      day.After(services.DateAtLocation(now.In(handler.location), handler.location)),
+		"Date":              viewData.Date,
+		"DateString":        viewData.DateString,
+		"DateLabel":         viewData.DateLabel,
+		"IsFutureDate":      viewData.IsFutureDate,
 		"NoDataLabel":       translateMessage(messages, "common.not_available"),
-		"Log":               logEntry,
-		"Symptoms":          symptoms,
-		"SelectedSymptomID": services.SymptomIDSet(logEntry.SymptomIDs),
-		"HasDayData":        hasDayData,
-		"IsOwner":           services.IsOwnerUser(user),
+		"Log":               viewData.Log,
+		"Symptoms":          viewData.Symptoms,
+		"SelectedSymptomID": viewData.SelectedSymptomID,
+		"HasDayData":        viewData.HasDayData,
+		"IsOwner":           viewData.IsOwner,
 	}
 	return payload, "", nil
 }

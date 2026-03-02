@@ -10,25 +10,26 @@ import (
 )
 
 type Handler struct {
-	secretKey           []byte
-	location            *time.Location
-	cookieSecure        bool
-	i18n                *i18n.Manager
-	templates           map[string]*template.Template
-	partials            map[string]*template.Template
-	recoveryLimiter     *services.AttemptLimiter
-	repositories        *db.Repositories
-	authService         *services.AuthService
-	passwordResetSvc    *services.PasswordResetService
-	dayService          *services.DayService
-	symptomService      *services.SymptomService
-	viewerService       *services.ViewerService
-	statsService        *services.StatsService
-	exportService       *services.ExportService
-	settingsService     *services.SettingsService
-	notificationService *services.NotificationService
-	onboardingSvc       *services.OnboardingService
-	setupService        *services.SetupService
+	secretKey            []byte
+	location             *time.Location
+	cookieSecure         bool
+	i18n                 *i18n.Manager
+	templates            map[string]*template.Template
+	partials             map[string]*template.Template
+	recoveryLimiter      *services.AttemptLimiter
+	repositories         *db.Repositories
+	authService          *services.AuthService
+	passwordResetSvc     *services.PasswordResetService
+	dayService           *services.DayService
+	symptomService       *services.SymptomService
+	viewerService        *services.ViewerService
+	statsService         *services.StatsService
+	dashboardViewService *services.DashboardViewService
+	exportService        *services.ExportService
+	settingsService      *services.SettingsService
+	notificationService  *services.NotificationService
+	onboardingSvc        *services.OnboardingService
+	setupService         *services.SetupService
 }
 
 type CalendarDay struct {
