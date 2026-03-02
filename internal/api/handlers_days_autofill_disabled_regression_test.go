@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestUpsertDayAutoFillCanBeDisabled(t *testing.T) {
@@ -52,7 +53,7 @@ func TestUpsertDayAutoFillCanBeDisabled(t *testing.T) {
 	}
 
 	handler := &Handler{db: database, location: time.UTC}
-	firstDay, err := parseDayParam("2026-02-10", time.UTC)
+	firstDay, err := services.ParseDayDate("2026-02-10", time.UTC)
 	if err != nil {
 		t.Fatalf("parse first day: %v", err)
 	}
@@ -64,7 +65,7 @@ func TestUpsertDayAutoFillCanBeDisabled(t *testing.T) {
 		t.Fatalf("expected first selected day to be period")
 	}
 
-	nextDay, err := parseDayParam("2026-02-11", time.UTC)
+	nextDay, err := services.ParseDayDate("2026-02-11", time.UTC)
 	if err != nil {
 		t.Fatalf("parse next day: %v", err)
 	}

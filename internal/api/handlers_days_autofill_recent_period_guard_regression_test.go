@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestUpsertDayAutoFillSkipsWhenRecentPeriodDayExists(t *testing.T) {
@@ -64,7 +65,7 @@ func TestUpsertDayAutoFillSkipsWhenRecentPeriodDayExists(t *testing.T) {
 	}
 
 	handler := &Handler{db: database, location: time.UTC}
-	nextDay, err := parseDayParam("2026-02-11", time.UTC)
+	nextDay, err := services.ParseDayDate("2026-02-11", time.UTC)
 	if err != nil {
 		t.Fatalf("parse next day: %v", err)
 	}

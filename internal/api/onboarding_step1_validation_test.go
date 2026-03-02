@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/terraincognita07/ovumcy/internal/services"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,7 +15,7 @@ func TestOnboardingStep1RejectsFutureAndTooOldDates(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "step1-validation@example.com", "StrongPass1", false)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	futureDate := dateAtLocation(time.Now().In(time.UTC), time.UTC).AddDate(0, 0, 1).Format("2006-01-02")
+	futureDate := services.DateAtLocation(time.Now().In(time.UTC), time.UTC).AddDate(0, 0, 1).Format("2006-01-02")
 	futureForm := url.Values{
 		"last_period_start": {futureDate},
 	}
@@ -32,7 +33,7 @@ func TestOnboardingStep1RejectsFutureAndTooOldDates(t *testing.T) {
 		t.Fatalf("expected future date status 400, got %d", futureResponse.StatusCode)
 	}
 
-	oldDate := dateAtLocation(time.Now().In(time.UTC), time.UTC).AddDate(0, 0, -61).Format("2006-01-02")
+	oldDate := services.DateAtLocation(time.Now().In(time.UTC), time.UTC).AddDate(0, 0, -61).Format("2006-01-02")
 	oldForm := url.Values{
 		"last_period_start": {oldDate},
 	}
@@ -56,7 +57,7 @@ func TestOnboardingStep1IgnoresUnexpectedPeriodEndInput(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "step1-extra-period-end@example.com", "StrongPass1", false)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	stepDate := dateAtLocation(time.Now().In(time.UTC), time.UTC).AddDate(0, 0, -4)
+	stepDate := services.DateAtLocation(time.Now().In(time.UTC), time.UTC).AddDate(0, 0, -4)
 	form := url.Values{
 		"last_period_start": {stepDate.Format("2006-01-02")},
 		"period_end":        {stepDate.Format("2006-01-02")},

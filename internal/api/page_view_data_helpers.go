@@ -9,7 +9,7 @@ import (
 )
 
 func (handler *Handler) buildDashboardViewData(user *models.User, language string, messages map[string]string, now time.Time) (fiber.Map, string, error) {
-	today := dateAtLocation(now, handler.location)
+	today := services.DateAtLocation(now, handler.location)
 
 	stats, _, err := handler.buildCycleStatsForRange(user, today.AddDate(-2, 0, 0), today, now)
 	if err != nil {
@@ -63,7 +63,7 @@ func (handler *Handler) buildDayEditorPartialData(user *models.User, language st
 		"Date":              day,
 		"DateString":        day.Format("2006-01-02"),
 		"DateLabel":         services.LocalizedDateLabel(language, day),
-		"IsFutureDate":      day.After(dateAtLocation(now.In(handler.location), handler.location)),
+		"IsFutureDate":      day.After(services.DateAtLocation(now.In(handler.location), handler.location)),
 		"NoDataLabel":       translateMessage(messages, "common.not_available"),
 		"Log":               logEntry,
 		"Symptoms":          symptoms,

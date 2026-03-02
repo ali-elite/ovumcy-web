@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestDashboardSymptomsNotesPanelUsesSavedSymptomsAndNotesState(t *testing.T) {
@@ -23,7 +24,7 @@ func TestDashboardSymptomsNotesPanelUsesSavedSymptomsAndNotesState(t *testing.T)
 		t.Fatalf("create symptoms: %v", err)
 	}
 
-	today := dateAtLocation(time.Now().In(time.UTC), time.UTC)
+	today := services.DateAtLocation(time.Now().In(time.UTC), time.UTC)
 	logEntry := models.DailyLog{
 		UserID:     user.ID,
 		Date:       today,

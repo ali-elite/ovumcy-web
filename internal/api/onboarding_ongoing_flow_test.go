@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestOnboardingFlowCompletesWithOngoingPeriodRangeAndFlowNone(t *testing.T) {
@@ -13,7 +14,7 @@ func TestOnboardingFlowCompletesWithOngoingPeriodRangeAndFlowNone(t *testing.T) 
 	user := createOnboardingTestUser(t, database, "flow@example.com", "StrongPass1", false)
 
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
-	today := dateAtLocation(time.Now().In(time.UTC), time.UTC)
+	today := services.DateAtLocation(time.Now().In(time.UTC), time.UTC)
 	stepDate := today.AddDate(0, 0, -2)
 	stepDateRaw := stepDate.Format("2006-01-02")
 

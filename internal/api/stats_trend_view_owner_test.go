@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestBuildStatsTrendViewTrimsPointsAndAppliesOwnerBaseline(t *testing.T) {
@@ -12,7 +13,7 @@ func TestBuildStatsTrendViewTrimsPointsAndAppliesOwnerBaseline(t *testing.T) {
 
 	handler := &Handler{location: time.UTC}
 	now := time.Date(2026, time.February, 21, 12, 0, 0, 0, time.UTC)
-	today := dateAtLocation(now, time.UTC)
+	today := services.DateAtLocation(now, time.UTC)
 
 	start := today.AddDate(0, 0, -(14*28 + 2))
 	logs := make([]models.DailyLog, 0, 15)

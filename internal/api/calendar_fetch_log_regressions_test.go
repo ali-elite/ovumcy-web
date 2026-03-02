@@ -9,6 +9,7 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/db"
 	"github.com/terraincognita07/ovumcy/internal/i18n"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -79,7 +80,7 @@ func TestFetchLogByDateFindsZuluStoredRowForLocalCalendarDay(t *testing.T) {
 		t.Fatalf("init handler: %v", err)
 	}
 
-	day, err := parseDayParam("2026-02-17", moscow)
+	day, err := services.ParseDayDate("2026-02-17", moscow)
 	if err != nil {
 		t.Fatalf("parse day: %v", err)
 	}
@@ -164,7 +165,7 @@ func TestFetchLogByDateIgnoresUTCShiftedRowForLocalCalendarDay(t *testing.T) {
 		t.Fatalf("init handler: %v", err)
 	}
 
-	day, err := parseDayParam("2026-02-22", moscow)
+	day, err := services.ParseDayDate("2026-02-22", moscow)
 	if err != nil {
 		t.Fatalf("parse day: %v", err)
 	}

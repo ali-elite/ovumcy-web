@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestStatsChartExcludesCycleEndingToday(t *testing.T) {
@@ -16,7 +17,7 @@ func TestStatsChartExcludesCycleEndingToday(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "stats-trend@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	today := dateAtLocation(time.Now().In(time.UTC), time.UTC)
+	today := services.DateAtLocation(time.Now().In(time.UTC), time.UTC)
 	previousStart := today.AddDate(0, 0, -10)
 
 	logs := []models.DailyLog{

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestDashboardTodaySavePersistsPeriodToggleAndNotes(t *testing.T) {
@@ -18,7 +19,7 @@ func TestDashboardTodaySavePersistsPeriodToggleAndNotes(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "dashboard-today-save@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	today := dateAtLocation(time.Now().In(time.UTC), time.UTC)
+	today := services.DateAtLocation(time.Now().In(time.UTC), time.UTC)
 	todayRaw := today.Format("2006-01-02")
 	note := "Remember hydration and rest"
 
@@ -54,7 +55,7 @@ func TestDashboardTodaySavePersistsPeriodToggleAndNotes(t *testing.T) {
 		t.Fatalf("expected dismiss button marker in save status markup, got %q", string(saveBody))
 	}
 
-	parsedDay, err := parseDayParam(todayRaw, time.UTC)
+	parsedDay, err := services.ParseDayDate(todayRaw, time.UTC)
 	if err != nil {
 		t.Fatalf("parse day for assertion: %v", err)
 	}

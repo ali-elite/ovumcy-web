@@ -50,7 +50,7 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 
 	lastPeriodStart := ""
 	if persisted.LastPeriodStart != nil {
-		lastPeriodStart = dateAtLocation(*persisted.LastPeriodStart, handler.location).Format("2006-01-02")
+		lastPeriodStart = services.DateAtLocation(*persisted.LastPeriodStart, handler.location).Format("2006-01-02")
 	}
 	minCycleStart, today := services.SettingsCycleStartDateBounds(time.Now().In(handler.location), handler.location)
 
@@ -78,11 +78,11 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 		data["ExportDateFrom"] = summary.DateFrom
 		data["ExportDateTo"] = summary.DateTo
 		displayFrom := summary.DateFrom
-		if parsedFrom, parseErr := parseDayParam(summary.DateFrom, handler.location); parseErr == nil {
+		if parsedFrom, parseErr := services.ParseDayDate(summary.DateFrom, handler.location); parseErr == nil {
 			displayFrom = services.LocalizedDateDisplay(language, parsedFrom)
 		}
 		displayTo := summary.DateTo
-		if parsedTo, parseErr := parseDayParam(summary.DateTo, handler.location); parseErr == nil {
+		if parsedTo, parseErr := services.ParseDayDate(summary.DateTo, handler.location); parseErr == nil {
 			displayTo = services.LocalizedDateDisplay(language, parsedTo)
 		}
 		data["ExportDateFromDisplay"] = displayFrom

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestDashboardRendersTodayEntryPeriodAndNotesFromStoredLog(t *testing.T) {
@@ -17,7 +18,7 @@ func TestDashboardRendersTodayEntryPeriodAndNotesFromStoredLog(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "dashboard-render-binding@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	today := dateAtLocation(time.Now().In(time.UTC), time.UTC)
+	today := services.DateAtLocation(time.Now().In(time.UTC), time.UTC)
 	entry := models.DailyLog{
 		UserID:   user.ID,
 		Date:     today,

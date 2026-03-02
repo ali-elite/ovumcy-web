@@ -13,7 +13,7 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	day, err := parseDayParam(c.Params("date"), handler.location)
+	day, err := services.ParseDayDate(c.Params("date"), handler.location)
 	if err != nil {
 		return apiError(c, fiber.StatusBadRequest, "invalid date")
 	}

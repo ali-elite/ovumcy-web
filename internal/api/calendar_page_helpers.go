@@ -32,7 +32,7 @@ func (handler *Handler) buildCalendarViewData(user *models.User, language string
 		"NextMonth":    nextMonth,
 		"SelectedDate": selectedDate,
 		"CalendarDays": days,
-		"Today":        dateAtLocation(now, handler.location).Format("2006-01-02"),
+		"Today":        services.DateAtLocation(now, handler.location).Format("2006-01-02"),
 		"Stats":        stats,
 		"IsOwner":      services.IsOwnerUser(user),
 	}

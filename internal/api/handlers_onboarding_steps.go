@@ -16,7 +16,7 @@ func (handler *Handler) OnboardingStep1(c *fiber.Ctx) error {
 		return redirectOrJSON(c, "/dashboard")
 	}
 
-	today := dateAtLocation(time.Now().In(handler.location), handler.location)
+	today := services.DateAtLocation(time.Now().In(handler.location), handler.location)
 	values, validationError := handler.parseOnboardingStep1Values(c, today)
 	if validationError != "" {
 		return apiError(c, fiber.StatusBadRequest, validationError)

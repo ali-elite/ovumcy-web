@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestDashboardEnglishRendersLocalizedPredictionDates(t *testing.T) {
@@ -16,7 +17,7 @@ func TestDashboardEnglishRendersLocalizedPredictionDates(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "dashboard-date-localization@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	lastPeriodStart := dateAtLocation(time.Now().UTC(), time.UTC).AddDate(0, 0, -8)
+	lastPeriodStart := services.DateAtLocation(time.Now().UTC(), time.UTC).AddDate(0, 0, -8)
 	if err := database.Model(&models.User{}).Where("id = ?", user.ID).Updates(map[string]any{
 		"cycle_length":      28,
 		"period_length":     5,

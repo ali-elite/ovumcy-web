@@ -11,11 +11,11 @@ func (handler *Handler) GetDays(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	from, err := parseDayParam(c.Query("from"), handler.location)
+	from, err := services.ParseDayDate(c.Query("from"), handler.location)
 	if err != nil {
 		return apiError(c, fiber.StatusBadRequest, "invalid from date")
 	}
-	to, err := parseDayParam(c.Query("to"), handler.location)
+	to, err := services.ParseDayDate(c.Query("to"), handler.location)
 	if err != nil {
 		return apiError(c, fiber.StatusBadRequest, "invalid to date")
 	}
@@ -39,7 +39,7 @@ func (handler *Handler) GetDay(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	day, err := parseDayParam(c.Params("date"), handler.location)
+	day, err := services.ParseDayDate(c.Params("date"), handler.location)
 	if err != nil {
 		return apiError(c, fiber.StatusBadRequest, "invalid date")
 	}
@@ -60,7 +60,7 @@ func (handler *Handler) CheckDayExists(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	day, err := parseDayParam(c.Params("date"), handler.location)
+	day, err := services.ParseDayDate(c.Params("date"), handler.location)
 	if err != nil {
 		return apiError(c, fiber.StatusBadRequest, "invalid date")
 	}

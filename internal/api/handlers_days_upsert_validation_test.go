@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestUpsertDayNormalizesFlowWhenNotPeriod(t *testing.T) {
@@ -44,7 +45,7 @@ func TestUpsertDayNormalizesFlowWhenNotPeriod(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", response.StatusCode)
 	}
 
-	day, err := parseDayParam("2026-02-19", time.UTC)
+	day, err := services.ParseDayDate("2026-02-19", time.UTC)
 	if err != nil {
 		t.Fatalf("parse day for assertion: %v", err)
 	}
@@ -89,7 +90,7 @@ func TestUpsertDayAllowsPeriodWithoutExplicitFlow(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", response.StatusCode)
 	}
 
-	day, err := parseDayParam("2026-02-19", time.UTC)
+	day, err := services.ParseDayDate("2026-02-19", time.UTC)
 	if err != nil {
 		t.Fatalf("parse day for assertion: %v", err)
 	}
@@ -148,7 +149,7 @@ func TestUpsertDayClearsSymptomsWhenNotPeriod(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", response.StatusCode)
 	}
 
-	day, err := parseDayParam("2026-02-20", time.UTC)
+	day, err := services.ParseDayDate("2026-02-20", time.UTC)
 	if err != nil {
 		t.Fatalf("parse day for assertion: %v", err)
 	}

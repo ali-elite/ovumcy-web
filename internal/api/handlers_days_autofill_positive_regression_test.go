@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestUpsertDayAutoFillsFollowingPeriodDays(t *testing.T) {
@@ -54,7 +55,7 @@ func TestUpsertDayAutoFillsFollowingPeriodDays(t *testing.T) {
 	handler := &Handler{db: database, location: time.UTC}
 	autoFilledDays := []string{"2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13"}
 	for _, dateRaw := range autoFilledDays {
-		day, err := parseDayParam(dateRaw, time.UTC)
+		day, err := services.ParseDayDate(dateRaw, time.UTC)
 		if err != nil {
 			t.Fatalf("parse day %s: %v", dateRaw, err)
 		}
@@ -67,7 +68,7 @@ func TestUpsertDayAutoFillsFollowingPeriodDays(t *testing.T) {
 		}
 	}
 
-	dayAfterAutoFill, err := parseDayParam("2026-02-14", time.UTC)
+	dayAfterAutoFill, err := services.ParseDayDate("2026-02-14", time.UTC)
 	if err != nil {
 		t.Fatalf("parse day after auto-fill: %v", err)
 	}

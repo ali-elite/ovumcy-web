@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func (handler *Handler) CalendarDayPanel(c *fiber.Ctx) error {
@@ -16,7 +17,7 @@ func (handler *Handler) CalendarDayPanel(c *fiber.Ctx) error {
 		return nil
 	}
 
-	day, err := parseDayParam(c.Params("date"), handler.location)
+	day, err := services.ParseDayDate(c.Params("date"), handler.location)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString("invalid date")
 	}

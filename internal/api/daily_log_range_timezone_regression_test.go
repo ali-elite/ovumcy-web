@@ -9,6 +9,7 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/db"
 	"github.com/terraincognita07/ovumcy/internal/i18n"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -79,7 +80,7 @@ func TestFetchLogsForUserExcludesUTCShiftedRowForLocalDayRange(t *testing.T) {
 		t.Fatalf("init handler: %v", err)
 	}
 
-	from, err := parseDayParam("2026-02-22", moscow)
+	from, err := services.ParseDayDate("2026-02-22", moscow)
 	if err != nil {
 		t.Fatalf("parse from day: %v", err)
 	}

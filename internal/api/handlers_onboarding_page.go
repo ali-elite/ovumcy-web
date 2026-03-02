@@ -16,7 +16,7 @@ func (handler *Handler) ShowOnboarding(c *fiber.Ctx) error {
 		return c.Redirect("/dashboard", fiber.StatusSeeOther)
 	}
 
-	now := dateAtLocation(time.Now().In(handler.location), handler.location)
+	now := services.DateAtLocation(time.Now().In(handler.location), handler.location)
 	data := handler.buildOnboardingViewData(c, user, now)
 	return handler.render(c, "onboarding", data)
 }

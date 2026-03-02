@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/terraincognita07/ovumcy/internal/services"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +17,7 @@ func TestDashboardPeriodToggleSyncsToCalendarDayPanel(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "dashboard-calendar-sync@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	today := dateAtLocation(time.Now().In(time.UTC), time.UTC).Format("2006-01-02")
+	today := services.DateAtLocation(time.Now().In(time.UTC), time.UTC).Format("2006-01-02")
 	form := url.Values{
 		"is_period": {"true"},
 		"flow":      {"none"},
@@ -71,7 +72,7 @@ func TestDashboardPeriodToggleSyncsToCalendarDayPanelInLocalTimezone(t *testing.
 	user := createOnboardingTestUser(t, database, "dashboard-calendar-sync-local@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	today := dateAtLocation(time.Now().In(location), location).Format("2006-01-02")
+	today := services.DateAtLocation(time.Now().In(location), location).Format("2006-01-02")
 	form := url.Values{
 		"is_period": {"true"},
 		"flow":      {"none"},

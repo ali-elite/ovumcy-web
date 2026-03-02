@@ -15,6 +15,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/db"
 	"github.com/terraincognita07/ovumcy/internal/i18n"
+	"github.com/terraincognita07/ovumcy/internal/services"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +24,7 @@ func TestDashboardTodaySavePersistsAndRendersWithNonUTCTimezone(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "dashboard-today-tz@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	today := dateAtLocation(time.Now().In(location), location).Format("2006-01-02")
+	today := services.DateAtLocation(time.Now().In(location), location).Format("2006-01-02")
 	note := "timezone save note"
 
 	form := url.Values{

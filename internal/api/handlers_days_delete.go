@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func (handler *Handler) DeleteDailyLog(c *fiber.Ctx) error {
@@ -12,7 +13,7 @@ func (handler *Handler) DeleteDailyLog(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	day, err := parseDayParam(c.Query("date"), handler.location)
+	day, err := services.ParseDayDate(c.Query("date"), handler.location)
 	if err != nil {
 		return apiError(c, fiber.StatusBadRequest, "invalid date")
 	}
@@ -48,7 +49,7 @@ func (handler *Handler) DeleteDay(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	day, err := parseDayParam(c.Params("date"), handler.location)
+	day, err := services.ParseDayDate(c.Params("date"), handler.location)
 	if err != nil {
 		return apiError(c, fiber.StatusBadRequest, "invalid date")
 	}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/terraincognita07/ovumcy/internal/services"
 	"net/url"
 	"testing"
 	"time"
@@ -11,7 +12,7 @@ func TestOnboardingFlowBuildsPeriodRangeFromSliderPeriodLength(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "flow-finished@example.com", "StrongPass1", false)
 
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
-	startDay := dateAtLocation(time.Now().In(time.UTC), time.UTC).AddDate(0, 0, -14)
+	startDay := services.DateAtLocation(time.Now().In(time.UTC), time.UTC).AddDate(0, 0, -14)
 	periodLength := 8
 	endDayExclusive := startDay.AddDate(0, 0, periodLength)
 
