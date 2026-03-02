@@ -17,7 +17,7 @@ func (handler *Handler) buildDashboardViewData(user *models.User, language strin
 		return nil, "failed to load logs", err
 	}
 
-	todayLog, symptoms, err := handler.fetchDayLogForViewer(user, today)
+	todayLog, symptoms, err := handler.viewerService.FetchDayLogForViewer(user, today, handler.location)
 	if err != nil {
 		return nil, "failed to load today log", err
 	}
@@ -56,7 +56,7 @@ func (handler *Handler) buildDayEditorPartialData(user *models.User, language st
 		return nil, "failed to load day state", err
 	}
 
-	logEntry, symptoms, err := handler.fetchDayLogForViewer(user, day)
+	logEntry, symptoms, err := handler.viewerService.FetchDayLogForViewer(user, day, handler.location)
 	if err != nil {
 		return nil, "failed to load day", err
 	}
