@@ -9,7 +9,7 @@ import (
 )
 
 func (handler *Handler) buildCalendarViewData(user *models.User, language string, messages map[string]string, now time.Time, monthStart time.Time, selectedDate string) (fiber.Map, string, error) {
-	logRangeStart, logRangeEnd := calendarLogRange(monthStart)
+	logRangeStart, logRangeEnd := services.CalendarLogRange(monthStart)
 	logs, err := handler.fetchLogsForUser(user.ID, logRangeStart, logRangeEnd)
 	if err != nil {
 		return nil, "failed to load calendar", err
@@ -21,7 +21,7 @@ func (handler *Handler) buildCalendarViewData(user *models.User, language string
 	}
 
 	days := handler.buildCalendarDays(monthStart, logs, stats, now)
-	prevMonth, nextMonth := calendarAdjacentMonthValues(monthStart)
+	prevMonth, nextMonth := services.CalendarAdjacentMonthValues(monthStart)
 
 	data := fiber.Map{
 		"Title":        localizedPageTitle(messages, "meta.title.calendar", "Ovumcy | Calendar"),

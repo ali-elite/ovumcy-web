@@ -1,6 +1,9 @@
 package api
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/services"
+)
 
 func (handler *Handler) ShowCalendar(c *fiber.Ctx) error {
 	user, handled, err := handler.currentUserOrRedirectToLogin(c)
@@ -12,7 +15,7 @@ func (handler *Handler) ShowCalendar(c *fiber.Ctx) error {
 	}
 
 	language, messages, now := handler.currentPageViewContext(c)
-	activeMonth, selectedDate, err := resolveCalendarMonthAndSelectedDate(c.Query("month"), c.Query("day"), now, handler.location)
+	activeMonth, selectedDate, err := services.ResolveCalendarMonthAndSelectedDate(c.Query("month"), c.Query("day"), now, handler.location)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString("invalid month")
 	}

@@ -24,9 +24,10 @@ func (handler *Handler) OnboardingComplete(c *fiber.Ctx) error {
 		}
 	}
 
-	startDay, err := handler.completeOnboardingForUser(user.ID)
+	handler.ensureDependencies()
+	startDay, err := handler.onboardingSvc.CompleteOnboardingForUser(user.ID, handler.location)
 	if err != nil {
-		if errors.Is(err, errOnboardingStepsRequired) {
+		if errors.Is(err, services.ErrOnboardingStepsRequired) {
 			return apiError(c, fiber.StatusBadRequest, "complete onboarding steps first")
 		}
 		return apiError(c, fiber.StatusInternalServerError, "failed to finish onboarding")
