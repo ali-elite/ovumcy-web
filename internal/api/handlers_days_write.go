@@ -23,11 +23,11 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusBadRequest, "invalid payload")
 	}
 
-	cleanIDs, err := handler.validateSymptomIDs(user.ID, payload.SymptomIDs)
+	handler.ensureDependencies()
+	cleanIDs, err := handler.symptomService.ValidateSymptomIDs(user.ID, payload.SymptomIDs)
 	if err != nil {
 		return apiError(c, fiber.StatusBadRequest, "invalid symptom ids")
 	}
-	handler.ensureDependencies()
 	entry, err := handler.dayService.UpsertDayEntryWithAutoFill(user.ID, day, services.DayEntryInput{
 		IsPeriod:   payload.IsPeriod,
 		Flow:       payload.Flow,

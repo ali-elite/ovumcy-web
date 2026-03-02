@@ -24,11 +24,12 @@ func TestFetchExportDataDateRangeFiltersInclusiveBoundaries(t *testing.T) {
 
 	from := time.Date(2026, time.February, 11, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2026, time.February, 11, 0, 0, 0, 0, time.UTC)
+	handler.ensureDependencies()
 
 	t.Run("exact day range includes target day", func(t *testing.T) {
-		filtered, _, err := handler.fetchExportData(user.ID, &from, &to)
+		filtered, _, err := handler.exportService.LoadDataForRange(user.ID, &from, &to, handler.location)
 		if err != nil {
-			t.Fatalf("fetchExportData returned error: %v", err)
+			t.Fatalf("LoadDataForRange returned error: %v", err)
 		}
 		if len(filtered) != 1 {
 			t.Fatalf("expected exactly one entry, got %d", len(filtered))
@@ -39,9 +40,9 @@ func TestFetchExportDataDateRangeFiltersInclusiveBoundaries(t *testing.T) {
 	})
 
 	t.Run("from only includes from and after", func(t *testing.T) {
-		filtered, _, err := handler.fetchExportData(user.ID, &from, nil)
+		filtered, _, err := handler.exportService.LoadDataForRange(user.ID, &from, nil, handler.location)
 		if err != nil {
-			t.Fatalf("fetchExportData returned error: %v", err)
+			t.Fatalf("LoadDataForRange returned error: %v", err)
 		}
 		if len(filtered) != 2 {
 			t.Fatalf("expected two entries, got %d", len(filtered))
@@ -52,9 +53,9 @@ func TestFetchExportDataDateRangeFiltersInclusiveBoundaries(t *testing.T) {
 	})
 
 	t.Run("to only includes up to and including day", func(t *testing.T) {
-		filtered, _, err := handler.fetchExportData(user.ID, nil, &to)
+		filtered, _, err := handler.exportService.LoadDataForRange(user.ID, nil, &to, handler.location)
 		if err != nil {
-			t.Fatalf("fetchExportData returned error: %v", err)
+			t.Fatalf("LoadDataForRange returned error: %v", err)
 		}
 		if len(filtered) != 2 {
 			t.Fatalf("expected two entries, got %d", len(filtered))
@@ -82,15 +83,16 @@ func TestFetchExportSummaryForRangeDateFiltersInclusiveBoundaries(t *testing.T) 
 
 	from := time.Date(2026, time.February, 11, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2026, time.February, 11, 0, 0, 0, 0, time.UTC)
+	handler.ensureDependencies()
 
-	total, first, last, err := handler.fetchExportSummaryForRange(user.ID, &from, &to)
+	summary, err := handler.exportService.BuildSummary(user.ID, &from, &to, handler.location)
 	if err != nil {
-		t.Fatalf("fetchExportSummaryForRange returned error: %v", err)
+		t.Fatalf("BuildSummary returned error: %v", err)
 	}
-	if total != 1 {
-		t.Fatalf("expected total=1, got %d", total)
+	if summary.TotalEntries != 1 {
+		t.Fatalf("expected total=1, got %d", summary.TotalEntries)
 	}
-	if first != "2026-02-11" || last != "2026-02-11" {
-		t.Fatalf("expected range 2026-02-11..2026-02-11, got %s..%s", first, last)
+	if summary.DateFrom != "2026-02-11" || summary.DateTo != "2026-02-11" {
+		t.Fatalf("expected range 2026-02-11..2026-02-11, got %s..%s", summary.DateFrom, summary.DateTo)
 	}
 }
