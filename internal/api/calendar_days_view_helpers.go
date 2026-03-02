@@ -1,14 +1,10 @@
 package api
 
 import (
-	"time"
-
-	"github.com/terraincognita07/ovumcy/internal/models"
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
-func (handler *Handler) buildCalendarDays(monthStart time.Time, logs []models.DailyLog, stats services.CycleStats, now time.Time) []CalendarDay {
-	states := services.BuildCalendarDayStates(monthStart, logs, stats, now, handler.location)
+func (handler *Handler) buildCalendarDays(states []services.CalendarDayState) []CalendarDay {
 	days := make([]CalendarDay, 0, len(states))
 	for _, state := range states {
 		cellClass := "calendar-cell"

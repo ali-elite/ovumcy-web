@@ -1,0 +1,74 @@
+package services
+
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/terraincognita07/ovumcy/internal/models"
+)
+
+var (
+	ErrCalendarViewLoadLogs  = errors.New("calendar view load logs")
+	ErrCalendarViewLoadStats = errors.New("calendar view load stats")
+)
+
+type CalendarViewDayReader interface {
+	FetchLogsForUser(userID uint, from time.Time, to time.Time, location *time.Location) ([]models.DailyLog, error)
+}
+
+type CalendarViewStatsProvider interface {
+	BuildCycleStatsForRange(user *models.User, from time.Time, to time.Time, now time.Time, location *time.Location) (CycleStats, []models.DailyLog, error)
+}
+
+type CalendarPageViewData struct {
+	MonthLabel   string
+	MonthValue   string
+	PrevMonth    string
+	NextMonth    string
+	SelectedDate string
+	DayStates    []CalendarDayState
+	TodayISO     string
+	Stats        CycleStats
+	IsOwner      bool
+}
+
+type CalendarViewService struct {
+	days  CalendarViewDayReader
+	stats CalendarViewStatsProvider
+}
+
+func NewCalendarViewService(days CalendarViewDayReader, stats CalendarViewStatsProvider) *CalendarViewService {
+	return &CalendarViewService{
+		days:  days,
+		stats: stats,
+	}
+}
+
+func (service *CalendarViewService) BuildCalendarPageViewData(user *models.User, language string, now time.Time, monthStart time.Time, selectedDate string, location *time.Location) (CalendarPageViewData, error) {
+	logRangeStart, logRangeEnd := CalendarLogRange(monthStart)
+	logs, err := service.days.FetchLogsForUser(user.ID, logRangeStart, logRangeEnd, location)
+	if err != nil {
+		return CalendarPageViewData{}, fmt.Errorf("%w: %v", ErrCalendarViewLoadLogs, err)
+	}
+
+	stats, _, err := service.stats.BuildCycleStatsForRange(user, now.AddDate(-2, 0, 0), now, now, location)
+	if err != nil {
+		return CalendarPageViewData{}, fmt.Errorf("%w: %v", ErrCalendarViewLoadStats, err)
+	}
+
+	prevMonth, nextMonth := CalendarAdjacentMonthValues(monthStart)
+	dayStates := BuildCalendarDayStates(monthStart, logs, stats, now, location)
+
+	return CalendarPageViewData{
+		MonthLabel:   LocalizedMonthYear(language, monthStart),
+		MonthValue:   monthStart.Format("2006-01"),
+		PrevMonth:    prevMonth,
+		NextMonth:    nextMonth,
+		SelectedDate: selectedDate,
+		DayStates:    dayStates,
+		TodayISO:     DateAtLocation(now, location).Format("2006-01-02"),
+		Stats:        stats,
+		IsOwner:      IsOwnerUser(user),
+	}, nil
+}

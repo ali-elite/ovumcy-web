@@ -24,6 +24,7 @@ type Handler struct {
 	symptomService       *services.SymptomService
 	viewerService        *services.ViewerService
 	statsService         *services.StatsService
+	calendarViewService  *services.CalendarViewService
 	dashboardViewService *services.DashboardViewService
 	exportService        *services.ExportService
 	settingsService      *services.SettingsService

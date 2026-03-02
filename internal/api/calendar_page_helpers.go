@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,32 +12,30 @@ import (
 func (handler *Handler) buildCalendarViewData(user *models.User, language string, messages map[string]string, now time.Time, monthStart time.Time, selectedDate string) (fiber.Map, string, error) {
 	handler.ensureDependencies()
 
-	logRangeStart, logRangeEnd := services.CalendarLogRange(monthStart)
-	logs, err := handler.dayService.FetchLogsForUser(user.ID, logRangeStart, logRangeEnd, handler.location)
+	viewData, err := handler.calendarViewService.BuildCalendarPageViewData(user, language, now, monthStart, selectedDate, handler.location)
 	if err != nil {
-		return nil, "failed to load calendar", err
+		switch {
+		case errors.Is(err, services.ErrCalendarViewLoadLogs):
+			return nil, "failed to load calendar", err
+		default:
+			return nil, "failed to load stats", err
+		}
 	}
 
-	stats, _, err := handler.statsService.BuildCycleStatsForRange(user, now.AddDate(-2, 0, 0), now, now, handler.location)
-	if err != nil {
-		return nil, "failed to load stats", err
-	}
-
-	days := handler.buildCalendarDays(monthStart, logs, stats, now)
-	prevMonth, nextMonth := services.CalendarAdjacentMonthValues(monthStart)
+	days := handler.buildCalendarDays(viewData.DayStates)
 
 	data := fiber.Map{
 		"Title":        localizedPageTitle(messages, "meta.title.calendar", "Ovumcy | Calendar"),
 		"CurrentUser":  user,
-		"MonthLabel":   services.LocalizedMonthYear(language, monthStart),
-		"MonthValue":   monthStart.Format("2006-01"),
-		"PrevMonth":    prevMonth,
-		"NextMonth":    nextMonth,
-		"SelectedDate": selectedDate,
+		"MonthLabel":   viewData.MonthLabel,
+		"MonthValue":   viewData.MonthValue,
+		"PrevMonth":    viewData.PrevMonth,
+		"NextMonth":    viewData.NextMonth,
+		"SelectedDate": viewData.SelectedDate,
 		"CalendarDays": days,
-		"Today":        services.DateAtLocation(now, handler.location).Format("2006-01-02"),
-		"Stats":        stats,
-		"IsOwner":      services.IsOwnerUser(user),
+		"Today":        viewData.TodayISO,
+		"Stats":        viewData.Stats,
+		"IsOwner":      viewData.IsOwner,
 	}
 	return data, "", nil
 }

@@ -25,17 +25,6 @@ func responseCookie(cookies []*http.Cookie, name string) *http.Cookie {
 	return nil
 }
 
-func findCalendarDayByDateString(t *testing.T, days []CalendarDay, date string) CalendarDay {
-	t.Helper()
-	for _, day := range days {
-		if day.DateString == date {
-			return day
-		}
-	}
-	t.Fatalf("calendar day %s not found", date)
-	return CalendarDay{}
-}
-
 func readAPIError(t *testing.T, body io.Reader) string {
 	t.Helper()
 

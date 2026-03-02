@@ -1,0 +1,101 @@
+package services
+
+import (
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/terraincognita07/ovumcy/internal/models"
+)
+
+type stubCalendarViewDayReader struct {
+	logs []models.DailyLog
+	err  error
+}
+
+func (stub *stubCalendarViewDayReader) FetchLogsForUser(_ uint, _ time.Time, _ time.Time, _ *time.Location) ([]models.DailyLog, error) {
+	if stub.err != nil {
+		return nil, stub.err
+	}
+	result := make([]models.DailyLog, len(stub.logs))
+	copy(result, stub.logs)
+	return result, nil
+}
+
+type stubCalendarViewStatsProvider struct {
+	stats CycleStats
+	err   error
+}
+
+func (stub *stubCalendarViewStatsProvider) BuildCycleStatsForRange(_ *models.User, _ time.Time, _ time.Time, _ time.Time, _ *time.Location) (CycleStats, []models.DailyLog, error) {
+	if stub.err != nil {
+		return CycleStats{}, nil, stub.err
+	}
+	return stub.stats, nil, nil
+}
+
+func TestBuildCalendarPageViewData(t *testing.T) {
+	service := NewCalendarViewService(
+		&stubCalendarViewDayReader{},
+		&stubCalendarViewStatsProvider{stats: CycleStats{MedianCycleLength: 28}},
+	)
+
+	user := &models.User{ID: 1, Role: models.RoleOwner}
+	now := mustParseCalendarViewDay(t, "2026-02-21")
+	monthStart := mustParseCalendarViewDay(t, "2026-02-01")
+
+	viewData, err := service.BuildCalendarPageViewData(user, "en", now, monthStart, "2026-02-17", time.UTC)
+	if err != nil {
+		t.Fatalf("BuildCalendarPageViewData() unexpected error: %v", err)
+	}
+
+	if viewData.MonthValue != "2026-02" {
+		t.Fatalf("expected MonthValue=2026-02, got %q", viewData.MonthValue)
+	}
+	if viewData.PrevMonth != "2026-01" || viewData.NextMonth != "2026-03" {
+		t.Fatalf("unexpected adjacent months prev=%q next=%q", viewData.PrevMonth, viewData.NextMonth)
+	}
+	if viewData.SelectedDate != "2026-02-17" {
+		t.Fatalf("expected selected date passthrough, got %q", viewData.SelectedDate)
+	}
+	if viewData.TodayISO != "2026-02-21" {
+		t.Fatalf("expected TodayISO=2026-02-21, got %q", viewData.TodayISO)
+	}
+	if !viewData.IsOwner {
+		t.Fatalf("expected IsOwner=true")
+	}
+	if len(viewData.DayStates) == 0 {
+		t.Fatalf("expected non-empty day states")
+	}
+}
+
+func TestBuildCalendarPageViewDataReturnsTypedErrors(t *testing.T) {
+	user := &models.User{ID: 2, Role: models.RoleOwner}
+	now := mustParseCalendarViewDay(t, "2026-02-21")
+	monthStart := mustParseCalendarViewDay(t, "2026-02-01")
+
+	logErrService := NewCalendarViewService(
+		&stubCalendarViewDayReader{err: errors.New("logs fail")},
+		&stubCalendarViewStatsProvider{},
+	)
+	if _, err := logErrService.BuildCalendarPageViewData(user, "en", now, monthStart, "", time.UTC); !errors.Is(err, ErrCalendarViewLoadLogs) {
+		t.Fatalf("expected ErrCalendarViewLoadLogs, got %v", err)
+	}
+
+	statsErrService := NewCalendarViewService(
+		&stubCalendarViewDayReader{},
+		&stubCalendarViewStatsProvider{err: errors.New("stats fail")},
+	)
+	if _, err := statsErrService.BuildCalendarPageViewData(user, "en", now, monthStart, "", time.UTC); !errors.Is(err, ErrCalendarViewLoadStats) {
+		t.Fatalf("expected ErrCalendarViewLoadStats, got %v", err)
+	}
+}
+
+func mustParseCalendarViewDay(t *testing.T, raw string) time.Time {
+	t.Helper()
+	parsed, err := time.ParseInLocation("2006-01-02", raw, time.UTC)
+	if err != nil {
+		t.Fatalf("parse day %q: %v", raw, err)
+	}
+	return parsed
+}
