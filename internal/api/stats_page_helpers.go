@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 const maxStatsTrendPoints = 12
@@ -73,7 +74,7 @@ func (handler *Handler) buildStatsPageData(user *models.User, language string, m
 		"HasReliableTrend":     flags.HasReliableTrend,
 		"CycleDataStale":       flags.CycleDataStale,
 		"SymptomCounts":        symptomCounts,
-		"IsOwner":              isOwnerUser(user),
+		"IsOwner":              services.IsOwnerUser(user),
 	}
 	return data, "", nil
 }

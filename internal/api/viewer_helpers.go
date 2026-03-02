@@ -7,18 +7,6 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
-func isOwnerUser(user *models.User) bool {
-	return services.IsOwnerUser(user)
-}
-
-func sanitizeLogForViewer(user *models.User, entry models.DailyLog) models.DailyLog {
-	return services.SanitizeLogForViewer(user, entry)
-}
-
-func sanitizeLogsForViewer(user *models.User, logs []models.DailyLog) {
-	services.SanitizeLogsForViewer(user, logs)
-}
-
 func (handler *Handler) fetchSymptomsForViewer(user *models.User) ([]models.SymptomType, error) {
 	if !services.ShouldExposeSymptomsForViewer(user) {
 		return []models.SymptomType{}, nil

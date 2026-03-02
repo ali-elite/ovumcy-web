@@ -1,6 +1,9 @@
 package api
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/services"
+)
 
 func (handler *Handler) GetDays(c *fiber.Ctx) error {
 	user, ok := currentUser(c)
@@ -25,7 +28,7 @@ func (handler *Handler) GetDays(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusInternalServerError, "failed to fetch logs")
 	}
 
-	sanitizeLogsForViewer(user, logs)
+	services.SanitizeLogsForViewer(user, logs)
 
 	return c.JSON(logs)
 }
@@ -46,7 +49,7 @@ func (handler *Handler) GetDay(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusInternalServerError, "failed to fetch day")
 	}
 
-	logEntry = sanitizeLogForViewer(user, logEntry)
+	logEntry = services.SanitizeLogForViewer(user, logEntry)
 
 	return c.JSON(logEntry)
 }

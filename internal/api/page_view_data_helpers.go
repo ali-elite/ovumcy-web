@@ -43,7 +43,7 @@ func (handler *Handler) buildDashboardViewData(user *models.User, language strin
 		"TodayHasData":               services.DayHasData(todayLog),
 		"Symptoms":                   symptoms,
 		"SelectedSymptomID":          services.SymptomIDSet(todayLog.SymptomIDs),
-		"IsOwner":                    isOwnerUser(user),
+		"IsOwner":                    services.IsOwnerUser(user),
 	}
 	return data, "", nil
 }
@@ -69,7 +69,7 @@ func (handler *Handler) buildDayEditorPartialData(user *models.User, language st
 		"Symptoms":          symptoms,
 		"SelectedSymptomID": services.SymptomIDSet(logEntry.SymptomIDs),
 		"HasDayData":        hasDayData,
-		"IsOwner":           isOwnerUser(user),
+		"IsOwner":           services.IsOwnerUser(user),
 	}
 	return payload, "", nil
 }
