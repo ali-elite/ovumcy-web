@@ -1,11 +1,10 @@
 package api
 
 import (
-	"fmt"
-	"html/template"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/httpx"
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
@@ -28,17 +27,17 @@ func apiError(c *fiber.Ctx, status int, message string) error {
 				rendered = localized
 			}
 		}
-		return c.Status(status).SendString(fmt.Sprintf("<div class=\"status-error\">%s</div>", template.HTMLEscapeString(rendered)))
+		return c.Status(status).SendString(httpx.StatusErrorMarkup(rendered))
 	}
 	return c.Status(status).JSON(fiber.Map{"error": message})
 }
 
 func acceptsJSON(c *fiber.Ctx) bool {
-	return strings.Contains(strings.ToLower(c.Get("Accept")), "application/json")
+	return httpx.AcceptsJSON(c, httpx.JSONModeAcceptOnly)
 }
 
 func isHTMX(c *fiber.Ctx) bool {
-	return strings.EqualFold(c.Get("HX-Request"), "true")
+	return httpx.IsHTMX(c)
 }
 
 func csrfToken(c *fiber.Ctx) string {

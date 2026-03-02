@@ -1,11 +1,10 @@
 package api
 
 import (
-	"fmt"
-	"html/template"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/httpx"
 )
 
 func (handler *Handler) NotFound(c *fiber.Ctx) error {
@@ -19,7 +18,7 @@ func (handler *Handler) NotFound(c *fiber.Ctx) error {
 			message = "Page not found"
 		}
 		c.Status(fiber.StatusNotFound)
-		return c.SendString(fmt.Sprintf("<div class=\"status-error\">%s</div>", template.HTMLEscapeString(message)))
+		return c.SendString(httpx.StatusErrorMarkup(message))
 	}
 
 	currentUser := handler.optionalAuthenticatedUser(c)

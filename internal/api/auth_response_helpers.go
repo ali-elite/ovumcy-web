@@ -1,12 +1,11 @@
 package api
 
 import (
-	"fmt"
-	"html/template"
 	"net/url"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/httpx"
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
@@ -50,7 +49,7 @@ func (handler *Handler) respondSettingsError(c *fiber.Ctx, status int, message s
 				rendered = localized
 			}
 		}
-		return c.Status(fiber.StatusOK).SendString(fmt.Sprintf("<div class=\"status-error\">%s</div>", template.HTMLEscapeString(rendered)))
+		return c.Status(fiber.StatusOK).SendString(httpx.StatusErrorMarkup(rendered))
 	}
 	if (strings.HasPrefix(c.Path(), "/api/settings/") || strings.HasPrefix(c.Path(), "/settings/")) && !acceptsJSON(c) {
 		handler.setFlashCookie(c, FlashPayload{SettingsError: message})

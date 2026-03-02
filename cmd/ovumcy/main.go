@@ -23,6 +23,7 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/api"
 	"github.com/terraincognita07/ovumcy/internal/cli"
 	"github.com/terraincognita07/ovumcy/internal/db"
+	"github.com/terraincognita07/ovumcy/internal/httpx"
 	"github.com/terraincognita07/ovumcy/internal/i18n"
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
@@ -371,13 +372,11 @@ func newAuthRateLimitHandler(i18nManager *i18n.Manager, config authRateLimitConf
 			message = "Too many requests. Please wait and try again."
 		}
 
-		if isHTMXRequest(c) {
-			return c.Status(fiber.StatusTooManyRequests).SendString(
-				fmt.Sprintf("<div class=\"status-error\">%s</div>", template.HTMLEscapeString(message)),
-			)
+		if httpx.IsHTMX(c) {
+			return c.Status(fiber.StatusTooManyRequests).SendString(httpx.StatusErrorMarkup(message))
 		}
 
-		if acceptsJSONRequest(c) {
+		if httpx.AcceptsJSON(c, httpx.JSONModeAcceptOrContentType) {
 			payload := fiber.Map{"error": message}
 			if retryAfter := retryAfterSeconds(c); retryAfter > 0 {
 				payload["retry_after_seconds"] = retryAfter
@@ -404,13 +403,11 @@ func newAPIRateLimitHandler(i18nManager *i18n.Manager) fiber.Handler {
 			message = "Too many requests. Please wait and try again."
 		}
 
-		if isHTMXRequest(c) {
-			return c.Status(fiber.StatusTooManyRequests).SendString(
-				fmt.Sprintf("<div class=\"status-error\">%s</div>", template.HTMLEscapeString(message)),
-			)
+		if httpx.IsHTMX(c) {
+			return c.Status(fiber.StatusTooManyRequests).SendString(httpx.StatusErrorMarkup(message))
 		}
 
-		if acceptsJSONRequest(c) {
+		if httpx.AcceptsJSON(c, httpx.JSONModeAcceptOrContentType) {
 			payload := fiber.Map{"error": message}
 			if retryAfter := retryAfterSeconds(c); retryAfter > 0 {
 				payload["retry_after_seconds"] = retryAfter
@@ -452,16 +449,6 @@ func limiterLanguage(c *fiber.Ctx, i18nManager *i18n.Manager) string {
 		return i18nManager.NormalizeLanguage(language)
 	}
 	return i18nManager.DetectFromAcceptLanguage(c.Get("Accept-Language"))
-}
-
-func isHTMXRequest(c *fiber.Ctx) bool {
-	return strings.EqualFold(c.Get("HX-Request"), "true")
-}
-
-func acceptsJSONRequest(c *fiber.Ctx) bool {
-	accept := strings.ToLower(c.Get("Accept"))
-	contentType := strings.ToLower(c.Get(fiber.HeaderContentType))
-	return strings.Contains(accept, fiber.MIMEApplicationJSON) || strings.Contains(contentType, fiber.MIMEApplicationJSON)
 }
 
 func retryAfterSeconds(c *fiber.Ctx) int {
