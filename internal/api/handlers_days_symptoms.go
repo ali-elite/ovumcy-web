@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/models"
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
@@ -13,9 +12,6 @@ func (handler *Handler) GetSymptoms(c *fiber.Ctx) error {
 	user, ok := currentUser(c)
 	if !ok {
 		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
-	}
-	if user.Role != models.RoleOwner {
-		return apiError(c, fiber.StatusForbidden, "owner access required")
 	}
 	symptoms, err := handler.symptomService.FetchSymptoms(user.ID)
 	if err != nil {

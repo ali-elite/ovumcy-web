@@ -2,16 +2,16 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func (handler *Handler) OwnerOnly(c *fiber.Ctx) error {
 	user, ok := currentUser(c)
 	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
 	}
-	if user.Role != models.RoleOwner {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "owner access required"})
+	if !services.IsOwnerUser(user) {
+		return apiError(c, fiber.StatusForbidden, "owner access required")
 	}
 	return c.Next()
 }
