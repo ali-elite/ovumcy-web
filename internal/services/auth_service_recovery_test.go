@@ -129,11 +129,8 @@ func TestAuthServiceRegisterOwner(t *testing.T) {
 		if recoveryCode == "" {
 			t.Fatalf("expected non-empty recovery code")
 		}
-		if !repo.createCalled {
-			t.Fatalf("expected Create() to be called")
-		}
-		if repo.createdUser.Email != "owner@example.com" {
-			t.Fatalf("expected created user email owner@example.com, got %q", repo.createdUser.Email)
+		if repo.createCalled {
+			t.Fatalf("did not expect Create() in RegisterOwner, persistence belongs to registration workflow")
 		}
 	})
 
@@ -164,13 +161,6 @@ func TestAuthServiceRegisterOwner(t *testing.T) {
 		}
 	})
 
-	t.Run("create fails treated as duplicate", func(t *testing.T) {
-		repo := &stubAuthUserRepo{createErr: errors.New("unique constraint")}
-		service := NewAuthService(repo)
-		if _, _, err := service.RegisterOwner("owner@example.com", "StrongPass1", "StrongPass1", createdAt); !errors.Is(err, ErrAuthEmailExists) {
-			t.Fatalf("expected ErrAuthEmailExists, got %v", err)
-		}
-	})
 }
 
 func TestAuthServiceValidateResetPasswordInput(t *testing.T) {

@@ -51,7 +51,30 @@ func (repo *UserRepository) ExistsByNormalizedEmail(email string) (bool, error) 
 }
 
 func (repo *UserRepository) Create(user *models.User) error {
-	return repo.database.Create(user).Error
+	err := repo.database.Create(user).Error
+	return classifyUserCreateError(err)
+}
+
+func (repo *UserRepository) CreateUserWithSymptoms(user *models.User, symptoms []models.SymptomType) error {
+	return repo.database.Transaction(func(tx *gorm.DB) error {
+		if err := classifyUserCreateError(tx.Create(user).Error); err != nil {
+			return err
+		}
+		if len(symptoms) == 0 {
+			return nil
+		}
+
+		prepared := make([]models.SymptomType, len(symptoms))
+		copy(prepared, symptoms)
+		for index := range prepared {
+			prepared[index].UserID = user.ID
+		}
+
+		if err := tx.Create(&prepared).Error; err != nil {
+			return &SymptomSeedError{Err: err}
+		}
+		return nil
+	})
 }
 
 func (repo *UserRepository) Save(user *models.User) error {

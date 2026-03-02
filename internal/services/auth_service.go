@@ -96,9 +96,6 @@ func (service *AuthService) RegisterOwner(email string, rawPassword string, conf
 	if err != nil {
 		return models.User{}, "", ErrAuthRegisterFailed
 	}
-	if err := service.CreateUser(&user); err != nil {
-		return models.User{}, "", ErrAuthEmailExists
-	}
 
 	return user, recoveryCode, nil
 }

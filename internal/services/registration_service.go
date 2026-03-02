@@ -13,19 +13,19 @@ type RegistrationAuthService interface {
 	RegisterOwner(email string, rawPassword string, confirmPassword string, createdAt time.Time) (models.User, string, error)
 }
 
-type RegistrationSymptomSeeder interface {
-	SeedBuiltinSymptoms(userID uint) error
+type RegistrationPersistence interface {
+	CreateUserWithSymptoms(user *models.User, symptoms []models.SymptomType) error
 }
 
 type RegistrationService struct {
-	auth     RegistrationAuthService
-	symptoms RegistrationSymptomSeeder
+	auth  RegistrationAuthService
+	store RegistrationPersistence
 }
 
-func NewRegistrationService(auth RegistrationAuthService, symptoms RegistrationSymptomSeeder) *RegistrationService {
+func NewRegistrationService(auth RegistrationAuthService, store RegistrationPersistence) *RegistrationService {
 	return &RegistrationService{
-		auth:     auth,
-		symptoms: symptoms,
+		auth:  auth,
+		store: store,
 	}
 }
 
@@ -34,8 +34,34 @@ func (service *RegistrationService) RegisterOwnerAccount(email string, rawPasswo
 	if err != nil {
 		return models.User{}, "", err
 	}
-	if err := service.symptoms.SeedBuiltinSymptoms(user.ID); err != nil {
-		return models.User{}, "", ErrRegistrationSeedSymptoms
+
+	if err := service.store.CreateUserWithSymptoms(&user, BuiltinSymptomRecordsForUser(0)); err != nil {
+		if isRegistrationUniqueConstraintError(err) {
+			return models.User{}, "", ErrAuthEmailExists
+		}
+		if isRegistrationSymptomSeedError(err) {
+			return models.User{}, "", ErrRegistrationSeedSymptoms
+		}
+		return models.User{}, "", ErrAuthRegisterFailed
 	}
+
 	return user, recoveryCode, nil
+}
+
+type registrationUniqueConstraintError interface {
+	UniqueConstraint() string
+}
+
+func isRegistrationUniqueConstraintError(err error) bool {
+	var uniqueErr registrationUniqueConstraintError
+	return errors.As(err, &uniqueErr)
+}
+
+type registrationSymptomSeedError interface {
+	SymptomSeedFailure() bool
+}
+
+func isRegistrationSymptomSeedError(err error) bool {
+	var seedErr registrationSymptomSeedError
+	return errors.As(err, &seedErr)
 }
