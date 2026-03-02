@@ -11,7 +11,8 @@ import (
 func (handler *Handler) buildDashboardViewData(user *models.User, language string, messages map[string]string, now time.Time) (fiber.Map, string, error) {
 	today := services.DateAtLocation(now, handler.location)
 
-	stats, _, err := handler.buildCycleStatsForRange(user, today.AddDate(-2, 0, 0), today, now)
+	handler.ensureDependencies()
+	stats, _, err := handler.statsService.BuildCycleStatsForRange(user, today.AddDate(-2, 0, 0), today, now, handler.location)
 	if err != nil {
 		return nil, "failed to load logs", err
 	}

@@ -49,7 +49,8 @@ func (handler *Handler) buildStatsSymptomCounts(user *models.User, language stri
 }
 
 func (handler *Handler) buildStatsPageData(user *models.User, language string, messages map[string]string, now time.Time) (fiber.Map, string, error) {
-	stats, logs, err := handler.buildCycleStatsForRange(user, now.AddDate(-2, 0, 0), now, now)
+	handler.ensureDependencies()
+	stats, logs, err := handler.statsService.BuildCycleStatsForRange(user, now.AddDate(-2, 0, 0), now, now, handler.location)
 	if err != nil {
 		return nil, "failed to load stats", err
 	}

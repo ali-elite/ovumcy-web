@@ -29,9 +29,10 @@ func TestBuildCycleStatsForRange_AppliesOnboardingBaseline(t *testing.T) {
 	}
 
 	now := mustParseBaselineDay(t, "2026-02-20")
-	stats, logs, err := handler.buildCycleStatsForRange(&user, now.AddDate(0, 0, -10), now, now)
+	handler.ensureDependencies()
+	stats, logs, err := handler.statsService.BuildCycleStatsForRange(&user, now.AddDate(0, 0, -10), now, now, handler.location)
 	if err != nil {
-		t.Fatalf("buildCycleStatsForRange returned error: %v", err)
+		t.Fatalf("BuildCycleStatsForRange returned error: %v", err)
 	}
 
 	if len(logs) != 1 {

@@ -15,7 +15,8 @@ func (handler *Handler) buildCalendarViewData(user *models.User, language string
 		return nil, "failed to load calendar", err
 	}
 
-	stats, _, err := handler.buildCycleStatsForRange(user, now.AddDate(-2, 0, 0), now, now)
+	handler.ensureDependencies()
+	stats, _, err := handler.statsService.BuildCycleStatsForRange(user, now.AddDate(-2, 0, 0), now, now, handler.location)
 	if err != nil {
 		return nil, "failed to load stats", err
 	}
