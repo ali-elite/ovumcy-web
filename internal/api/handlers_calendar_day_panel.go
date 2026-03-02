@@ -17,7 +17,8 @@ func (handler *Handler) CalendarDayPanel(c *fiber.Ctx) error {
 		return nil
 	}
 
-	day, err := services.ParseDayDate(c.Params("date"), handler.location)
+	location := handler.requestLocation(c)
+	day, err := services.ParseDayDate(c.Params("date"), location)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString("invalid date")
 	}
@@ -27,7 +28,8 @@ func (handler *Handler) CalendarDayPanel(c *fiber.Ctx) error {
 
 func (handler *Handler) renderDayEditorPartial(c *fiber.Ctx, user *models.User, day time.Time) error {
 	language, messages, now := handler.currentPageViewContext(c)
-	payload, errorMessage, err := handler.buildDayEditorPartialData(user, language, messages, day, now)
+	location := handler.requestLocation(c)
+	payload, errorMessage, err := handler.buildDayEditorPartialData(user, language, messages, day, now, location)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString(errorMessage)
 	}

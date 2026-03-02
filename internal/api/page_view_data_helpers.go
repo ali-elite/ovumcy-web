@@ -8,8 +8,8 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
-func (handler *Handler) buildDashboardViewData(user *models.User, language string, messages map[string]string, now time.Time) (fiber.Map, string, error) {
-	viewData, err := handler.dashboardViewService.BuildDashboardViewData(user, language, now, handler.location)
+func (handler *Handler) buildDashboardViewData(user *models.User, language string, messages map[string]string, now time.Time, location *time.Location) (fiber.Map, string, error) {
+	viewData, err := handler.dashboardViewService.BuildDashboardViewData(user, language, now, location)
 	if err != nil {
 		switch services.ClassifyDashboardViewError(err) {
 		case services.DashboardViewErrorLoadTodayLog:
@@ -44,8 +44,8 @@ func (handler *Handler) buildDashboardViewData(user *models.User, language strin
 	return data, "", nil
 }
 
-func (handler *Handler) buildDayEditorPartialData(user *models.User, language string, messages map[string]string, day time.Time, now time.Time) (fiber.Map, string, error) {
-	viewData, err := handler.dashboardViewService.BuildDayEditorViewData(user, language, day, now, handler.location)
+func (handler *Handler) buildDayEditorPartialData(user *models.User, language string, messages map[string]string, day time.Time, now time.Time, location *time.Location) (fiber.Map, string, error) {
+	viewData, err := handler.dashboardViewService.BuildDayEditorViewData(user, language, day, now, location)
 	if err != nil {
 		switch services.ClassifyDashboardViewError(err) {
 		case services.DashboardViewErrorLoadDayState:

@@ -22,7 +22,7 @@ func htmxDismissibleSuccessStatusMarkup(messages map[string]string, message stri
 }
 
 func (handler *Handler) sendDaySaveStatus(c *fiber.Ctx) error {
-	timestamp := time.Now().In(handler.location).Format("15:04")
+	timestamp := time.Now().In(handler.requestLocation(c)).Format("15:04")
 	pattern := translateMessage(currentMessages(c), "common.saved_at")
 	if pattern == "common.saved_at" {
 		pattern = "Saved at %s"

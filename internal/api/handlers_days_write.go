@@ -11,7 +11,8 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 		return apiError(c, fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	day, err := services.ParseDayDate(c.Params("date"), handler.location)
+	location := handler.requestLocation(c)
+	day, err := services.ParseDayDate(c.Params("date"), location)
 	if err != nil {
 		return apiError(c, fiber.StatusBadRequest, "invalid date")
 	}
@@ -29,7 +30,7 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 		Flow:       payload.Flow,
 		Notes:      payload.Notes,
 		SymptomIDs: cleanIDs,
-	}, handler.location)
+	}, location)
 	if err != nil {
 		switch services.ClassifyDayUpsertError(err) {
 		case services.DayUpsertErrorInvalidFlow:

@@ -66,6 +66,19 @@ func TestDayRangeNormalizesToLocationMidnight(t *testing.T) {
 	}
 }
 
+func TestDateAtLocationShiftsToNextLocalDayAcrossUTCBoundary(t *testing.T) {
+	location := time.FixedZone("UTC+3", 3*60*60)
+	raw := time.Date(2026, time.March, 2, 21, 30, 0, 0, time.UTC)
+
+	day := DateAtLocation(raw, location)
+	if day.Format("2006-01-02") != "2026-03-03" {
+		t.Fatalf("expected local date 2026-03-03, got %s", day.Format("2006-01-02"))
+	}
+	if day.Hour() != 0 || day.Minute() != 0 || day.Second() != 0 {
+		t.Fatalf("expected normalized local midnight, got %s", day.Format(time.RFC3339))
+	}
+}
+
 func TestCalendarDayHelpers(t *testing.T) {
 	day := time.Date(2026, time.February, 17, 0, 0, 0, 0, time.UTC)
 	sameDayLater := time.Date(2026, time.February, 17, 23, 59, 0, 0, time.UTC)

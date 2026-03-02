@@ -7,6 +7,9 @@
   var TOAST_EXIT_MS = 220;
   var STATUS_CLEAR_MS = 2000;
   var DOWNLOAD_REVOKE_MS = 500;
+  var TIMEZONE_COOKIE_NAME = "ovumcy_tz";
+  var TIMEZONE_HEADER_NAME = "X-Ovumcy-Timezone";
+  var TIMEZONE_COOKIE_MAX_AGE_SECONDS = 31536000;
 
   function getEventTarget(event) {
     return event && event.target ? event.target : null;
@@ -30,6 +33,63 @@
       return;
     }
     callback();
+  }
+
+  function isSafeClientTimezone(value) {
+    if (!value || value.length > 128) {
+      return false;
+    }
+    return /^[A-Za-z0-9_+\-\/]+$/.test(value);
+  }
+
+  function detectClientTimezone() {
+    try {
+      var formatter = Intl && Intl.DateTimeFormat ? Intl.DateTimeFormat() : null;
+      var options = formatter && formatter.resolvedOptions ? formatter.resolvedOptions() : null;
+      var timezone = options && options.timeZone ? String(options.timeZone).trim() : "";
+      if (!isSafeClientTimezone(timezone)) {
+        return "";
+      }
+      return timezone;
+    } catch {
+      return "";
+    }
+  }
+
+  function writeClientCookie(name, value, maxAgeSeconds) {
+    if (!name || !value) {
+      return;
+    }
+    var cookie = name + "=" + encodeURIComponent(value) +
+      "; Path=/" +
+      "; SameSite=Lax" +
+      "; Max-Age=" + String(maxAgeSeconds || 0);
+    if (window.location && window.location.protocol === "https:") {
+      cookie += "; Secure";
+    }
+    document.cookie = cookie;
+  }
+
+  function initClientTimezone() {
+    var timezone = detectClientTimezone();
+    if (!timezone) {
+      return;
+    }
+    window.__ovumcyTimezone = timezone;
+    writeClientCookie(TIMEZONE_COOKIE_NAME, timezone, TIMEZONE_COOKIE_MAX_AGE_SECONDS);
+  }
+
+  function currentClientTimezone() {
+    var known = String(window.__ovumcyTimezone || "").trim();
+    if (known && isSafeClientTimezone(known)) {
+      return known;
+    }
+
+    var detected = detectClientTimezone();
+    if (detected) {
+      window.__ovumcyTimezone = detected;
+    }
+    return detected;
   }
 
   function parseLanguage(raw) {
@@ -671,6 +731,11 @@
       event.detail.parameters.csrf_token = token;
       event.detail.headers = event.detail.headers || {};
       event.detail.headers["X-CSRF-Token"] = token;
+
+      var timezone = currentClientTimezone();
+      if (timezone) {
+        event.detail.headers[TIMEZONE_HEADER_NAME] = timezone;
+      }
     });
 
     document.body.addEventListener("htmx:beforeRequest", function (event) {
@@ -1217,6 +1282,7 @@
   onDocumentReady(function () {
     initAuthPanelTransitions();
     initLanguageSwitcher();
+    initClientTimezone();
     initPasswordToggles();
     initLoginValidation();
     initLoginPasswordPersistence();

@@ -222,6 +222,11 @@
       event.detail.parameters.csrf_token = token;
       event.detail.headers = event.detail.headers || {};
       event.detail.headers["X-CSRF-Token"] = token;
+
+      var timezone = currentClientTimezone();
+      if (timezone) {
+        event.detail.headers[TIMEZONE_HEADER_NAME] = timezone;
+      }
     });
 
     document.body.addEventListener("htmx:beforeRequest", function (event) {

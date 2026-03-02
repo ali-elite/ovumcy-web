@@ -40,8 +40,28 @@ func currentUserOrUnauthorized(c *fiber.Ctx) (*models.User, bool, error) {
 	return user, false, nil
 }
 
+func currentRequestLocation(c *fiber.Ctx) *time.Location {
+	location, ok := c.Locals(contextLocationKey).(*time.Location)
+	if !ok || location == nil {
+		return nil
+	}
+	return location
+}
+
+func (handler *Handler) requestLocation(c *fiber.Ctx) *time.Location {
+	location := currentRequestLocation(c)
+	if location != nil {
+		return location
+	}
+	if handler.location != nil {
+		return handler.location
+	}
+	return time.UTC
+}
+
 func (handler *Handler) currentPageViewContext(c *fiber.Ctx) (string, map[string]string, time.Time) {
-	return currentLanguage(c), currentMessages(c), time.Now().In(handler.location)
+	location := handler.requestLocation(c)
+	return currentLanguage(c), currentMessages(c), time.Now().In(location)
 }
 
 func (handler *Handler) optionalAuthenticatedUser(c *fiber.Ctx) *models.User {
