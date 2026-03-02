@@ -64,7 +64,7 @@ func TestUpsertDayAutoFillSkipsWhenRecentPeriodDayExists(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", response.StatusCode)
 	}
 
-	handler := &Handler{db: database, location: time.UTC}
+	handler := newServiceBackedHandlerForTest(database, time.UTC)
 	nextDay, err := services.ParseDayDate("2026-02-11", time.UTC)
 	if err != nil {
 		t.Fatalf("parse next day: %v", err)

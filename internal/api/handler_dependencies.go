@@ -25,10 +25,7 @@ func (handler *Handler) withDependencies(database *gorm.DB) *Handler {
 
 func (handler *Handler) ensureDependencies() {
 	if handler.repositories == nil {
-		if handler.db == nil {
-			return
-		}
-		handler.repositories = db.NewRepositories(handler.db)
+		return
 	}
 
 	if handler.authService == nil {

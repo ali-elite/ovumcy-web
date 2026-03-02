@@ -26,11 +26,18 @@ func newDataAccessTestHandler(t *testing.T) (*Handler, *gorm.DB) {
 		_ = sqlDB.Close()
 	})
 
-	handler := &Handler{
-		db:       database,
-		location: time.UTC,
+	return newServiceBackedHandlerForTest(database, time.UTC), database
+}
+
+func newServiceBackedHandlerForTest(database *gorm.DB, location *time.Location) *Handler {
+	if location == nil {
+		location = time.UTC
 	}
-	return handler, database
+
+	handler := &Handler{
+		location: location,
+	}
+	return handler.withDependencies(database)
 }
 
 func createDataAccessTestUser(t *testing.T, database *gorm.DB, email string) models.User {

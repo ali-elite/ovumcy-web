@@ -7,13 +7,9 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/db"
 	"github.com/terraincognita07/ovumcy/internal/i18n"
 	"github.com/terraincognita07/ovumcy/internal/services"
-	"gorm.io/gorm"
 )
 
 type Handler struct {
-	// db is kept for backward compatibility in tests that still construct
-	// Handler literals directly. Runtime logic uses repositories/services.
-	db                  *gorm.DB
 	secretKey           []byte
 	location            *time.Location
 	cookieSecure        bool

@@ -30,7 +30,6 @@ func NewHandler(database *gorm.DB, secret string, templateDir string, location *
 	}
 
 	handler := &Handler{
-		db:              database,
 		secretKey:       []byte(secret),
 		location:        location,
 		cookieSecure:    cookieSecure,

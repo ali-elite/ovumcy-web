@@ -52,7 +52,7 @@ func TestUpsertDayAutoFillsFollowingPeriodDays(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", response.StatusCode)
 	}
 
-	handler := &Handler{db: database, location: time.UTC}
+	handler := newServiceBackedHandlerForTest(database, time.UTC)
 	autoFilledDays := []string{"2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13"}
 	for _, dateRaw := range autoFilledDays {
 		day, err := services.ParseDayDate(dateRaw, time.UTC)

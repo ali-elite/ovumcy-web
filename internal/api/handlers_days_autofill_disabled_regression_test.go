@@ -52,7 +52,7 @@ func TestUpsertDayAutoFillCanBeDisabled(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", response.StatusCode)
 	}
 
-	handler := &Handler{db: database, location: time.UTC}
+	handler := newServiceBackedHandlerForTest(database, time.UTC)
 	firstDay, err := services.ParseDayDate("2026-02-10", time.UTC)
 	if err != nil {
 		t.Fatalf("parse first day: %v", err)
