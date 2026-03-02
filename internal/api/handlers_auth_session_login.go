@@ -26,7 +26,7 @@ func (handler *Handler) Register(c *fiber.Ctx) error {
 		}
 	}
 
-	exists, err := handler.registrationEmailExists(credentials.Email)
+	exists, err := handler.authService.RegistrationEmailExists(credentials.Email)
 	if err != nil {
 		return apiError(c, fiber.StatusInternalServerError, "failed to create account")
 	}
