@@ -15,7 +15,8 @@ func (handler *Handler) fetchSymptomsForViewer(user *models.User) ([]models.Symp
 }
 
 func (handler *Handler) fetchDayLogForViewer(user *models.User, day time.Time) (models.DailyLog, []models.SymptomType, error) {
-	logEntry, err := handler.fetchLogByDate(user.ID, day)
+	handler.ensureDependencies()
+	logEntry, err := handler.dayService.FetchLogByDate(user.ID, day, handler.location)
 	if err != nil {
 		return models.DailyLog{}, nil, err
 	}

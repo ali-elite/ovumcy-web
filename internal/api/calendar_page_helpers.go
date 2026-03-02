@@ -9,13 +9,14 @@ import (
 )
 
 func (handler *Handler) buildCalendarViewData(user *models.User, language string, messages map[string]string, now time.Time, monthStart time.Time, selectedDate string) (fiber.Map, string, error) {
+	handler.ensureDependencies()
+
 	logRangeStart, logRangeEnd := services.CalendarLogRange(monthStart)
-	logs, err := handler.fetchLogsForUser(user.ID, logRangeStart, logRangeEnd)
+	logs, err := handler.dayService.FetchLogsForUser(user.ID, logRangeStart, logRangeEnd, handler.location)
 	if err != nil {
 		return nil, "failed to load calendar", err
 	}
 
-	handler.ensureDependencies()
 	stats, _, err := handler.statsService.BuildCycleStatsForRange(user, now.AddDate(-2, 0, 0), now, now, handler.location)
 	if err != nil {
 		return nil, "failed to load stats", err

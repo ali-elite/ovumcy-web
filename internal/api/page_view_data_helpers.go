@@ -50,7 +50,8 @@ func (handler *Handler) buildDashboardViewData(user *models.User, language strin
 }
 
 func (handler *Handler) buildDayEditorPartialData(user *models.User, language string, messages map[string]string, day time.Time, now time.Time) (fiber.Map, string, error) {
-	hasDayData, err := handler.dayHasDataForDate(user.ID, day)
+	handler.ensureDependencies()
+	hasDayData, err := handler.dayService.DayHasDataForDate(user.ID, day, handler.location)
 	if err != nil {
 		return nil, "failed to load day state", err
 	}
