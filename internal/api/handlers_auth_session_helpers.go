@@ -35,10 +35,6 @@ func parseResetPasswordInput(c *fiber.Ctx) (resetPasswordInput, string) {
 	return input, ""
 }
 
-func buildResetPasswordPath() string {
-	return "/reset-password"
-}
-
 func redirectToPath(c *fiber.Ctx, path string) error {
 	if isHTMX(c) {
 		c.Set("HX-Redirect", path)

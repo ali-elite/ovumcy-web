@@ -40,9 +40,9 @@ func (handler *Handler) buildDashboardViewData(user *models.User, language strin
 		"FormattedDate":              services.LocalizedDashboardDate(language, today),
 		"TodayEntry":                 todayLog,
 		"TodayLog":                   todayLog,
-		"TodayHasData":               dayHasData(todayLog),
+		"TodayHasData":               services.DayHasData(todayLog),
 		"Symptoms":                   symptoms,
-		"SelectedSymptomID":          symptomIDSet(todayLog.SymptomIDs),
+		"SelectedSymptomID":          services.SymptomIDSet(todayLog.SymptomIDs),
 		"IsOwner":                    isOwnerUser(user),
 	}
 	return data, "", nil
@@ -67,7 +67,7 @@ func (handler *Handler) buildDayEditorPartialData(user *models.User, language st
 		"NoDataLabel":       translateMessage(messages, "common.not_available"),
 		"Log":               logEntry,
 		"Symptoms":          symptoms,
-		"SelectedSymptomID": symptomIDSet(logEntry.SymptomIDs),
+		"SelectedSymptomID": services.SymptomIDSet(logEntry.SymptomIDs),
 		"HasDayData":        hasDayData,
 		"IsOwner":           isOwnerUser(user),
 	}

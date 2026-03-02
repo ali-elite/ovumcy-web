@@ -76,7 +76,7 @@ func (handler *Handler) Login(c *fiber.Ctx) error {
 				"error": "password change required",
 			})
 		}
-		return redirectToPath(c, buildResetPasswordPath())
+		return redirectToPath(c, "/reset-password")
 	}
 
 	if err := handler.setAuthCookie(c, &user, credentials.RememberMe); err != nil {

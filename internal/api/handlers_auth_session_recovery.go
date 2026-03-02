@@ -41,7 +41,7 @@ func (handler *Handler) ForgotPassword(c *fiber.Ctx) error {
 		})
 	}
 
-	return redirectToPath(c, buildResetPasswordPath())
+	return redirectToPath(c, "/reset-password")
 }
 
 func (handler *Handler) ResetPassword(c *fiber.Ctx) error {
