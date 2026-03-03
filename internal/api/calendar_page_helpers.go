@@ -8,9 +8,9 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
-func (handler *Handler) buildCalendarViewData(user *models.User, language string, messages map[string]string, now time.Time, monthStart time.Time, selectedDate string) (fiber.Map, string, error) {
+func (handler *Handler) buildCalendarViewData(user *models.User, language string, messages map[string]string, now time.Time, monthStart time.Time, selectedDate string, location *time.Location) (fiber.Map, string, error) {
 
-	viewData, err := handler.calendarViewService.BuildCalendarPageViewData(user, language, now, monthStart, selectedDate, handler.location)
+	viewData, err := handler.calendarViewService.BuildCalendarPageViewData(user, language, now, monthStart, selectedDate, location)
 	if err != nil {
 		switch services.ClassifyCalendarViewError(err) {
 		case services.CalendarViewErrorLoadLogs:

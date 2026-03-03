@@ -1,7 +1,10 @@
 package api
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/models"
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
@@ -37,6 +40,10 @@ func (handler *Handler) UpdateProfile(c *fiber.Ctx) error {
 		})
 	}
 	if isHTMX(c) {
+		identity := userIdentityAfterProfileUpdate(user, displayName)
+		if identity != "" {
+			c.Set("X-Ovumcy-Profile-Identity", identity)
+		}
 		messageKey := services.SettingsStatusTranslationKey(status)
 		message := translateMessage(currentMessages(c), messageKey)
 		if message == "" || message == messageKey {
@@ -46,4 +53,14 @@ func (handler *Handler) UpdateProfile(c *fiber.Ctx) error {
 	}
 	handler.setFlashCookie(c, FlashPayload{SettingsSuccess: status})
 	return redirectOrJSON(c, "/settings")
+}
+
+func userIdentityAfterProfileUpdate(user *models.User, displayName string) string {
+	if user == nil {
+		return ""
+	}
+
+	updatedUser := *user
+	updatedUser.DisplayName = strings.TrimSpace(displayName)
+	return templateUserIdentity(&updatedUser)
 }

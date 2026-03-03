@@ -26,7 +26,8 @@ func (handler *Handler) Register(c *fiber.Ctx) error {
 		case services.AuthRegisterErrorWeakPassword:
 			return handler.respondAuthError(c, fiber.StatusBadRequest, "weak password")
 		case services.AuthRegisterErrorEmailExists:
-			return handler.respondAuthError(c, fiber.StatusConflict, "email already exists")
+			// Keep duplicate registration responses generic to avoid account existence disclosure.
+			return handler.respondAuthError(c, fiber.StatusBadRequest, "invalid input")
 		case services.AuthRegisterErrorInvalidInput:
 			return handler.respondAuthError(c, fiber.StatusBadRequest, "invalid input")
 		case services.AuthRegisterErrorSeedSymptoms:

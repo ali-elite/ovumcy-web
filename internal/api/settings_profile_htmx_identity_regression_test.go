@@ -1,0 +1,86 @@
+package api
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+)
+
+func TestProfileUpdateHTMXReturnsUpdatedIdentityHeader(t *testing.T) {
+	app, database := newOnboardingTestApp(t)
+	user := createOnboardingTestUser(t, database, "profile-htmx-owner@example.com", "StrongPass1", true)
+	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
+
+	form := url.Values{
+		"display_name": {"Maya"},
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/settings/profile", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Cookie", authCookie)
+	request.Header.Set("HX-Request", "true")
+	request.Header.Set("Accept-Language", "en")
+
+	response, err := app.Test(request, -1)
+	if err != nil {
+		t.Fatalf("profile update request failed: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200 for htmx profile update, got %d", response.StatusCode)
+	}
+
+	identity := strings.TrimSpace(response.Header.Get("X-Ovumcy-Profile-Identity"))
+	if identity != "Maya" {
+		t.Fatalf("expected X-Ovumcy-Profile-Identity %q, got %q", "Maya", identity)
+	}
+}
+
+func TestProfileUpdateHTMXReturnsFallbackIdentityWhenDisplayNameCleared(t *testing.T) {
+	app, database := newOnboardingTestApp(t)
+	user := createOnboardingTestUser(t, database, "profile-htmx-clear@example.com", "StrongPass1", true)
+	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
+
+	seedForm := url.Values{
+		"display_name": {"Maya"},
+	}
+	seedRequest := httptest.NewRequest(http.MethodPost, "/api/settings/profile", strings.NewReader(seedForm.Encode()))
+	seedRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	seedRequest.Header.Set("Cookie", authCookie)
+	seedRequest.Header.Set("HX-Request", "true")
+
+	seedResponse, err := app.Test(seedRequest, -1)
+	if err != nil {
+		t.Fatalf("seed profile update request failed: %v", err)
+	}
+	seedResponse.Body.Close()
+	if seedResponse.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200 for seed htmx profile update, got %d", seedResponse.StatusCode)
+	}
+
+	clearForm := url.Values{
+		"display_name": {"   "},
+	}
+	clearRequest := httptest.NewRequest(http.MethodPost, "/api/settings/profile", strings.NewReader(clearForm.Encode()))
+	clearRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	clearRequest.Header.Set("Cookie", authCookie)
+	clearRequest.Header.Set("HX-Request", "true")
+	clearRequest.Header.Set("Accept-Language", "en")
+
+	clearResponse, err := app.Test(clearRequest, -1)
+	if err != nil {
+		t.Fatalf("clear profile update request failed: %v", err)
+	}
+	defer clearResponse.Body.Close()
+
+	if clearResponse.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200 for clear htmx profile update, got %d", clearResponse.StatusCode)
+	}
+
+	identity := strings.TrimSpace(clearResponse.Header.Get("X-Ovumcy-Profile-Identity"))
+	if identity != "profile-htmx-clear" {
+		t.Fatalf("expected fallback identity %q, got %q", "profile-htmx-clear", identity)
+	}
+}

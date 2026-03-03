@@ -715,6 +715,41 @@
     }
   }
 
+  function updateCurrentUserIdentity(identity) {
+    var normalized = String(identity || "").trim();
+    if (!normalized) {
+      return;
+    }
+
+    var identityNodes = document.querySelectorAll("[data-current-user-identity]");
+    for (var index = 0; index < identityNodes.length; index++) {
+      var node = identityNodes[index];
+      node.textContent = normalized;
+      if (typeof node.setAttribute === "function") {
+        node.setAttribute("title", normalized);
+      }
+    }
+  }
+
+  function maybeRefreshCurrentUserIdentity(target, event) {
+    if (!target || target.id !== "settings-profile-status") {
+      return;
+    }
+
+    var detail = event && event.detail ? event.detail : null;
+    var xhr = detail && detail.xhr ? detail.xhr : null;
+    if (!xhr || typeof xhr.getResponseHeader !== "function") {
+      return;
+    }
+
+    var identity = xhr.getResponseHeader("X-Ovumcy-Profile-Identity");
+    if (!identity) {
+      return;
+    }
+
+    updateCurrentUserIdentity(identity);
+  }
+
   function initHTMXHooks() {
     document.body.addEventListener("htmx:configRequest", function (event) {
       var tokenMeta = document.querySelector('meta[name="csrf-token"]');
@@ -757,6 +792,7 @@
         return;
       }
 
+      maybeRefreshCurrentUserIdentity(target, event);
       maybeRefreshDayEditor(target);
       scheduleClearSuccessStatus(target);
     });
@@ -978,7 +1014,9 @@
       },
       init: function () {
         var notesField = this.$root ? this.$root.querySelector("#today-notes") : null;
-        this.notesPreview = notesField ? String(notesField.value || "") : "";
+        if (notesField) {
+          this.notesPreview = String(notesField.defaultValue || notesField.value || "");
+        }
         this.syncSymptoms();
         this.$watch("isPeriod", function (value) {
           if (!value) {

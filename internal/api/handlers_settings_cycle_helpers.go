@@ -11,6 +11,7 @@ import (
 
 func (handler *Handler) parseCycleSettingsInput(c *fiber.Ctx) (services.CycleSettingsUpdate, string) {
 	input := cycleSettingsInput{}
+	location := handler.requestLocation(c)
 
 	contentType := strings.ToLower(c.Get("Content-Type"))
 	if strings.Contains(contentType, "application/json") {
@@ -44,7 +45,7 @@ func (handler *Handler) parseCycleSettingsInput(c *fiber.Ctx) (services.CycleSet
 		AutoPeriodFill:     input.AutoPeriodFill,
 		LastPeriodStartRaw: input.LastPeriodStart,
 		LastPeriodStartSet: input.LastPeriodStartSet,
-	}, time.Now().In(handler.location), handler.location)
+	}, time.Now().In(location), location)
 	if err != nil {
 		switch services.ClassifySettingsCycleValidationError(err) {
 		case services.SettingsCycleValidationErrorCycleLengthOutOfRange:

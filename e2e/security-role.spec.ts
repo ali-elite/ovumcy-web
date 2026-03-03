@@ -93,14 +93,18 @@ test.describe('Security and role-based access', () => {
       await dialog.dismiss();
     });
 
+    const todayAction = await page.locator('form[hx-post^="/api/days/"]').first().getAttribute('hx-post');
+    expect(todayAction).toMatch(/^\/api\/days\/\d{4}-\d{2}-\d{2}$/);
+    const savedDay = String(todayAction || '').replace('/api/days/', '');
+
     const payload = `<script>alert('xss-notes')</script><img src=x onerror=alert('xss-notes-img')>`;
     await page.locator('#today-notes').fill(payload);
     await page.locator('button[data-save-button]').first().click();
     await expect(page.locator('#save-status .status-ok')).toBeVisible();
 
-    await page.reload();
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.locator('#today-notes')).toHaveValue(payload);
+    await page.goto(`/calendar?day=${savedDay}`);
+    await expect(page).toHaveURL(new RegExp(`/calendar\\?day=${savedDay}$`));
+    await expect(page.locator('#calendar-notes')).toHaveValue(payload);
 
     await page.waitForTimeout(250);
     expect(dialogTriggered).toBe(false);

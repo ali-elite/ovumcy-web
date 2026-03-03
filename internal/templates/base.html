@@ -53,6 +53,7 @@
             <span class="nav-user-label">{{t .Messages "nav.current_user"}}:</span>
             <span
               class="role-chip role-chip-identity nav-user-chip"
+              data-current-user-identity
               aria-label="{{t .Messages "nav.current_user"}}"
               title="{{userIdentity .CurrentUser}}">{{userIdentity .CurrentUser}}</span>
           </div>
@@ -65,7 +66,7 @@
         </nav>
 
         <nav x-show="mobileMenu" x-transition class="mt-2 space-y-2 sm:hidden">
-          <p class="journal-muted px-3 pt-1 text-xs">{{t .Messages "nav.current_user"}}: {{userIdentity .CurrentUser}}</p>
+          <p class="journal-muted px-3 pt-1 text-xs">{{t .Messages "nav.current_user"}}: <span data-current-user-identity>{{userIdentity .CurrentUser}}</span></p>
           <a href="/dashboard" class="nav-link block {{if isActiveRoute .CurrentPath "/dashboard"}}nav-link-active{{else if isActiveRoute .CurrentPath "/"}}nav-link-active{{end}}">{{t .Messages "nav.dashboard"}}</a>
           <a href="/calendar" class="nav-link block {{if isActiveRoute .CurrentPath "/calendar"}}nav-link-active{{end}}">{{t .Messages "nav.calendar"}}</a>
           <a href="/stats" class="nav-link block {{if isActiveRoute .CurrentPath "/stats"}}nav-link-active{{end}}">{{t .Messages "nav.stats"}}</a>
@@ -283,6 +284,5 @@
   {{end}}
 </div>
 {{end}}
-
 
 

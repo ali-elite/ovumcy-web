@@ -69,7 +69,9 @@
       },
       init: function () {
         var notesField = this.$root ? this.$root.querySelector("#today-notes") : null;
-        this.notesPreview = notesField ? String(notesField.value || "") : "";
+        if (notesField) {
+          this.notesPreview = String(notesField.defaultValue || notesField.value || "");
+        }
         this.syncSymptoms();
         this.$watch("isPeriod", function (value) {
           if (!value) {

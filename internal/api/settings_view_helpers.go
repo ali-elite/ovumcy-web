@@ -11,6 +11,7 @@ import (
 func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, flash FlashPayload) (fiber.Map, error) {
 	messages := currentMessages(c)
 	language := currentLanguage(c)
+	location := handler.requestLocation(c)
 
 	viewData, err := handler.settingsViewService.BuildSettingsPageViewData(
 		user,
@@ -22,8 +23,8 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 			QueryStatus:  c.Query("status"),
 			QueryError:   c.Query("error"),
 		},
-		time.Now().In(handler.location),
-		handler.location,
+		time.Now().In(location),
+		location,
 	)
 	if err != nil {
 		return nil, err

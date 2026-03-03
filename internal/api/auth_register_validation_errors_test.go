@@ -1,6 +1,7 @@
 package api
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -123,13 +124,13 @@ func TestRegisterRejectsCaseInsensitiveDuplicateEmail(t *testing.T) {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode != http.StatusConflict {
-		t.Fatalf("expected status 409, got %d", response.StatusCode)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", response.StatusCode)
 	}
 
 	errorValue := readAPIError(t, response.Body)
-	if errorValue != "email already exists" {
-		t.Fatalf("expected duplicate email error, got %q", errorValue)
+	if errorValue != "invalid input" {
+		t.Fatalf("expected generic invalid input error, got %q", errorValue)
 	}
 
 	var usersCount int64
@@ -178,13 +179,13 @@ func TestRegisterRejectsExactDuplicateEmail(t *testing.T) {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode != http.StatusConflict {
-		t.Fatalf("expected status 409, got %d", response.StatusCode)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", response.StatusCode)
 	}
 
 	errorValue := readAPIError(t, response.Body)
-	if errorValue != "email already exists" {
-		t.Fatalf("expected duplicate email error, got %q", errorValue)
+	if errorValue != "invalid input" {
+		t.Fatalf("expected generic invalid input error, got %q", errorValue)
 	}
 
 	var usersCount int64
@@ -243,6 +244,26 @@ func TestRegisterRejectsExactDuplicateEmailHTMLFlow(t *testing.T) {
 	flashValue := responseCookieValue(response.Cookies(), flashCookieName)
 	if flashValue == "" {
 		t.Fatalf("expected flash cookie in register duplicate-email response")
+	}
+
+	followRequest := httptest.NewRequest(http.MethodGet, "/register", nil)
+	followRequest.Header.Set("Accept-Language", "en")
+	followRequest.Header.Set("Cookie", flashCookieName+"="+flashValue)
+
+	followResponse, err := app.Test(followRequest, -1)
+	if err != nil {
+		t.Fatalf("follow register request failed: %v", err)
+	}
+	defer followResponse.Body.Close()
+
+	followBody, err := io.ReadAll(followResponse.Body)
+	if err != nil {
+		t.Fatalf("read follow register body: %v", err)
+	}
+
+	rendered := strings.ToLower(string(followBody))
+	if strings.Contains(rendered, "already exists") || strings.Contains(rendered, "already registered") {
+		t.Fatalf("expected duplicate register page to avoid account existence phrases")
 	}
 
 	var usersCount int64
