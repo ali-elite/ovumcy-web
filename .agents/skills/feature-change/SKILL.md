@@ -61,7 +61,7 @@ Help the user implement a feature in ovumcy by:
      - suggest `npm run lint:js` and `npm run build`,
      - list manual UI flows to test (by role: owner/partner, and pages affected).
    - Ask whether to keep or discard generated `web/static/*` diffs.
-
+  - If the feature touches any “today” date logic, always check and reuse the request-local timezone propagation (ovumcy_tz cookie + X-Ovumcy-Timezone header) and add a UTC boundary regression test when relevant.
 7. Final validation and governance suggestions
    - Recommend running:
      - targeted `go test` for affected services and API packages,
