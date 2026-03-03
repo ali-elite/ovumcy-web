@@ -1,0 +1,194 @@
+import { expect, test, type Page } from '@playwright/test';
+import {
+  completeOnboardingIfPresent,
+  continueFromRecoveryCode,
+  createCredentials,
+  readRecoveryCode,
+  registerOwnerViaUI,
+} from './support/auth-helpers';
+
+async function setClientTimezoneCookie(page: Page): Promise<void> {
+  const timezone = await page.evaluate(() => {
+    try {
+      return String(Intl.DateTimeFormat().resolvedOptions().timeZone || '').trim();
+    } catch {
+      return '';
+    }
+  });
+
+  if (!timezone) {
+    return;
+  }
+
+  const origin = new URL(page.url()).origin;
+  await page.context().addCookies([
+    {
+      name: 'ovumcy_tz',
+      value: timezone,
+      url: origin,
+      sameSite: 'Lax',
+    },
+  ]);
+}
+
+async function registerOwnerOnDashboard(page: Page, prefix: string): Promise<void> {
+  const creds = createCredentials(prefix);
+
+  await registerOwnerViaUI(page, creds);
+  await expect(page).toHaveURL(/\/recovery-code$/);
+
+  await readRecoveryCode(page);
+  await continueFromRecoveryCode(page);
+  await completeOnboardingIfPresent(page);
+
+  await setClientTimezoneCookie(page);
+  await page.goto('/dashboard');
+  await expect(page).toHaveURL(/\/dashboard$/);
+}
+
+async function saveToday(page: Page): Promise<void> {
+  await page.locator('button[data-save-button]').first().click();
+  await expect(page.locator('#save-status .status-ok')).toBeVisible();
+}
+
+async function clientLocalISODate(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
+}
+
+test.describe('Dashboard: today editor', () => {
+  test('uses request-local timezone date in today save endpoint', async ({ page }) => {
+    await registerOwnerOnDashboard(page, 'dashboard-timezone');
+
+    const todayForm = page.locator('form[hx-post^="/api/days/"]');
+    await expect(todayForm).toBeVisible();
+
+    const action = await todayForm.getAttribute('hx-post');
+    expect(action).toMatch(/^\/api\/days\/\d{4}-\d{2}-\d{2}$/);
+
+    const serverToday = action!.replace('/api/days/', '');
+    const clientToday = await clientLocalISODate(page);
+
+    expect(serverToday).toBe(clientToday);
+
+    const dateLabel = page.locator('section.journal-card p.journal-muted').first();
+    await expect(dateLabel).toBeVisible();
+    await expect(dateLabel).not.toHaveText(/^$/);
+  });
+
+  test('period/flow/symptoms/notes save and persist after reload; flow is single-select', async ({ page }) => {
+    await registerOwnerOnDashboard(page, 'dashboard-save-persist');
+
+    const periodToggle = page.locator('input[name="is_period"]');
+    const flowMedium = page.locator('input[name="flow"][value="medium"]');
+    const flowHeavy = page.locator('input[name="flow"][value="heavy"]');
+    const notes = page.locator('#today-notes');
+    const symptoms = page.locator('input[name="symptom_ids"]');
+
+    await periodToggle.check();
+    await expect(flowMedium).toBeEnabled();
+
+    await flowMedium.check({ force: true });
+    await expect(flowMedium).toBeChecked();
+
+    await flowHeavy.check({ force: true });
+    await expect(flowHeavy).toBeChecked();
+    await expect(flowMedium).not.toBeChecked();
+
+    await expect(symptoms.first()).toBeEnabled();
+    const firstSymptomValue = await symptoms.nth(0).getAttribute('value');
+    const secondSymptomValue = await symptoms.nth(1).getAttribute('value');
+
+    expect(firstSymptomValue).toBeTruthy();
+    expect(secondSymptomValue).toBeTruthy();
+
+    await symptoms.nth(0).check({ force: true });
+    await symptoms.nth(1).check({ force: true });
+    await expect(symptoms.nth(0)).toBeChecked();
+    await expect(symptoms.nth(1)).toBeChecked();
+
+    await symptoms.nth(1).uncheck({ force: true });
+    await expect(symptoms.nth(0)).toBeChecked();
+    await expect(symptoms.nth(1)).not.toBeChecked();
+
+    const noteText = `dashboard-note-${Date.now()}`;
+    await notes.fill(noteText);
+
+    await saveToday(page);
+
+    await page.reload();
+    await expect(page).toHaveURL(/\/dashboard$/);
+
+    await expect(periodToggle).toBeChecked();
+    await expect(flowHeavy).toBeChecked();
+    await expect(flowMedium).not.toBeChecked();
+    await expect(page.locator(`input[name="symptom_ids"][value="${firstSymptomValue}"]`)).toBeChecked();
+    await expect(page.locator(`input[name="symptom_ids"][value="${secondSymptomValue}"]`)).not.toBeChecked();
+    await expect(notes).toHaveValue(noteText);
+  });
+
+  test('switching Period day off clears symptoms/flow selection for saved state', async ({ page }) => {
+    await registerOwnerOnDashboard(page, 'dashboard-period-off');
+
+    const periodToggle = page.locator('input[name="is_period"]');
+    const flowLight = page.locator('input[name="flow"][value="light"]');
+    const symptoms = page.locator('input[name="symptom_ids"]');
+
+    await periodToggle.check();
+    await flowLight.check({ force: true });
+    await symptoms.nth(0).check({ force: true });
+    await expect(symptoms.nth(0)).toBeChecked();
+
+    await saveToday(page);
+    await page.reload();
+
+    await expect(periodToggle).toBeChecked();
+    await periodToggle.uncheck();
+
+    await expect(symptoms.nth(0)).not.toBeChecked();
+    await expect(flowLight).toBeDisabled();
+
+    await saveToday(page);
+    await page.reload();
+
+    await expect(periodToggle).not.toBeChecked();
+    await expect(symptoms.nth(0)).not.toBeChecked();
+    await expect(flowLight).not.toBeChecked();
+  });
+
+  test('clear today entry resets dashboard fields', async ({ page }) => {
+    await registerOwnerOnDashboard(page, 'dashboard-clear');
+
+    const periodToggle = page.locator('input[name="is_period"]');
+    const flowMedium = page.locator('input[name="flow"][value="medium"]');
+    const symptoms = page.locator('input[name="symptom_ids"]');
+    const notes = page.locator('#today-notes');
+
+    await periodToggle.check();
+    await flowMedium.check({ force: true });
+    await symptoms.nth(0).check({ force: true });
+    await notes.fill(`to-clear-${Date.now()}`);
+    await saveToday(page);
+
+    await page.reload();
+
+    const clearButton = page.locator('button[hx-delete*="/api/log/delete"][hx-delete*="source=dashboard"]');
+    await expect(clearButton).toBeVisible();
+
+    await clearButton.click();
+    await expect(page.locator('#confirm-modal')).toBeVisible();
+    await page.locator('#confirm-modal-accept').click();
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+
+    await expect(periodToggle).not.toBeChecked();
+    await expect(flowMedium).not.toBeChecked();
+    await expect(notes).toHaveValue('');
+    await expect(page.locator('input[name="symptom_ids"]:checked')).toHaveCount(0);
+  });
+});

@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.58.2",
     "alpinejs": "^3.14.8",
     "eslint": "^10.0.1",
     "globals": "^15.15.0",

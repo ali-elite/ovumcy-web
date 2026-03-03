@@ -57,3 +57,5 @@ TASK-*.md
 .tmp*/
 .local/
 .agents/
+test-results/
+playwright-report/
