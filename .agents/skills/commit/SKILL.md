@@ -1,5 +1,5 @@
 ---
-name: "commit"
+name: commit
 description: “Prepares a meaningful, clean commit for ovumcy: no technical debt, no vibe coding, with explicit checks and a clear explanation of the reasons for the changes.”
 
 ---
