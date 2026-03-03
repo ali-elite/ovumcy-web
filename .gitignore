@@ -56,3 +56,4 @@ TASK-*.md
 .tmp_*/
 .tmp*/
 .local/
+.agents/
