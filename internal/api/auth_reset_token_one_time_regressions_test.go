@@ -20,7 +20,7 @@ func TestResetPasswordTokenCannotBeReusedAfterSuccessfulReset(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "reset-one-time@example.com", "StrongPass1", true)
 
 	recoveryCode := mustSetRecoveryCodeForUser(t, database, user.ID)
-	resetCookieValue := requestResetCookieByRecoveryCode(t, app, recoveryCode)
+	resetCookieValue := requestResetCookieByRecoveryCode(t, app, user.Email, recoveryCode)
 
 	firstResetForm := url.Values{
 		"password":         {"EvenStronger2"},
@@ -134,10 +134,13 @@ func TestResetPasswordRejectsInvalidOrTamperedResetToken(t *testing.T) {
 	}
 }
 
-func requestResetCookieByRecoveryCode(t *testing.T, app *fiber.App, recoveryCode string) string {
+func requestResetCookieByRecoveryCode(t *testing.T, app *fiber.App, email string, recoveryCode string) string {
 	t.Helper()
 
-	form := url.Values{"recovery_code": {recoveryCode}}
+	form := url.Values{
+		"email":         {email},
+		"recovery_code": {recoveryCode},
+	}
 	request := httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 

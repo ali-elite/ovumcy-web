@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,14 +10,29 @@ import (
 
 func (handler *Handler) ForgotPassword(c *fiber.Ctx) error {
 	now := time.Now().In(handler.location)
-	rawRecoveryCode, parseError := parseForgotPasswordCode(c)
+	input, parseError := parseForgotPasswordInput(c)
 	if parseError != "" {
 		return handler.respondAuthError(c, fiber.StatusBadRequest, parseError)
 	}
+
+	if strings.TrimSpace(input.RecoveryCode) == "" {
+		if acceptsJSON(c) {
+			return c.JSON(fiber.Map{
+				"ok":        true,
+				"next_step": "recovery_code",
+			})
+		}
+		handler.setFlashCookie(c, FlashPayload{
+			ForgotEmail: input.Email,
+		})
+		return redirectToPath(c, "/forgot-password")
+	}
+
 	token, err := handler.passwordResetSvc.StartRecovery(
 		handler.secretKey,
 		c.IP(),
-		rawRecoveryCode,
+		input.Email,
+		input.RecoveryCode,
 		now,
 		30*time.Minute,
 	)
@@ -24,6 +40,8 @@ func (handler *Handler) ForgotPassword(c *fiber.Ctx) error {
 		switch services.ClassifyPasswordRecoveryStartError(err) {
 		case services.PasswordRecoveryStartErrorRateLimited:
 			return handler.respondAuthError(c, fiber.StatusTooManyRequests, "too many recovery attempts")
+		case services.PasswordRecoveryStartErrorInvalidInput:
+			return handler.respondAuthError(c, fiber.StatusBadRequest, "invalid input")
 		case services.PasswordRecoveryStartErrorInvalidCode:
 			return handler.respondAuthError(c, fiber.StatusBadRequest, "invalid recovery code")
 		default:

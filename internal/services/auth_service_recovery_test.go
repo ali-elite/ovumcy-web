@@ -247,6 +247,54 @@ func TestAuthServiceAuthenticateCredentials(t *testing.T) {
 	}
 }
 
+func TestAuthServiceFindUserByEmailAndRecoveryCode(t *testing.T) {
+	recoveryCode, recoveryHash, err := GenerateRecoveryCodeHash()
+	if err != nil {
+		t.Fatalf("GenerateRecoveryCodeHash() unexpected error: %v", err)
+	}
+
+	repo := &stubAuthUserRepo{
+		listUsers: []models.User{
+			{
+				ID:               22,
+				Email:            "owner@example.com",
+				RecoveryCodeHash: recoveryHash,
+			},
+		},
+	}
+	service := NewAuthService(repo)
+
+	user, err := service.FindUserByEmailAndRecoveryCode("Owner@Example.com", recoveryCode)
+	if err != nil {
+		t.Fatalf("FindUserByEmailAndRecoveryCode() unexpected error: %v", err)
+	}
+	if user == nil || user.ID != 22 {
+		t.Fatalf("expected user id 22, got %#v", user)
+	}
+}
+
+func TestAuthServiceFindUserByEmailAndRecoveryCodeRejectsMismatch(t *testing.T) {
+	recoveryCode, recoveryHash, err := GenerateRecoveryCodeHash()
+	if err != nil {
+		t.Fatalf("GenerateRecoveryCodeHash() unexpected error: %v", err)
+	}
+
+	repo := &stubAuthUserRepo{
+		listUsers: []models.User{
+			{
+				ID:               22,
+				Email:            "owner@example.com",
+				RecoveryCodeHash: recoveryHash,
+			},
+		},
+	}
+	service := NewAuthService(repo)
+
+	if _, err := service.FindUserByEmailAndRecoveryCode("other@example.com", recoveryCode); !errors.Is(err, ErrRecoveryCodeNotFound) {
+		t.Fatalf("expected ErrRecoveryCodeNotFound for mismatched email, got %v", err)
+	}
+}
+
 func TestAuthServiceResolveUserByResetToken(t *testing.T) {
 	secret := []byte("test-secret")
 	now := time.Date(2026, time.March, 1, 10, 0, 0, 0, time.UTC)

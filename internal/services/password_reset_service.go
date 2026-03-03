@@ -13,8 +13,9 @@ const (
 )
 
 var (
-	ErrPasswordRecoveryRateLimited = errors.New("password recovery rate limited")
-	ErrPasswordRecoveryCodeInvalid = errors.New("password recovery code invalid")
+	ErrPasswordRecoveryRateLimited  = errors.New("password recovery rate limited")
+	ErrPasswordRecoveryInputInvalid = errors.New("password recovery input invalid")
+	ErrPasswordRecoveryCodeInvalid  = errors.New("password recovery code invalid")
 )
 
 type PasswordResetService struct {
@@ -47,7 +48,7 @@ func (service *PasswordResetService) ParseResetToken(secretKey []byte, rawToken 
 	return ParsePasswordResetToken(secretKey, rawToken, now)
 }
 
-func (service *PasswordResetService) StartRecovery(secretKey []byte, limiterKey string, rawRecoveryCode string, now time.Time, tokenTTL time.Duration) (string, error) {
+func (service *PasswordResetService) StartRecovery(secretKey []byte, limiterKey string, email string, rawRecoveryCode string, now time.Time, tokenTTL time.Duration) (string, error) {
 	if service.auth == nil {
 		return "", errors.New("auth service is required")
 	}
@@ -59,6 +60,11 @@ func (service *PasswordResetService) StartRecovery(secretKey []byte, limiterKey 
 	if service.recoveryLimiter.TooManyRecent(key, now, service.recoveryAttempts, service.recoveryAttemptWindow) {
 		return "", ErrPasswordRecoveryRateLimited
 	}
+	normalizedEmail := NormalizeAuthEmail(email)
+	if normalizedEmail == "" {
+		service.recoveryLimiter.AddFailure(key, now, service.recoveryAttemptWindow)
+		return "", ErrPasswordRecoveryInputInvalid
+	}
 
 	code := NormalizeRecoveryCode(rawRecoveryCode)
 	if err := ValidateRecoveryCodeFormat(code); err != nil {
@@ -66,7 +72,7 @@ func (service *PasswordResetService) StartRecovery(secretKey []byte, limiterKey 
 		return "", ErrPasswordRecoveryCodeInvalid
 	}
 
-	user, err := service.auth.FindUserByRecoveryCode(code)
+	user, err := service.auth.FindUserByEmailAndRecoveryCode(normalizedEmail, code)
 	if err != nil {
 		if errors.Is(err, ErrRecoveryCodeNotFound) {
 			service.recoveryLimiter.AddFailure(key, now, service.recoveryAttemptWindow)

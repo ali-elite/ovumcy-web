@@ -51,7 +51,9 @@
   "auth.have_account": "Уже есть аккаунт?",
   "auth.forgot_password": "Забыли пароль?",
   "auth.forgot_password_title": "Восстановление пароля",
-  "auth.forgot_password_subtitle": "Введите код восстановления, чтобы продолжить.",
+  "auth.forgot_password_subtitle": "Введите email, чтобы получить или повторно использовать код восстановления.",
+  "auth.forgot_password_step2_subtitle": "Введите код восстановления, чтобы продолжить.",
+  "auth.forgot_password_change_email": "Использовать другой email",
   "auth.reset_password_title": "Установите новый пароль",
   "auth.reset_password_subtitle": "Используйте надёжный пароль для аккаунта.",
   "auth.reset_password": "Сбросить пароль",
@@ -344,4 +346,3 @@
   "symptom.constipation": "Запор",
   "symptom.swelling": "Отёчность"
 }
-

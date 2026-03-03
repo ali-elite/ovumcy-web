@@ -64,6 +64,7 @@ type FlashPayload struct {
 	SettingsSuccess string `json:"settings_success,omitempty"`
 	LoginEmail      string `json:"login_email,omitempty"`
 	RegisterEmail   string `json:"register_email,omitempty"`
+	ForgotEmail     string `json:"forgot_password_email,omitempty"`
 }
 
 const (

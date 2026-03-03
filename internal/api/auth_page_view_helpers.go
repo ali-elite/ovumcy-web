@@ -29,9 +29,12 @@ func buildRegisterPageData(c *fiber.Ctx, messages map[string]string, flash Flash
 
 func buildForgotPasswordPageData(c *fiber.Ctx, messages map[string]string, flash FlashPayload) fiber.Map {
 	errorSource := services.ResolveAuthErrorSource(flash.AuthError, c.Query("error"))
+	email := services.ResolveAuthPageEmail(flash.ForgotEmail, "")
 	return fiber.Map{
-		"Title":    localizedPageTitle(messages, "meta.title.forgot_password", "Ovumcy | Password Recovery"),
-		"ErrorKey": services.AuthErrorTranslationKey(errorSource),
+		"Title":                localizedPageTitle(messages, "meta.title.forgot_password", "Ovumcy | Password Recovery"),
+		"ErrorKey":             services.AuthErrorTranslationKey(errorSource),
+		"Email":                email,
+		"ShowRecoveryCodeStep": email != "",
 	}
 }
 

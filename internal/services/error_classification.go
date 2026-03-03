@@ -57,6 +57,7 @@ type PasswordRecoveryStartErrorKind uint8
 const (
 	PasswordRecoveryStartErrorUnknown PasswordRecoveryStartErrorKind = iota
 	PasswordRecoveryStartErrorRateLimited
+	PasswordRecoveryStartErrorInvalidInput
 	PasswordRecoveryStartErrorInvalidCode
 )
 
@@ -64,6 +65,8 @@ func ClassifyPasswordRecoveryStartError(err error) PasswordRecoveryStartErrorKin
 	switch {
 	case errors.Is(err, ErrPasswordRecoveryRateLimited):
 		return PasswordRecoveryStartErrorRateLimited
+	case errors.Is(err, ErrPasswordRecoveryInputInvalid):
+		return PasswordRecoveryStartErrorInvalidInput
 	case errors.Is(err, ErrPasswordRecoveryCodeInvalid):
 		return PasswordRecoveryStartErrorInvalidCode
 	default:

@@ -40,7 +40,10 @@ func TestResetPasswordCookieFlagsFollowCookieSecureConfig(t *testing.T) {
 			user := createOnboardingTestUser(t, database, "reset-cookie-flags-"+tc.name+"@example.com", "StrongPass1", true)
 			recoveryCode := mustSetRecoveryCodeForUser(t, database, user.ID)
 
-			form := url.Values{"recovery_code": {recoveryCode}}
+			form := url.Values{
+				"email":         {user.Email},
+				"recovery_code": {recoveryCode},
+			}
 			request := httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", strings.NewReader(form.Encode()))
 			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 

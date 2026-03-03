@@ -18,7 +18,10 @@ func TestForgotPasswordDoesNotExposeResetTokenInRedirect(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "forgot-token-redirect@example.com", "StrongPass1", true)
 
 	recoveryCode := mustSetRecoveryCodeForUser(t, database, user.ID)
-	form := url.Values{"recovery_code": {recoveryCode}}
+	form := url.Values{
+		"email":         {user.Email},
+		"recovery_code": {recoveryCode},
+	}
 	request := httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -45,12 +48,41 @@ func TestForgotPasswordDoesNotExposeResetTokenInRedirect(t *testing.T) {
 	}
 }
 
+func TestForgotPasswordEmailStepDoesNotExposeEmailInRedirect(t *testing.T) {
+	app, database := newOnboardingTestApp(t)
+	user := createOnboardingTestUser(t, database, "forgot-email-step@example.com", "StrongPass1", true)
+
+	form := url.Values{"email": {user.Email}}
+	request := httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	response, err := app.Test(request, -1)
+	if err != nil {
+		t.Fatalf("forgot-password email-step request failed: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected status 303, got %d", response.StatusCode)
+	}
+	location := response.Header.Get("Location")
+	if location != "/forgot-password" {
+		t.Fatalf("expected redirect to /forgot-password, got %q", location)
+	}
+	if strings.Contains(location, "email=") {
+		t.Fatalf("did not expect email in redirect location: %q", location)
+	}
+}
+
 func TestForgotPasswordJSONDoesNotExposeResetToken(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "forgot-token-json@example.com", "StrongPass1", true)
 
 	recoveryCode := mustSetRecoveryCodeForUser(t, database, user.ID)
-	form := url.Values{"recovery_code": {recoveryCode}}
+	form := url.Values{
+		"email":         {user.Email},
+		"recovery_code": {recoveryCode},
+	}
 	request := httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("Accept", "application/json")

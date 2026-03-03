@@ -25,6 +25,7 @@ func TestResetPasswordPageShowsPasswordTogglesAndBackToLoginLink(t *testing.T) {
 	}
 
 	forgotForm := url.Values{
+		"email":         {user.Email},
 		"recovery_code": {recoveryCode},
 	}
 	forgotRequest := httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", strings.NewReader(forgotForm.Encode()))

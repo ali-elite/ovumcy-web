@@ -21,9 +21,27 @@ func TestPasswordResetServiceStartRecoveryRateLimited(t *testing.T) {
 		limiter.AddFailure(key, now.Add(-1*time.Minute), DefaultRecoveryAttemptsWindow)
 	}
 
-	_, err := service.StartRecovery([]byte("test-secret"), key, "OVUM-ABCD-2345-EFGH", now, 30*time.Minute)
+	_, err := service.StartRecovery([]byte("test-secret"), key, "owner@example.com", "OVUM-ABCD-2345-EFGH", now, 30*time.Minute)
 	if !errors.Is(err, ErrPasswordRecoveryRateLimited) {
 		t.Fatalf("expected ErrPasswordRecoveryRateLimited, got %v", err)
+	}
+}
+
+func TestPasswordResetServiceStartRecoveryInvalidEmailAddsFailure(t *testing.T) {
+	repo := &stubAuthUserRepo{}
+	authService := NewAuthService(repo)
+	limiter := NewAttemptLimiter()
+	service := NewPasswordResetService(authService, limiter)
+
+	now := time.Date(2026, time.March, 1, 10, 0, 0, 0, time.UTC)
+	key := "127.0.0.1"
+
+	_, err := service.StartRecovery([]byte("test-secret"), key, "invalid-email", "OVUM-ABCD-2345-EFGH", now, 30*time.Minute)
+	if !errors.Is(err, ErrPasswordRecoveryInputInvalid) {
+		t.Fatalf("expected ErrPasswordRecoveryInputInvalid, got %v", err)
+	}
+	if !limiter.TooManyRecent(key, now, 1, DefaultRecoveryAttemptsWindow) {
+		t.Fatalf("expected limiter to record failed recovery attempt")
 	}
 }
 
@@ -36,7 +54,7 @@ func TestPasswordResetServiceStartRecoveryInvalidCodeAddsFailure(t *testing.T) {
 	now := time.Date(2026, time.March, 1, 10, 0, 0, 0, time.UTC)
 	key := "127.0.0.1"
 
-	_, err := service.StartRecovery([]byte("test-secret"), key, "invalid", now, 30*time.Minute)
+	_, err := service.StartRecovery([]byte("test-secret"), key, "owner@example.com", "invalid", now, 30*time.Minute)
 	if !errors.Is(err, ErrPasswordRecoveryCodeInvalid) {
 		t.Fatalf("expected ErrPasswordRecoveryCodeInvalid, got %v", err)
 	}
@@ -58,6 +76,7 @@ func TestPasswordResetServiceStartRecoverySuccessResetsLimiter(t *testing.T) {
 	repo := &stubAuthUserRepo{
 		user: models.User{
 			ID:               77,
+			Email:            "owner@example.com",
 			PasswordHash:     string(passwordHash),
 			RecoveryCodeHash: recoveryHash,
 		},
@@ -70,7 +89,7 @@ func TestPasswordResetServiceStartRecoverySuccessResetsLimiter(t *testing.T) {
 	key := "127.0.0.1"
 	limiter.AddFailure(key, now.Add(-1*time.Minute), DefaultRecoveryAttemptsWindow)
 
-	token, err := service.StartRecovery([]byte("test-secret"), key, recoveryCode, now, 30*time.Minute)
+	token, err := service.StartRecovery([]byte("test-secret"), key, "owner@example.com", recoveryCode, now, 30*time.Minute)
 	if err != nil {
 		t.Fatalf("StartRecovery() unexpected error: %v", err)
 	}

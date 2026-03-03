@@ -154,17 +154,33 @@ func (service *AuthService) AuthenticateCredentials(email string, password strin
 }
 
 func (service *AuthService) FindUserByRecoveryCode(code string) (*models.User, error) {
+	return service.findUserByRecoveryCode(code, "")
+}
+
+func (service *AuthService) FindUserByEmailAndRecoveryCode(email string, code string) (*models.User, error) {
+	normalizedEmail := NormalizeAuthEmail(email)
+	if normalizedEmail == "" {
+		return nil, ErrRecoveryCodeNotFound
+	}
+	return service.findUserByRecoveryCode(code, normalizedEmail)
+}
+
+func (service *AuthService) findUserByRecoveryCode(code string, normalizedEmail string) (*models.User, error) {
 	users, err := service.users.ListWithRecoveryCodeHash()
 	if err != nil {
 		return nil, err
 	}
 
+	normalizedCode := NormalizeRecoveryCode(code)
 	for index := range users {
+		if normalizedEmail != "" && NormalizeAuthEmail(users[index].Email) != normalizedEmail {
+			continue
+		}
 		hash := strings.TrimSpace(users[index].RecoveryCodeHash)
 		if hash == "" {
 			continue
 		}
-		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(code)) == nil {
+		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(normalizedCode)) == nil {
 			return &users[index], nil
 		}
 	}

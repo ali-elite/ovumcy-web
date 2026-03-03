@@ -37,6 +37,9 @@ func TestClassifyAuthAndRecoveryErrors(t *testing.T) {
 	if got := ClassifyPasswordRecoveryStartError(ErrPasswordRecoveryRateLimited); got != PasswordRecoveryStartErrorRateLimited {
 		t.Fatalf("expected PasswordRecoveryStartErrorRateLimited, got %v", got)
 	}
+	if got := ClassifyPasswordRecoveryStartError(ErrPasswordRecoveryInputInvalid); got != PasswordRecoveryStartErrorInvalidInput {
+		t.Fatalf("expected PasswordRecoveryStartErrorInvalidInput, got %v", got)
+	}
 	if got := ClassifyPasswordRecoveryStartError(ErrPasswordRecoveryCodeInvalid); got != PasswordRecoveryStartErrorInvalidCode {
 		t.Fatalf("expected PasswordRecoveryStartErrorInvalidCode, got %v", got)
 	}

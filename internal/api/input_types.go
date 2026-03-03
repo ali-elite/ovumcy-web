@@ -21,6 +21,7 @@ type symptomPayload struct {
 }
 
 type forgotPasswordInput struct {
+	Email        string `json:"email" form:"email"`
 	RecoveryCode string `json:"recovery_code" form:"recovery_code"`
 }
 
