@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
+import { finished } from "node:stream/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -236,14 +237,22 @@ async function main() {
     }
   } finally {
     await stopChild(appProcess);
+    appProcess.stdout.unpipe(appLogStream);
+    appProcess.stderr.unpipe(appLogStream);
     appLogStream.end();
+    await finished(appLogStream);
   }
 
   console.log("[e2e] completed successfully");
 }
 
-main().catch((error) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`[e2e] failed: ${message}`);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    // Explicit exit avoids CI hangs when some runtime handles stay alive unexpectedly.
+    process.exit(0);
+  })
+  .catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[e2e] failed: ${message}`);
+    process.exit(1);
+  });
