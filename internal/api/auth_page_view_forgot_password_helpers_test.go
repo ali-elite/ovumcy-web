@@ -20,7 +20,7 @@ func TestBuildForgotPasswordPageDataUsesFlashEmailForRecoveryStep(t *testing.T) 
 	}
 
 	payload := evaluateAuthPageBuilder(t, query, func(c *fiber.Ctx) error {
-		return c.JSON(buildForgotPasswordPageData(c, map[string]string{}, flash))
+		return c.JSON(buildForgotPasswordPageData(map[string]string{}, flash))
 	})
 
 	if payload["ErrorKey"] != "auth.error.invalid_recovery_code" {
@@ -42,7 +42,7 @@ func TestBuildForgotPasswordPageDataDoesNotUseQueryEmail(t *testing.T) {
 	}
 
 	payload := evaluateAuthPageBuilder(t, query, func(c *fiber.Ctx) error {
-		return c.JSON(buildForgotPasswordPageData(c, map[string]string{}, FlashPayload{}))
+		return c.JSON(buildForgotPasswordPageData(map[string]string{}, FlashPayload{}))
 	})
 
 	if payload["Email"] != "" {

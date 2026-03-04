@@ -20,7 +20,7 @@ func TestBuildRegisterPageDataUsesOnlyFlashSources(t *testing.T) {
 	}
 
 	payload := evaluateAuthPageBuilder(t, query, func(c *fiber.Ctx) error {
-		return c.JSON(buildRegisterPageData(c, map[string]string{}, flash, true))
+		return c.JSON(buildRegisterPageData(map[string]string{}, flash, true))
 	})
 
 	if payload["ErrorKey"] != "auth.error.email_exists" {
@@ -43,7 +43,7 @@ func TestBuildRegisterPageDataIgnoresRegisterQueryFallback(t *testing.T) {
 	}
 
 	payload := evaluateAuthPageBuilder(t, query, func(c *fiber.Ctx) error {
-		return c.JSON(buildRegisterPageData(c, map[string]string{}, FlashPayload{}, false))
+		return c.JSON(buildRegisterPageData(map[string]string{}, FlashPayload{}, false))
 	})
 
 	if payload["ErrorKey"] != "" {

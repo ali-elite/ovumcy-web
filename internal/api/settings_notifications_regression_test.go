@@ -60,7 +60,7 @@ func TestSettingsFlashErrorTakesPrecedenceOverQueryError(t *testing.T) {
 	}
 }
 
-func TestSettingsStatusUsesQueryWhenFlashMissing(t *testing.T) {
+func TestSettingsStatusIgnoresQueryWhenFlashMissing(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "settings-notify-status@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
@@ -79,8 +79,8 @@ func TestSettingsStatusUsesQueryWhenFlashMissing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read settings body: %v", err)
 	}
-	if !strings.Contains(string(body), "Password changed successfully.") {
-		t.Fatalf("expected query status success message")
+	if strings.Contains(string(body), "Password changed successfully.") {
+		t.Fatalf("expected query status to be ignored without flash state")
 	}
 }
 

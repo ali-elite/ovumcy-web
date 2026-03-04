@@ -19,9 +19,6 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 		services.SettingsViewInput{
 			FlashSuccess: flash.SettingsSuccess,
 			FlashError:   flash.SettingsError,
-			QuerySuccess: c.Query("success"),
-			QueryStatus:  c.Query("status"),
-			QueryError:   c.Query("error"),
 		},
 		time.Now().In(location),
 		location,

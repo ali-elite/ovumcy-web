@@ -1,0 +1,249 @@
+import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+
+const RUN_TIMEOUT_MS = 60_000;
+const SHUTDOWN_TIMEOUT_MS = 5_000;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, "..");
+
+function parseArgs(argv) {
+  let mode = "stable";
+  const passthrough = [];
+  let forcePassthrough = false;
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--") {
+      forcePassthrough = true;
+      continue;
+    }
+    if (forcePassthrough) {
+      passthrough.push(arg);
+      continue;
+    }
+    if (arg.startsWith("--mode=")) {
+      mode = String(arg.slice("--mode=".length) || "").trim().toLowerCase();
+      continue;
+    }
+    passthrough.push(arg);
+  }
+
+  return { mode, passthrough };
+}
+
+function isValidMode(mode) {
+  return mode === "stable" || mode === "ci" || mode === "fast";
+}
+
+function goBinary() {
+  return process.platform === "win32" ? "go.exe" : "go";
+}
+
+function npxBinary() {
+  return process.platform === "win32" ? "cmd.exe" : "npx";
+}
+
+function npxSpawnArgs(baseArgs) {
+  if (process.platform === "win32") {
+    return ["/d", "/s", "/c", "npx", ...baseArgs];
+  }
+  return baseArgs;
+}
+
+function createRunID() {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function hasWorkersArg(args) {
+  for (const arg of args) {
+    if (arg === "--workers" || arg.startsWith("--workers=")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function onceExit(child) {
+  return new Promise((resolve) => {
+    child.once("exit", (code, signal) => {
+      resolve({ code, signal });
+    });
+  });
+}
+
+async function stopChild(child) {
+  if (!child || child.killed || child.exitCode !== null) {
+    return;
+  }
+
+  if (process.platform === "win32") {
+    await new Promise((resolve) => {
+      const killer = spawn("taskkill", ["/pid", String(child.pid), "/t", "/f"], {
+        cwd: repoRoot,
+        stdio: "ignore",
+      });
+      killer.once("exit", () => resolve());
+      killer.once("error", () => resolve());
+    });
+    return;
+  }
+
+  child.kill("SIGTERM");
+  const exited = await Promise.race([
+    onceExit(child).then(() => true),
+    delay(SHUTDOWN_TIMEOUT_MS).then(() => false),
+  ]);
+  if (!exited) {
+    child.kill("SIGKILL");
+    await onceExit(child);
+  }
+}
+
+async function waitForServer(url, child, timeoutMs) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (child.exitCode !== null) {
+      throw new Error(`App exited before readiness check (exit ${child.exitCode})`);
+    }
+
+    try {
+      const response = await fetch(url, { redirect: "manual" });
+      if (response.status >= 200 && response.status < 500) {
+        return;
+      }
+    } catch {
+      // Server is still booting.
+    }
+
+    await delay(500);
+  }
+
+  throw new Error(`App did not become ready within ${timeoutMs} ms`);
+}
+
+function spawnAndWait(command, args, options) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, options);
+    child.once("error", (error) => reject(error));
+    child.once("exit", (code, signal) => resolve({ code, signal }));
+  });
+}
+
+function printRunContext(context) {
+  console.log(`[e2e] mode=${context.mode}`);
+  console.log(`[e2e] base_url=${context.baseURL}`);
+  console.log(`[e2e] log_file=${context.appLogPath}`);
+  console.log(`[e2e] db_path=${context.dbPath}`);
+  if (context.workerOverride !== null) {
+    console.log(`[e2e] workers=${context.workerOverride}`);
+  } else {
+    console.log("[e2e] workers=playwright-default");
+  }
+}
+
+async function main() {
+  const { mode, passthrough } = parseArgs(process.argv.slice(2));
+  if (!isValidMode(mode)) {
+    throw new Error(`Unsupported mode "${mode}". Expected one of: stable, ci, fast`);
+  }
+
+  const runID = createRunID();
+  const tmpDir = path.join(repoRoot, ".tmp", "e2e");
+  await mkdir(tmpDir, { recursive: true });
+
+  const appPort = Number.parseInt(process.env.E2E_APP_PORT ?? "18080", 10);
+  if (!Number.isInteger(appPort) || appPort < 1 || appPort > 65535) {
+    throw new Error(`Invalid E2E_APP_PORT: ${process.env.E2E_APP_PORT ?? ""}`);
+  }
+
+  const dbPath = path.join(tmpDir, `run-${runID}.db`);
+  const appLogPath = path.join(tmpDir, `app-${runID}.log`);
+  const appLogStream = createWriteStream(appLogPath, { flags: "a" });
+
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${appPort}`;
+  const workerOverrideFromEnv = Number.parseInt(process.env.E2E_PLAYWRIGHT_WORKERS ?? "", 10);
+  const workerOverride =
+    Number.isInteger(workerOverrideFromEnv) && workerOverrideFromEnv > 0
+      ? workerOverrideFromEnv
+      : mode === "fast"
+        ? null
+        : 1;
+
+  const runContext = {
+    mode,
+    baseURL,
+    appLogPath,
+    dbPath,
+    workerOverride,
+  };
+  printRunContext(runContext);
+
+  const appEnv = {
+    ...process.env,
+    SECRET_KEY: process.env.SECRET_KEY ?? "0123456789abcdef0123456789abcdef",
+    DB_PATH: dbPath,
+    PORT: String(appPort),
+    TZ: process.env.TZ ?? "UTC",
+    DEFAULT_LANGUAGE: process.env.DEFAULT_LANGUAGE ?? "en",
+    COOKIE_SECURE: process.env.COOKIE_SECURE ?? "false",
+    RATE_LIMIT_LOGIN_MAX: process.env.RATE_LIMIT_LOGIN_MAX ?? "500",
+    RATE_LIMIT_FORGOT_PASSWORD_MAX: process.env.RATE_LIMIT_FORGOT_PASSWORD_MAX ?? "500",
+    RATE_LIMIT_API_MAX: process.env.RATE_LIMIT_API_MAX ?? "5000",
+  };
+
+  const appArgs = ["run", "./cmd/ovumcy"];
+  const appProcess = spawn(goBinary(), appArgs, {
+    cwd: repoRoot,
+    env: appEnv,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  appProcess.stdout.pipe(appLogStream);
+  appProcess.stderr.pipe(appLogStream);
+
+  try {
+    await waitForServer(`${baseURL}/login`, appProcess, RUN_TIMEOUT_MS);
+
+    const playwrightArgs = ["playwright", "test"];
+    if (workerOverride !== null && !hasWorkersArg(passthrough)) {
+      playwrightArgs.push(`--workers=${workerOverride}`);
+    }
+    playwrightArgs.push(...passthrough);
+
+    const result = await spawnAndWait(npxBinary(), npxSpawnArgs(playwrightArgs), {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        PLAYWRIGHT_BASE_URL: baseURL,
+      },
+      stdio: "inherit",
+    });
+
+    if (result.code !== 0) {
+      throw new Error(`Playwright failed with exit code ${result.code ?? "unknown"}`);
+    }
+  } finally {
+    await stopChild(appProcess);
+    appLogStream.end();
+  }
+
+  console.log("[e2e] completed successfully");
+}
+
+main().catch((error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[e2e] failed: ${message}`);
+  process.exit(1);
+});

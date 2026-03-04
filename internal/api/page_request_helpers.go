@@ -32,7 +32,7 @@ func (handler *Handler) currentUserOrRedirectToLogin(c *fiber.Ctx) (*models.User
 func currentUserOrUnauthorized(c *fiber.Ctx) (*models.User, bool, error) {
 	user, ok := currentUser(c)
 	if !ok {
-		if sendErr := c.Status(fiber.StatusUnauthorized).SendString("unauthorized"); sendErr != nil {
+		if sendErr := apiError(c, fiber.StatusUnauthorized, "unauthorized"); sendErr != nil {
 			return nil, false, sendErr
 		}
 		return nil, true, nil

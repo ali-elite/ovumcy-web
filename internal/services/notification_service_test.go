@@ -5,25 +5,25 @@ import "testing"
 func TestResolveSettingsStatusPrefersFlashValue(t *testing.T) {
 	service := NewNotificationService()
 
-	got := service.ResolveSettingsStatus(" cycle_updated ", "profile_updated", "password_changed")
+	got := service.ResolveSettingsStatus(" cycle_updated ")
 	if got != "cycle_updated" {
 		t.Fatalf("expected cycle_updated, got %q", got)
 	}
 }
 
-func TestResolveSettingsStatusFallsBackToQuery(t *testing.T) {
+func TestResolveSettingsStatusReturnsEmptyWithoutFlash(t *testing.T) {
 	service := NewNotificationService()
 
-	got := service.ResolveSettingsStatus("   ", "", " password_changed ")
-	if got != "password_changed" {
-		t.Fatalf("expected password_changed, got %q", got)
+	got := service.ResolveSettingsStatus("   ")
+	if got != "" {
+		t.Fatalf("expected empty status, got %q", got)
 	}
 }
 
 func TestResolveSettingsErrorSourcePrefersFlashValue(t *testing.T) {
 	service := NewNotificationService()
 
-	got := service.ResolveSettingsErrorSource(" invalid current password ", "weak password")
+	got := service.ResolveSettingsErrorSource(" invalid current password ")
 	if got != "invalid current password" {
 		t.Fatalf("expected invalid current password, got %q", got)
 	}

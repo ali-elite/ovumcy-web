@@ -83,37 +83,10 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Start app for e2e
-        run: |
-          mkdir -p .tmp
-          SECRET_KEY='0123456789abcdef0123456789abcdef' \
-          DB_PATH='.tmp/e2e.db' \
-          PORT='8080' \
-          TZ='UTC' \
-          DEFAULT_LANGUAGE='en' \
-          COOKIE_SECURE='false' \
-          RATE_LIMIT_LOGIN_MAX='500' \
-          RATE_LIMIT_FORGOT_PASSWORD_MAX='500' \
-          RATE_LIMIT_API_MAX='5000' \
-          go run ./cmd/ovumcy > .tmp/e2e-app.log 2>&1 &
-          echo $! > .tmp/e2e-app.pid
-
-      - name: Wait for app readiness
-        run: |
-          for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:8080/login >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "App did not become ready in time"
-          cat .tmp/e2e-app.log
-          exit 1
-
       - name: Run Playwright e2e
-        run: npx playwright test --workers=2
+        run: npm run e2e:ci
         env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8080
+          E2E_APP_PORT: 18080
 
       - name: Upload Playwright artifacts
         if: always()
@@ -123,13 +96,6 @@ jobs:
           path: |
             playwright-report
             test-results
-            .tmp/e2e-app.log
+            .tmp/e2e
           if-no-files-found: ignore
-
-      - name: Stop app
-        if: always()
-        run: |
-          if [ -f .tmp/e2e-app.pid ]; then
-            kill "$(cat .tmp/e2e-app.pid)" || true
-          fi
 

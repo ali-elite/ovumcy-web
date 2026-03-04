@@ -15,12 +15,12 @@ func NewNotificationService() *NotificationService {
 	return &NotificationService{}
 }
 
-func (service *NotificationService) ResolveSettingsStatus(flashSuccess string, querySuccess string, queryStatus string) string {
-	return firstNonEmptyTrimmed(flashSuccess, querySuccess, queryStatus)
+func (service *NotificationService) ResolveSettingsStatus(flashSuccess string) string {
+	return firstNonEmptyTrimmed(flashSuccess)
 }
 
-func (service *NotificationService) ResolveSettingsErrorSource(flashError string, queryError string) string {
-	return firstNonEmptyTrimmed(flashError, queryError)
+func (service *NotificationService) ResolveSettingsErrorSource(flashError string) string {
+	return firstNonEmptyTrimmed(flashError)
 }
 
 func (service *NotificationService) ClassifySettingsErrorSource(errorSource string) SettingsErrorTarget {

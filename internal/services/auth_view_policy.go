@@ -5,16 +5,12 @@ import (
 	"time"
 )
 
-func ResolveAuthErrorSource(flashAuthError string, queryError string) string {
-	return firstNonEmptyTrimmed(flashAuthError, queryError)
+func ResolveAuthErrorSource(flashAuthError string) string {
+	return firstNonEmptyTrimmed(flashAuthError)
 }
 
-func ResolveAuthPageEmail(flashEmail string, queryEmail string) string {
-	email := NormalizeAuthEmail(flashEmail)
-	if email == "" {
-		email = NormalizeAuthEmail(queryEmail)
-	}
-	return email
+func ResolveAuthPageEmail(flashEmail string) string {
+	return NormalizeAuthEmail(flashEmail)
 }
 
 func IsResetPasswordTokenValid(secretKey []byte, rawToken string, now time.Time) bool {

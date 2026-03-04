@@ -24,9 +24,6 @@ type SettingsViewExportBuilder interface {
 type SettingsViewInput struct {
 	FlashSuccess string
 	FlashError   string
-	QuerySuccess string
-	QueryStatus  string
-	QueryError   string
 }
 
 type SettingsExportViewData struct {
@@ -72,16 +69,12 @@ func NewSettingsViewService(settings SettingsViewLoader, notifications *Notifica
 }
 
 func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User, language string, input SettingsViewInput, now time.Time, location *time.Location) (SettingsPageViewData, error) {
-	status := service.notifications.ResolveSettingsStatus(
-		input.FlashSuccess,
-		input.QuerySuccess,
-		input.QueryStatus,
-	)
+	status := service.notifications.ResolveSettingsStatus(input.FlashSuccess)
 
 	errorKey := ""
 	changePasswordErrorKey := ""
 	if status == "" {
-		errorSource := service.notifications.ResolveSettingsErrorSource(input.FlashError, input.QueryError)
+		errorSource := service.notifications.ResolveSettingsErrorSource(input.FlashError)
 		translatedErrorKey := AuthErrorTranslationKey(errorSource)
 		if translatedErrorKey != "" {
 			if service.notifications.ClassifySettingsErrorSource(errorSource) == SettingsErrorTargetChangePassword {

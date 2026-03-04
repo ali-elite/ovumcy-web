@@ -20,7 +20,7 @@ func TestBuildLoginPageDataUsesFlashPriorityAndSetupFlag(t *testing.T) {
 	}
 
 	payload := evaluateAuthPageBuilder(t, query, func(c *fiber.Ctx) error {
-		return c.JSON(buildLoginPageData(c, map[string]string{}, flash, true))
+		return c.JSON(buildLoginPageData(map[string]string{}, flash, true))
 	})
 
 	if payload["ErrorKey"] != "auth.error.invalid_credentials" {
