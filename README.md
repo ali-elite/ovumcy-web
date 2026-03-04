@@ -22,6 +22,10 @@ It runs as a single Go service with SQLite and a server-rendered web UI.
 
 ![Ovumcy calendar screen](docs/screenshots/calendar.jpg)
 
+### Dark Theme
+
+![Ovumcy dark theme screen](docs/screenshots/dark-theme.jpg)
+
 ## Features
 
 - Cycle tracking: period days, flow intensity, symptoms, notes.
