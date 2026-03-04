@@ -5,6 +5,10 @@ on:
     branches:
       - main
   pull_request:
+  release:
+    types:
+      - published
+  workflow_dispatch:
 
 jobs:
   test:
@@ -83,8 +87,13 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright e2e
-        run: npm run e2e:ci
+      - name: Run Playwright e2e (smoke on push, full otherwise)
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            npm run e2e:ci -- e2e/auth-login-register.spec.ts e2e/dashboard.spec.ts e2e/theme-dark-mode.spec.ts
+          else
+            npm run e2e:ci
+          fi
         env:
           E2E_APP_PORT: 18080
 
