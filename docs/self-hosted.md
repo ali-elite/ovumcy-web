@@ -284,3 +284,20 @@ Typical failure split:
   treat it as planned maintenance; active sessions and sealed cookies will stop working, which is expected.
 - Seeing healthy containers but a failing public URL:
   check DNS, certificate mounts, and proxy config before changing application data or restoring backups.
+
+## Advanced Deployment Path
+
+The advanced path is still self-hosted, single-instance Ovumcy. It is for operators who want stronger operational discipline without changing the product model, introducing multi-tenant hosting, or replacing SQLite with an unsupported database path.
+
+Use it only after the baseline path is already stable.
+
+Recommended advanced practices:
+
+- Keep at least one recent off-host backup copy of the SQLite archive and store the `.env` / `SECRET_KEY` backup separately from that data copy.
+- Run periodic restore drills into an isolated temporary stack and verify both `/healthz` and a normal page load before trusting the backup chain.
+- Restrict Docker, shell, and filesystem access so that only a small number of administrators can read `.env`, logs, the SQLite volume, or backup archives.
+- Rotate or ship logs to a private operator-controlled sink, and keep retention short enough that routine diagnostics do not become a second long-term data store.
+- Monitor host disk space, backup-job success, container health, and the last known-good image tag so upgrades and restores remain predictable.
+- Keep public exposure narrow: only the reverse proxy should publish host ports, and firewall rules should match that design instead of relying on the app container to be unreachable by accident.
+
+This guide does not define an advanced managed platform. It still assumes one private deployment, operator-managed infrastructure, and the existing SQLite application contract.

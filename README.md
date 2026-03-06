@@ -169,6 +169,7 @@ The same guide also documents:
 - required vs recommended vs advanced configuration;
 - what privacy/security guarantees come from Ovumcy itself;
 - what operational safeguards the self-hoster must still provide.
+- how to evolve from the baseline path into a stricter advanced self-hosted operating model.
 
 ## Development
 
