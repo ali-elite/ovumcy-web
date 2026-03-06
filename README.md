@@ -76,6 +76,7 @@ OVUMCY_IMAGE=ghcr.io/terraincognita07/ovumcy:v0.1.0 docker compose up -d
 Then open `http://localhost:8080`.
 For a public HTTPS deployment, use the dedicated reverse-proxy example stacks from the self-hosted guide instead of exposing `8080` directly.
 For an official advanced self-hosted Postgres stack, use [docs/examples/postgres/docker-compose.yml](docs/examples/postgres/docker-compose.yml) together with [docs/examples/postgres/.env.example](docs/examples/postgres/.env.example).
+For public self-hosted HTTPS with Postgres, use the dedicated Postgres reverse-proxy stacks from the self-hosted guide instead of combining the baseline proxy examples with Postgres by hand.
 
 ### Manual
 
@@ -177,6 +178,7 @@ The same guide also documents:
 - how to evolve from the baseline path into a stricter advanced self-hosted operating model.
 - how to switch the app runtime from SQLite to an operator-managed Postgres database for advanced self-hosted deployments.
 - how to run the official local/private bundled Postgres stack for advanced self-hosted deployments.
+- how to run the official public self-hosted Postgres reverse-proxy stacks for advanced deployments that need both HTTPS and Postgres.
 
 ## Development
 

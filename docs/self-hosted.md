@@ -111,12 +111,20 @@ The example stacks below use dedicated internal subnets and set `TRUSTED_PROXIES
 
 Use one of the example stacks as the supported public deployment path:
 
-- Caddy:
+- Caddy, SQLite baseline:
   - Compose stack: [docs/examples/reverse-proxy/caddy/docker-compose.yml](examples/reverse-proxy/caddy/docker-compose.yml)
   - Proxy config: [docs/examples/reverse-proxy/caddy/Caddyfile](examples/reverse-proxy/caddy/Caddyfile)
-- Nginx:
+- Nginx, SQLite baseline:
   - Compose stack: [docs/examples/reverse-proxy/nginx/docker-compose.yml](examples/reverse-proxy/nginx/docker-compose.yml)
   - Proxy config: [docs/examples/reverse-proxy/nginx/nginx.conf](examples/reverse-proxy/nginx/nginx.conf)
+- Caddy, Postgres advanced path:
+  - Compose stack: [docs/examples/reverse-proxy/caddy-postgres/docker-compose.yml](examples/reverse-proxy/caddy-postgres/docker-compose.yml)
+  - Env template: [docs/examples/reverse-proxy/caddy-postgres/.env.example](examples/reverse-proxy/caddy-postgres/.env.example)
+  - Proxy config: [docs/examples/reverse-proxy/caddy-postgres/Caddyfile](examples/reverse-proxy/caddy-postgres/Caddyfile)
+- Nginx, Postgres advanced path:
+  - Compose stack: [docs/examples/reverse-proxy/nginx-postgres/docker-compose.yml](examples/reverse-proxy/nginx-postgres/docker-compose.yml)
+  - Env template: [docs/examples/reverse-proxy/nginx-postgres/.env.example](examples/reverse-proxy/nginx-postgres/.env.example)
+  - Proxy config: [docs/examples/reverse-proxy/nginx-postgres/nginx.conf](examples/reverse-proxy/nginx-postgres/nginx.conf)
 
 Both examples assume:
 
@@ -126,6 +134,7 @@ Both examples assume:
 - public traffic reaches only the reverse proxy.
 
 Prefer the Caddy stack if you want automatic certificate management. Use the Nginx stack if you already manage TLS certificates yourself and can mount them into `./certs/fullchain.pem` and `./certs/privkey.pem`.
+Choose the SQLite baseline variants when you want the simplest public deployment. Choose the Postgres variants when you want the same proxy-only public exposure model with Postgres as the runtime engine.
 
 ## Official Local/Private Postgres Stack
 
@@ -151,6 +160,25 @@ Startup flow:
 6. Confirm `curl -fsS http://127.0.0.1:8080/healthz` succeeds.
 
 This bundled stack is the recommended first step when you want Postgres but do not yet need a public reverse-proxy deployment path.
+
+## Official Public Postgres Reverse-Proxy Stacks
+
+If you want public self-hosted HTTPS and Postgres together, use one of the dedicated Postgres reverse-proxy stacks instead of splicing Postgres into the baseline proxy examples yourself:
+
+- Caddy + Postgres: [docs/examples/reverse-proxy/caddy-postgres/docker-compose.yml](examples/reverse-proxy/caddy-postgres/docker-compose.yml)
+- Nginx + Postgres: [docs/examples/reverse-proxy/nginx-postgres/docker-compose.yml](examples/reverse-proxy/nginx-postgres/docker-compose.yml)
+
+These stacks keep the public contract tight:
+
+- only the proxy publishes `80/443`;
+- `ovumcy` and `postgres` stay on the internal Docker network;
+- `DB_DRIVER=postgres` and `DATABASE_URL` are already wired;
+- the proxy subnet is already aligned with `TRUSTED_PROXIES`.
+
+Use them when you need both:
+
+- advanced self-hosted Postgres as the runtime engine;
+- the preferred public self-hosted proxy-only exposure model.
 
 ## Health Checks by Deployment Mode
 
@@ -197,6 +225,8 @@ cat backups/ovumcy-postgres.sql | docker compose exec -T postgres sh -lc 'psql -
 ```
 
 Keep the SQL dump and `.env` / `SECRET_KEY` backup separate, just as you would for the SQLite baseline.
+
+The same rule applies to the public Postgres reverse-proxy stacks. Back up PostgreSQL with `pg_dump` or your platform-native Postgres snapshot tooling; do not try to apply the SQLite file-copy runbook to those stacks.
 
 Recommended baseline:
 
@@ -310,6 +340,7 @@ curl -fsS http://127.0.0.1:8080/healthz
 
 4. If the public reverse-proxy URL fails but `docker compose ps` shows `ovumcy` healthy, inspect the proxy configuration, certificate mounts, and DNS first.
 5. If the app is not healthy, inspect environment variables, permissions on the persistent volume, and the current image tag before changing application data.
+6. For the Postgres reverse-proxy variants, also confirm `docker compose ps` shows `postgres` healthy before debugging proxy behavior.
 
 Typical failure split:
 
@@ -349,6 +380,7 @@ Optional Postgres is part of this advanced path, not the baseline:
 - Keep SQLite as the default unless you actively want an operator-managed database service.
 - The repository's SQLite backup/restore runbook does not apply to Postgres; use native Postgres backup tooling and restore drills instead, including for the bundled local/private Postgres stack.
 - Use the bundled local/private Postgres stack under `docs/examples/postgres/` when you want an official advanced deployment path without designing your own database compose topology first.
+- Use the dedicated Postgres reverse-proxy stacks under `docs/examples/reverse-proxy/*-postgres/` when you need the preferred public self-hosted exposure model with Postgres.
 - Existing SQLite deployments are not auto-migrated. A PostgreSQL deployment is a separate runtime choice unless and until a dedicated migration tool is introduced.
 
 This guide does not define an advanced managed platform. It still assumes one private deployment, operator-managed infrastructure, and the existing SQLite application contract.
