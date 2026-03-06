@@ -48,6 +48,48 @@ func TestResolveSecretKey(t *testing.T) {
 	}
 }
 
+func TestResolveDatabaseConfigDefaultsToSQLite(t *testing.T) {
+	t.Setenv("DB_DRIVER", "")
+	t.Setenv("DB_PATH", "")
+	t.Setenv("DATABASE_URL", "")
+
+	config, err := resolveDatabaseConfig()
+	if err != nil {
+		t.Fatalf("expected default sqlite config, got error: %v", err)
+	}
+	if config.Driver != "sqlite" {
+		t.Fatalf("expected sqlite driver, got %q", config.Driver)
+	}
+	if config.SQLitePath != "data\\ovumcy.db" && config.SQLitePath != "data/ovumcy.db" {
+		t.Fatalf("expected default sqlite path, got %q", config.SQLitePath)
+	}
+}
+
+func TestResolveDatabaseConfigRequiresDatabaseURLForPostgres(t *testing.T) {
+	t.Setenv("DB_DRIVER", "postgres")
+	t.Setenv("DATABASE_URL", "")
+
+	if _, err := resolveDatabaseConfig(); err == nil {
+		t.Fatal("expected postgres config without DATABASE_URL to fail")
+	}
+}
+
+func TestResolveDatabaseConfigAcceptsPostgres(t *testing.T) {
+	t.Setenv("DB_DRIVER", "postgres")
+	t.Setenv("DATABASE_URL", "host=127.0.0.1 port=5432 user=ovumcy password=ovumcy dbname=ovumcy sslmode=disable")
+
+	config, err := resolveDatabaseConfig()
+	if err != nil {
+		t.Fatalf("expected postgres config, got error: %v", err)
+	}
+	if config.Driver != "postgres" {
+		t.Fatalf("expected postgres driver, got %q", config.Driver)
+	}
+	if config.PostgresURL == "" {
+		t.Fatal("expected postgres url to be preserved")
+	}
+}
+
 func TestCSRFMiddlewareConfigUsesCookieSecureFlag(t *testing.T) {
 	secureConfig := csrfMiddlewareConfig(true)
 	if !secureConfig.CookieSecure {

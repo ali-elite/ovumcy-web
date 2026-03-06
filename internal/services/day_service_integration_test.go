@@ -7,16 +7,34 @@ import (
 
 	"github.com/terraincognita07/ovumcy/internal/db"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/testdb"
 	"gorm.io/gorm"
 )
 
 func newDayServiceIntegration(t *testing.T) (*DayService, *gorm.DB) {
 	t.Helper()
 
-	databasePath := filepath.Join(t.TempDir(), "ovumcy-day-service-int.db")
-	database, err := db.OpenSQLite(databasePath)
+	return newDayServiceIntegrationWithConfig(t, db.Config{
+		Driver:     db.DriverSQLite,
+		SQLitePath: filepath.Join(t.TempDir(), "ovumcy-day-service-int.db"),
+	})
+}
+
+func newDayServicePostgresIntegration(t *testing.T) (*DayService, *gorm.DB) {
+	t.Helper()
+
+	return newDayServiceIntegrationWithConfig(t, db.Config{
+		Driver:      db.DriverPostgres,
+		PostgresURL: testdb.StartPostgresDSN(t, "ovumcy_day_service_test"),
+	})
+}
+
+func newDayServiceIntegrationWithConfig(t *testing.T, databaseConfig db.Config) (*DayService, *gorm.DB) {
+	t.Helper()
+
+	database, err := db.OpenDatabase(databaseConfig)
 	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
+		t.Fatalf("open integration database: %v", err)
 	}
 	sqlDB, err := database.DB()
 	if err != nil {
@@ -31,27 +49,11 @@ func newDayServiceIntegration(t *testing.T) (*DayService, *gorm.DB) {
 	return service, database
 }
 
-func createDayServiceTestUser(t *testing.T, database *gorm.DB, email string) models.User {
+func assertDayServiceFetchLogByDateFindsZuluStoredRowForLocalCalendarDay(t *testing.T, setup func(*testing.T) (*DayService, *gorm.DB), email string) {
 	t.Helper()
 
-	user := models.User{
-		Email:               email,
-		PasswordHash:        "test-hash",
-		Role:                models.RoleOwner,
-		OnboardingCompleted: true,
-		CycleLength:         28,
-		PeriodLength:        5,
-		CreatedAt:           time.Now().UTC(),
-	}
-	if err := database.Create(&user).Error; err != nil {
-		t.Fatalf("create user: %v", err)
-	}
-	return user
-}
-
-func TestDayServiceFetchLogByDateFindsZuluStoredRowForLocalCalendarDay(t *testing.T) {
-	service, database := newDayServiceIntegration(t)
-	user := createDayServiceTestUser(t, database, "zulu-fetch-service@example.com")
+	service, database := setup(t)
+	user := createDayServiceTestUser(t, database, email)
 
 	now := time.Now().UTC()
 	if err := database.Exec(
@@ -84,6 +86,32 @@ func TestDayServiceFetchLogByDateFindsZuluStoredRowForLocalCalendarDay(t *testin
 	if entry.Flow != models.FlowLight {
 		t.Fatalf("expected flow %q, got %q", models.FlowLight, entry.Flow)
 	}
+}
+
+func createDayServiceTestUser(t *testing.T, database *gorm.DB, email string) models.User {
+	t.Helper()
+
+	user := models.User{
+		Email:               email,
+		PasswordHash:        "test-hash",
+		Role:                models.RoleOwner,
+		OnboardingCompleted: true,
+		CycleLength:         28,
+		PeriodLength:        5,
+		CreatedAt:           time.Now().UTC(),
+	}
+	if err := database.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	return user
+}
+
+func TestDayServiceFetchLogByDateFindsZuluStoredRowForLocalCalendarDay(t *testing.T) {
+	assertDayServiceFetchLogByDateFindsZuluStoredRowForLocalCalendarDay(t, newDayServiceIntegration, "zulu-fetch-service@example.com")
+}
+
+func TestDayServiceFetchLogByDateFindsZuluStoredRowForLocalCalendarDayPostgres(t *testing.T) {
+	assertDayServiceFetchLogByDateFindsZuluStoredRowForLocalCalendarDay(t, newDayServicePostgresIntegration, "zulu-fetch-service-postgres@example.com")
 }
 
 func TestDayServiceFetchLogByDateIgnoresUTCShiftedRowForLocalCalendarDay(t *testing.T) {

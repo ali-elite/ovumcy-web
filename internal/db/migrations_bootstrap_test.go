@@ -195,7 +195,6 @@ func seedLegacyInitSchema(t *testing.T, databasePath string) {
 func assertUsersSchemaReconciled(t *testing.T, database *gorm.DB) {
 	t.Helper()
 
-	columns := loadTableColumns(t, database, "users")
 	expectedColumns := []string{
 		"display_name",
 		"onboarding_completed",
@@ -206,7 +205,7 @@ func assertUsersSchemaReconciled(t *testing.T, database *gorm.DB) {
 	}
 
 	for _, column := range expectedColumns {
-		if _, exists := columns[column]; !exists {
+		if !database.Migrator().HasColumn("users", column) {
 			t.Fatalf("expected users.%s column to exist after migrations", column)
 		}
 	}
@@ -342,9 +341,13 @@ func loadSQLiteObjectSQL(t *testing.T, database *gorm.DB, objectType string, obj
 }
 
 func embeddedMigrationVersionsForTest(t *testing.T) []string {
+	return embeddedMigrationVersionsForDriverTest(t, DriverSQLite)
+}
+
+func embeddedMigrationVersionsForDriverTest(t *testing.T, driver Driver) []string {
 	t.Helper()
 
-	migrations, err := loadEmbeddedMigrations()
+	migrations, err := loadEmbeddedMigrations(driver)
 	if err != nil {
 		t.Fatalf("load embedded migrations: %v", err)
 	}

@@ -41,7 +41,8 @@ Treat configuration in three layers instead of one flat checklist.
 ### Required in all deployments
 
 - `SECRET_KEY` must be strong, private, and backed up separately from SQLite data.
-- Persistent storage must exist for `/app/data`.
+- `DB_DRIVER` must match the actual runtime you intend to use.
+- Persistent database storage must exist for the engine you selected.
 - You must know whether you are running the local/private base compose path or a public reverse-proxy stack before changing cookie and proxy settings.
 
 ### Local/private base compose path
@@ -70,6 +71,7 @@ These settings are valid, but they are not required for a safe first deployment:
 - `TZ` and `DEFAULT_LANGUAGE` for operator preference
 - rate-limit variables if you need stricter or looser local policy
 - `PROXY_HEADER` only if your trusted proxy uses a different real-client header contract
+- `DB_DRIVER=postgres` plus `DATABASE_URL=...` when you intentionally move the app runtime to an operator-managed Postgres database
 
 ## Privacy Responsibility Split
 
@@ -86,6 +88,7 @@ The self-hoster must still provide:
 - TLS certificates, DNS, and reverse-proxy correctness for public access;
 - access control for `.env`, backups, logs, and the persistent data volume;
 - backup retention, off-host copy strategy, and recovery discipline;
+- native Postgres backup/restore tooling and operational ownership if the advanced Postgres path is used;
 - network exposure policy, firewall rules, and any administrator access controls around the server.
 
 ## Reverse Proxy and HTTPS Contract
@@ -287,7 +290,7 @@ Typical failure split:
 
 ## Advanced Deployment Path
 
-The advanced path is still self-hosted, single-instance Ovumcy. It is for operators who want stronger operational discipline without changing the product model, introducing multi-tenant hosting, or replacing SQLite with an unsupported database path.
+The advanced path is still self-hosted, single-instance Ovumcy. It is for operators who want stronger operational discipline without changing the product model, introducing multi-tenant hosting, or moving beyond the SQLite baseline without inventing unsupported storage behavior.
 
 Use it only after the baseline path is already stable.
 
@@ -299,5 +302,12 @@ Recommended advanced practices:
 - Rotate or ship logs to a private operator-controlled sink, and keep retention short enough that routine diagnostics do not become a second long-term data store.
 - Monitor host disk space, backup-job success, container health, and the last known-good image tag so upgrades and restores remain predictable.
 - Keep public exposure narrow: only the reverse proxy should publish host ports, and firewall rules should match that design instead of relying on the app container to be unreachable by accident.
+
+Optional Postgres is part of this advanced path, not the baseline:
+
+- Set `DB_DRIVER=postgres` and provide `DATABASE_URL`.
+- Keep SQLite as the default unless you actively want an operator-managed database service.
+- The repository's SQLite backup/restore runbook does not apply to Postgres; use native Postgres backup tooling and restore drills instead.
+- Existing SQLite deployments are not auto-migrated. A PostgreSQL deployment is a separate runtime choice unless and until a dedicated migration tool is introduced.
 
 This guide does not define an advanced managed platform. It still assumes one private deployment, operator-managed infrastructure, and the existing SQLite application contract.

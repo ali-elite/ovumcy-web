@@ -6,17 +6,17 @@ import (
 	"testing"
 )
 
-type sqliteLoggerParamFilter interface {
+type databaseLoggerParamFilter interface {
 	ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{})
 }
 
-func TestNewSQLiteLoggerUsesParameterizedQueries(t *testing.T) {
+func TestNewDatabaseLoggerUsesParameterizedQueries(t *testing.T) {
 	t.Parallel()
 
-	logger := newSQLiteLogger(&bytes.Buffer{})
-	filter, ok := logger.(sqliteLoggerParamFilter)
+	logger := newDatabaseLogger(&bytes.Buffer{})
+	filter, ok := logger.(databaseLoggerParamFilter)
 	if !ok {
-		t.Fatal("expected sqlite logger to expose ParamsFilter")
+		t.Fatal("expected database logger to expose ParamsFilter")
 	}
 
 	sql, params := filter.ParamsFilter(context.Background(), "SELECT * FROM users WHERE email = ?", "user@example.com")

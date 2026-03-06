@@ -6,7 +6,7 @@
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker)](https://www.docker.com/)
 
 Ovumcy is a privacy-first, self-hosted menstrual cycle tracker.
-It runs as a single Go service with SQLite and a server-rendered web UI.
+It runs as a single Go service with a server-rendered web UI. SQLite is the baseline default; Postgres is an advanced self-hosted path.
 
 ## Screenshots
 
@@ -40,14 +40,14 @@ It runs as a single Go service with SQLite and a server-rendered web UI.
 - No analytics or ad trackers.
 - No third-party API dependencies for core functionality.
 - First-party cookies only (auth, CSRF, language).
-- Data is stored locally in SQLite on your infrastructure.
+- Data stays on infrastructure you control. SQLite is the baseline default; advanced self-hosted deployments can use operator-managed Postgres.
 - Role model: `owner` has full access.
 
 If you found a security issue, see [SECURITY.md](SECURITY.md).
 
 ## Tech Stack
 
-- Backend: Go, Fiber, GORM, SQLite.
+- Backend: Go, Fiber, GORM, SQLite (baseline) or Postgres (advanced self-hosted).
 - Frontend: server-rendered HTML templates, HTMX, Alpine.js, Tailwind CSS.
 - Deployment: Docker or direct binary execution.
 
@@ -99,8 +99,10 @@ Primary variables:
 # Core
 TZ=UTC
 DEFAULT_LANGUAGE=en
+DB_DRIVER=sqlite
 SECRET_KEY=replace_with_at_least_32_random_characters
 DB_PATH=data/ovumcy.db
+# DATABASE_URL=postgres://ovumcy:change-me@127.0.0.1:5432/ovumcy?sslmode=disable
 PORT=8080
 COOKIE_SECURE=false
 
@@ -122,10 +124,11 @@ Operational notes:
 
 - Always set a strong `SECRET_KEY`.
 - `.env.example` defaults target the local/private base compose path, not the public internet profile.
+- `DB_DRIVER=sqlite` is the supported baseline default; `DB_DRIVER=postgres` is an advanced self-hosted path and requires `DATABASE_URL`.
 - Set `COOKIE_SECURE=true` when serving over HTTPS.
 - Enable `TRUST_PROXY_ENABLED` only when running behind a trusted reverse proxy.
 - Do not expose Ovumcy's plain HTTP port directly to the public internet.
-- Keep the SQLite database on a persistent Docker volume or bind mount.
+- Keep the SQLite database on a persistent Docker volume or bind mount, or use operator-managed persistent Postgres storage when `DB_DRIVER=postgres`.
 
 ## Database and Migrations
 
@@ -170,6 +173,7 @@ The same guide also documents:
 - what privacy/security guarantees come from Ovumcy itself;
 - what operational safeguards the self-hoster must still provide.
 - how to evolve from the baseline path into a stricter advanced self-hosted operating model.
+- how to switch the app runtime from SQLite to an operator-managed Postgres database for advanced self-hosted deployments.
 
 ## Development
 

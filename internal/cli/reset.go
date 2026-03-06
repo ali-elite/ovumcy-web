@@ -13,13 +13,13 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
-func RunResetPasswordCommand(dbPath string, email string) error {
-	return runResetPasswordCommand(dbPath, email, promptNewPassword, os.Stdout)
+func RunResetPasswordCommand(databaseConfig db.Config, email string) error {
+	return runResetPasswordCommand(databaseConfig, email, promptNewPassword, os.Stdout)
 }
 
 type passwordPromptFunc func() ([]byte, error)
 
-func runResetPasswordCommand(dbPath string, email string, prompt passwordPromptFunc, output io.Writer) error {
+func runResetPasswordCommand(databaseConfig db.Config, email string, prompt passwordPromptFunc, output io.Writer) error {
 	normalizedEmail := strings.ToLower(strings.TrimSpace(email))
 	if normalizedEmail == "" {
 		return errors.New("email is required")
@@ -28,7 +28,7 @@ func runResetPasswordCommand(dbPath string, email string, prompt passwordPromptF
 		return fmt.Errorf("invalid email address: %w", err)
 	}
 
-	database, err := db.OpenSQLite(dbPath)
+	database, err := db.OpenDatabase(databaseConfig)
 	if err != nil {
 		return fmt.Errorf("database init failed: %w", err)
 	}

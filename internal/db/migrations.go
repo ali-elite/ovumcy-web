@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"path"
 	"regexp"
 	"sort"
 	"strconv"
@@ -23,12 +24,12 @@ type embeddedMigration struct {
 	SQL     string
 }
 
-func applyEmbeddedMigrations(database *gorm.DB) error {
+func applyEmbeddedMigrations(database *gorm.DB, driver Driver) error {
 	if err := ensureSchemaMigrationsTable(database); err != nil {
 		return err
 	}
 
-	migrations, err := loadEmbeddedMigrations()
+	migrations, err := loadEmbeddedMigrations(driver)
 	if err != nil {
 		return err
 	}
@@ -56,7 +57,7 @@ func ensureSchemaMigrationsTable(database *gorm.DB) error {
 CREATE TABLE IF NOT EXISTS schema_migrations (
   version TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );`
 	if err := database.Exec(createTableSQL).Error; err != nil {
 		return fmt.Errorf("create schema_migrations table: %w", err)
@@ -64,8 +65,10 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 	return nil
 }
 
-func loadEmbeddedMigrations() ([]embeddedMigration, error) {
-	entries, err := fs.ReadDir(embeddedmigrations.Files, ".")
+func loadEmbeddedMigrations(driver Driver) ([]embeddedMigration, error) {
+	migrationDir := migrationDirForDriver(driver)
+
+	entries, err := fs.ReadDir(embeddedmigrations.Files, migrationDir)
 	if err != nil {
 		return nil, fmt.Errorf("read embedded migrations: %w", err)
 	}
@@ -94,7 +97,7 @@ func loadEmbeddedMigrations() ([]embeddedMigration, error) {
 		}
 		seenVersions[version] = fileName
 
-		rawSQL, err := fs.ReadFile(embeddedmigrations.Files, fileName)
+		rawSQL, err := fs.ReadFile(embeddedmigrations.Files, path.Join(migrationDir, fileName))
 		if err != nil {
 			return nil, fmt.Errorf("read migration %s: %w", fileName, err)
 		}
@@ -115,6 +118,15 @@ func loadEmbeddedMigrations() ([]embeddedMigration, error) {
 	})
 
 	return migrations, nil
+}
+
+func migrationDirForDriver(driver Driver) string {
+	switch driver {
+	case DriverPostgres:
+		return "postgres"
+	default:
+		return "."
+	}
 }
 
 type appliedMigrationVersion struct {
@@ -195,24 +207,8 @@ func shouldSkipStatement(database *gorm.DB, statement string) (bool, error) {
 	return exists, nil
 }
 
-type pragmaTableColumn struct {
-	Name string `gorm:"column:name"`
-}
-
 func tableColumnExists(database *gorm.DB, tableName string, columnName string) (bool, error) {
-	escapedTable := strings.ReplaceAll(tableName, `"`, `""`)
-	query := fmt.Sprintf(`PRAGMA table_info("%s")`, escapedTable)
-
-	columns := make([]pragmaTableColumn, 0)
-	if err := database.Raw(query).Scan(&columns).Error; err != nil {
-		return false, fmt.Errorf("load table_info for %s: %w", tableName, err)
-	}
-	for _, column := range columns {
-		if strings.EqualFold(strings.TrimSpace(column.Name), columnName) {
-			return true, nil
-		}
-	}
-	return false, nil
+	return database.Migrator().HasColumn(tableName, columnName), nil
 }
 
 func normalizeSQLIdentifier(identifier string) string {

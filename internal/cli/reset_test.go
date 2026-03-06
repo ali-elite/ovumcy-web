@@ -23,7 +23,7 @@ func TestRunResetPasswordCommandUpdatesPasswordFromSecurePromptWithoutLeakingPla
 	var output bytes.Buffer
 
 	err := runResetPasswordCommand(
-		databasePath,
+		db.Config{Driver: db.DriverSQLite, SQLitePath: databasePath},
 		"cli-reset@example.com",
 		func() ([]byte, error) {
 			return []byte(plaintextPassword), nil
@@ -64,7 +64,7 @@ func TestRunResetPasswordCommandReturnsPromptError(t *testing.T) {
 	createCLIResetUser(t, databasePath, "cli-reset-prompt-error@example.com", "StrongPass1")
 
 	err := runResetPasswordCommand(
-		databasePath,
+		db.Config{Driver: db.DriverSQLite, SQLitePath: databasePath},
 		"cli-reset-prompt-error@example.com",
 		func() ([]byte, error) {
 			return nil, errors.New("prompt failed")

@@ -44,7 +44,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("invalid SECRET_KEY: %v", err)
 	}
-	dbPath := getEnv("DB_PATH", filepath.Join("data", "ovumcy.db"))
+	databaseConfig, err := resolveDatabaseConfig()
+	if err != nil {
+		log.Fatalf("invalid database config: %v", err)
+	}
 	port, err := resolvePort()
 	if err != nil {
 		log.Fatalf("invalid PORT: %v", err)
@@ -71,7 +74,7 @@ func main() {
 		}
 	}
 
-	database, err := db.OpenSQLite(dbPath)
+	database, err := db.OpenDatabase(databaseConfig)
 	if err != nil {
 		log.Fatalf("database init failed: %v", err)
 	}
@@ -237,12 +240,28 @@ func tryRunCLICommand() (bool, error) {
 		if len(os.Args) != 3 {
 			return true, fmt.Errorf("usage: ovumcy reset-password <email>")
 		}
-		dbPath := getEnv("DB_PATH", filepath.Join("data", "ovumcy.db"))
+		databaseConfig, err := resolveDatabaseConfig()
+		if err != nil {
+			return true, fmt.Errorf("invalid database config: %w", err)
+		}
 		email := strings.TrimSpace(os.Args[2])
-		return true, cli.RunResetPasswordCommand(dbPath, email)
+		return true, cli.RunResetPasswordCommand(databaseConfig, email)
 	default:
 		return false, nil
 	}
+}
+
+func resolveDatabaseConfig() (db.Config, error) {
+	driver := db.Driver(strings.ToLower(strings.TrimSpace(getEnv("DB_DRIVER", string(db.DriverSQLite)))))
+	config := db.Config{
+		Driver:      driver,
+		SQLitePath:  getEnv("DB_PATH", filepath.Join("data", "ovumcy.db")),
+		PostgresURL: strings.TrimSpace(os.Getenv("DATABASE_URL")),
+	}
+	if err := config.Validate(); err != nil {
+		return db.Config{}, err
+	}
+	return config, nil
 }
 
 func mustLoadLocation(name string) *time.Location {

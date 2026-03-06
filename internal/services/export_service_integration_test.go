@@ -6,11 +6,14 @@ import (
 
 	"github.com/terraincognita07/ovumcy/internal/db"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"gorm.io/gorm"
 )
 
-func TestExportServiceLoadDataForRangeFiltersInclusiveBoundaries(t *testing.T) {
-	dayService, database := newDayServiceIntegration(t)
-	user := createDayServiceTestUser(t, database, "export-range-data-service@example.com")
+func assertExportServiceLoadDataForRangeFiltersInclusiveBoundaries(t *testing.T, setup func(*testing.T) (*DayService, *gorm.DB), email string) {
+	t.Helper()
+
+	dayService, database := setup(t)
+	user := createDayServiceTestUser(t, database, email)
 
 	repositories := db.NewRepositories(database)
 	symptomService := NewSymptomService(repositories.Symptoms, repositories.DailyLogs)
@@ -66,6 +69,14 @@ func TestExportServiceLoadDataForRangeFiltersInclusiveBoundaries(t *testing.T) {
 			t.Fatalf("unexpected dates: %s, %s", filtered[0].Date.Format("2006-01-02"), filtered[1].Date.Format("2006-01-02"))
 		}
 	})
+}
+
+func TestExportServiceLoadDataForRangeFiltersInclusiveBoundaries(t *testing.T) {
+	assertExportServiceLoadDataForRangeFiltersInclusiveBoundaries(t, newDayServiceIntegration, "export-range-data-service@example.com")
+}
+
+func TestExportServiceLoadDataForRangeFiltersInclusiveBoundariesPostgres(t *testing.T) {
+	assertExportServiceLoadDataForRangeFiltersInclusiveBoundaries(t, newDayServicePostgresIntegration, "export-range-data-service-postgres@example.com")
 }
 
 func TestExportServiceBuildSummaryForRangeFiltersInclusiveBoundaries(t *testing.T) {
