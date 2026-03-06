@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-03-07
+
+### Added
+- Optional Postgres runtime support for advanced self-hosted deployments.
+- Official local/private bundled Postgres compose stack under `docs/examples/postgres/`.
+- Official public self-hosted Postgres reverse-proxy examples for Caddy and Nginx.
+- Dedicated Postgres browser smoke lane in CI.
+
+### Changed
+- Auth/session handling was hardened so sealed auth cookies are enforced and forced password resets revoke stale sessions.
+- SQL tracing was hardened to keep bind values out of warn/error logs.
+- Self-hosted documentation now covers baseline operations, backup/restore, configuration profiles, and both SQLite and Postgres deployment paths.
+- Docker-backed Postgres tests and CI coverage were stabilized for cold GitHub runners.
+
 ## [0.2.0] - 2026-03-04
 
 ### Added
@@ -50,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/terraincognita07/ovumcy/compare/v0.2.0...v0.2.5
 [0.2.0]: https://github.com/terraincognita07/ovumcy/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraincognita07/ovumcy/releases/tag/v0.1.0
