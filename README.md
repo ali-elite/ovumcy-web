@@ -2,9 +2,14 @@
 
 [![CI](https://github.com/terraincognita07/ovumcy/actions/workflows/ci.yml/badge.svg)](https://github.com/terraincognita07/ovumcy/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/terraincognita07/ovumcy/actions/workflows/codeql.yml/badge.svg)](https://github.com/terraincognita07/ovumcy/actions/workflows/codeql.yml)
+[![Coverage](https://codecov.io/gh/terraincognita07/ovumcy/graph/badge.svg)](https://codecov.io/gh/terraincognita07/ovumcy)
+[![Go Report Card](https://goreportcard.com/badge/github.com/terraincognita07/ovumcy)](https://goreportcard.com/report/github.com/terraincognita07/ovumcy)
+[![Release](https://img.shields.io/github/v/release/terraincognita07/ovumcy?display_name=tag)](https://github.com/terraincognita07/ovumcy/releases)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker)](https://www.docker.com/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker)](https://github.com/terraincognita07/ovumcy/pkgs/container/ovumcy)
+[![Self-hosted](https://img.shields.io/badge/Self--hosted-yes-2ea44f)](https://github.com/terraincognita07/ovumcy/blob/main/docs/self-hosted.md)
+[![No telemetry](https://img.shields.io/badge/Telemetry-none-2ea44f)](https://github.com/terraincognita07/ovumcy#privacy-and-security)
 
 Ovumcy is a privacy-first, self-hosted menstrual cycle tracker.
 It runs as a single Go service with a server-rendered web UI. SQLite is the baseline default; Postgres is an advanced self-hosted path.

@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import net from "node:net";
+import { createRequire } from "node:module";
 import { finished } from "node:stream/promises";
 import path from "node:path";
 import process from "node:process";
@@ -14,6 +15,8 @@ const REDACTED = "[REDACTED]";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..");
+const require = createRequire(import.meta.url);
+const playwrightCLIPath = require.resolve("@playwright/test/cli");
 
 function parseArgs(argv) {
   let mode = "stable";
@@ -59,19 +62,8 @@ function goBinary() {
   return process.platform === "win32" ? "go.exe" : "go";
 }
 
-function npxBinary() {
-  return process.platform === "win32" ? "cmd.exe" : "npx";
-}
-
 function dockerBinary() {
   return process.platform === "win32" ? "docker.exe" : "docker";
-}
-
-function npxSpawnArgs(baseArgs) {
-  if (process.platform === "win32") {
-    return ["/d", "/s", "/c", "npx", ...baseArgs];
-  }
-  return baseArgs;
 }
 
 function createRunID() {
@@ -408,13 +400,13 @@ async function main() {
   try {
     await waitForServer(`${baseURL}/login`, appProcess, RUN_TIMEOUT_MS);
 
-    const playwrightArgs = ["playwright", "test"];
+    const playwrightArgs = [playwrightCLIPath, "test"];
     if (workerOverride !== null && !hasWorkersArg(passthrough)) {
       playwrightArgs.push(`--workers=${workerOverride}`);
     }
     playwrightArgs.push(...passthrough);
 
-    const result = await spawnAndWait(npxBinary(), npxSpawnArgs(playwrightArgs), {
+    const result = await spawnAndWait(process.execPath, playwrightArgs, {
       cwd: repoRoot,
       env: {
         ...process.env,
