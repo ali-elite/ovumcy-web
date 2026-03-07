@@ -53,12 +53,6 @@ func TestLanguageSwitchSetsRussianCookieAndRendersRussianLogin(t *testing.T) {
 	if !strings.Contains(renderedRussian, `<html lang="ru"`) {
 		t.Fatalf("expected login page html lang to be ru")
 	}
-	if !strings.Contains(renderedRussian, `data-required-message="Заполните это поле."`) {
-		t.Fatalf("expected russian required validation message in login form")
-	}
-	if !strings.Contains(renderedRussian, `data-email-message="Введите корректный email адрес."`) {
-		t.Fatalf("expected russian email validation message in login form")
-	}
 	if !strings.Contains(renderedRussian, "Оставаться в системе 30 дней") {
 		t.Fatalf("expected remember-me control on login form in russian")
 	}

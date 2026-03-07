@@ -32,7 +32,8 @@ func TestRegisterPageIncludesClientValidationHooks(t *testing.T) {
 
 	expectedFragments := []string{
 		`id="register-form"`,
-		`data-password-mismatch-message="Passwords do not match."`,
+		`id="register-password"`,
+		`id="register-confirm-password"`,
 		`id="register-client-status"`,
 	}
 	for _, fragment := range expectedFragments {

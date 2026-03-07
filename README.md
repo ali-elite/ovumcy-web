@@ -136,6 +136,13 @@ export SECRET_KEY=replace_with_at_least_32_random_characters
 go run ./cmd/ovumcy
 ```
 
+PowerShell:
+
+```powershell
+$env:SECRET_KEY = "replace_with_at_least_32_random_characters"
+go run ./cmd/ovumcy
+```
+
 ## Configuration
 
 Most self-hosted setups only need a small set of variables:

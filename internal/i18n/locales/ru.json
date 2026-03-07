@@ -165,8 +165,6 @@
   "settings.recovery_code.title": "Код восстановления",
   "settings.recovery_code.subtitle": "Сгенерируйте новый код восстановления. Старый код перестанет работать.",
   "settings.recovery_code.submit": "Перегенерировать код восстановления",
-  "settings.recovery_code.generated_title": "Новый код восстановления",
-  "settings.recovery_code.generated_subtitle": "Показывается только один раз на этой странице. Сохраните его офлайн.",
   "settings.export_data": "Экспорт данных",
   "settings.export_csv": "Экспорт в CSV",
   "settings.export_json": "Экспорт в JSON",

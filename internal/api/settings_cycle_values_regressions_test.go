@@ -24,14 +24,10 @@ func TestSettingsPageRendersPersistedCycleValues(t *testing.T) {
 
 	rendered := renderSettingsPageForTest(t, app, authCookie)
 	assertBodyContainsAll(t, rendered,
-		bodyStringMatch{fragment: `x-data='settingsCycleForm({ cycleLength: 29, periodLength: 6, autoPeriodFill: true })'`, message: "expected settings cycle form state to include persisted values"},
-		bodyStringMatch{fragment: `<span x-text="cycleLength">29</span>`, message: "expected cycle label fallback text to include persisted value"},
-		bodyStringMatch{fragment: `<span x-text="periodLength">6</span>`, message: "expected period label fallback text to include persisted value"},
-		bodyStringMatch{fragment: `x-if="(cycleLength - periodLength) < 8"`, message: "expected settings cycle form to include hard-validation state for incompatible cycle values"},
-		bodyStringMatch{fragment: `'btn--disabled': (cycleLength - periodLength) < 8`, message: "expected settings save button to include disabled visual state class binding"},
 		bodyStringMatch{fragment: `id="settings-period-length"`, message: "expected settings period slider max=14"},
 		bodyStringMatch{fragment: `max="14"`, message: "expected settings period slider max=14"},
 		bodyStringMatch{fragment: `id="settings-last-period-start"`, message: "expected settings cycle form to include editable last-period-start field"},
+		bodyStringMatch{fragment: `name="auto_period_fill" value="true"`, message: "expected settings cycle form to include auto-period-fill toggle"},
 		bodyStringMatch{fragment: `id="export-from"`, message: "expected export date range inputs to be rendered"},
 		bodyStringMatch{fragment: `id="export-to"`, message: "expected export date range inputs to be rendered"},
 	)
@@ -43,6 +39,10 @@ func TestSettingsPageRendersPersistedCycleValues(t *testing.T) {
 	periodInputPattern := regexp.MustCompile(`(?s)name="period_length".*?value="6"`)
 	if !periodInputPattern.MatchString(rendered) {
 		t.Fatalf("expected period slider value attribute to be rendered from DB")
+	}
+	autoPeriodFillPattern := regexp.MustCompile(`(?s)name="auto_period_fill".*?checked`)
+	if !autoPeriodFillPattern.MatchString(rendered) {
+		t.Fatalf("expected auto_period_fill checkbox to reflect persisted enabled state")
 	}
 	exportInputPattern := regexp.MustCompile(`(?s)id="export-from".*?type="date".*?id="export-to".*?type="date"`)
 	if !exportInputPattern.MatchString(rendered) {

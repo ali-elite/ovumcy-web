@@ -28,7 +28,7 @@ test.describe('Auth: register, login, logout', () => {
     const recoveryCookie = await cookieByName(context, 'ovumcy_recovery_code');
 
     expect(authCookie).toBeTruthy();
-    expect(recoveryCookie).toBeTruthy();
+    expect(recoveryCookie).toBeFalsy();
   });
 
   test('register duplicate email shows error and keeps clean redirect URL', async ({ page }) => {

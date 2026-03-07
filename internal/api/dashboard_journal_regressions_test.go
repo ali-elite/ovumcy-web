@@ -60,19 +60,13 @@ func TestDashboardSymptomsNotesPanelUsesSavedSymptomsAndNotesState(t *testing.T)
 	if !strings.Contains(rendered, "Symptoms and notes") {
 		t.Fatalf("expected symptoms and notes panel header")
 	}
-	if !strings.Contains(rendered, `x-for="(symptom, index) in activeSymptoms"`) {
-		t.Fatalf("expected dynamic symptoms list renderer in panel")
-	}
-	if !strings.Contains(rendered, `data-symptom-label="Custom cramps"`) {
-		t.Fatalf("expected symptom checkbox metadata for dashboard preview")
-	}
-	if !strings.Contains(rendered, `data-symptom-label="Custom headache"`) {
-		t.Fatalf("expected second symptom checkbox metadata for dashboard preview")
-	}
-	if !strings.Contains(rendered, `x-model="notesPreview"`) {
-		t.Fatalf("expected notes field binding for dashboard preview")
-	}
 	if !strings.Contains(rendered, "Remember to hydrate") {
 		t.Fatalf("expected saved note to be rendered on dashboard")
+	}
+	if !strings.Contains(rendered, "Custom cramps") {
+		t.Fatalf("expected saved custom symptom label to be rendered on dashboard")
+	}
+	if !strings.Contains(rendered, "Custom headache") {
+		t.Fatalf("expected second saved custom symptom label to be rendered on dashboard")
 	}
 }

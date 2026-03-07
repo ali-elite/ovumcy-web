@@ -165,8 +165,6 @@
   "settings.recovery_code.title": "Recovery code",
   "settings.recovery_code.subtitle": "Generate a new recovery code. Your previous code will stop working.",
   "settings.recovery_code.submit": "Regenerate recovery code",
-  "settings.recovery_code.generated_title": "New recovery code",
-  "settings.recovery_code.generated_subtitle": "Shown only once on this page. Save it offline now.",
   "settings.export_data": "Export Data",
   "settings.export_csv": "Export as CSV",
   "settings.export_json": "Export as JSON",

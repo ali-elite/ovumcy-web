@@ -4,12 +4,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
 	"strings"
 	"testing"
 )
 
-func TestOnboardingPageUsesOnboardingFlowFactoryBinding(t *testing.T) {
+func TestOnboardingPageRendersStableOnboardingFlowControls(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "onboarding-flow-binding@example.com", "StrongPass1", false)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
@@ -33,16 +32,17 @@ func TestOnboardingPageUsesOnboardingFlowFactoryBinding(t *testing.T) {
 	}
 	rendered := string(body)
 
-	if !strings.Contains(rendered, `x-data='onboardingFlow(`) {
-		t.Fatalf("expected onboarding root to bind onboardingFlow factory")
+	expectedFragments := []string{
+		`hx-post="/onboarding/step1"`,
+		`id="last-period-start"`,
+		`hx-post="/onboarding/step2"`,
+		`id="cycle-length"`,
+		`id="period-length"`,
+		`hx-post="/onboarding/complete"`,
 	}
-
-	rootSectionPattern := regexp.MustCompile(`(?s)<section\s+class="mx-auto max-w-4xl"[^>]*>`)
-	rootSection := rootSectionPattern.FindString(rendered)
-	if rootSection == "" {
-		t.Fatalf("expected onboarding root section tag")
-	}
-	if strings.Contains(rootSection, "x-cloak") {
-		t.Fatalf("did not expect x-cloak on onboarding root section")
+	for _, fragment := range expectedFragments {
+		if !strings.Contains(rendered, fragment) {
+			t.Fatalf("expected onboarding page to include %q", fragment)
+		}
 	}
 }
