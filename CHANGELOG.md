@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-07
+
+### Changed
+- Rate-limit responses now flow through shared API error mapping instead of hand-rolled middleware transport branches.
+- Recovery-code issuance page is now single-view transport and clears its page cookie after the first successful render.
+- Auth and recovery regression coverage was updated to keep secrets out of JSON/URLs and to align browser smoke tests with the single-view recovery flow.
+- Several API regression tests were simplified to focus on stable outcomes instead of brittle Alpine/HTMX/template wiring details.
+- Manual quick-start documentation now includes a PowerShell `SECRET_KEY` example.
+
 ## [0.3.0] - 2026-03-07
 
 ### Added
@@ -81,7 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/terraincognita07/ovumcy/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/terraincognita07/ovumcy/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/terraincognita07/ovumcy/compare/v0.2.0...v0.2.5
 [0.2.0]: https://github.com/terraincognita07/ovumcy/compare/v0.1.0...v0.2.0

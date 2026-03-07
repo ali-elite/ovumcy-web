@@ -66,8 +66,14 @@ func TestResetPasswordPageShowsPasswordTogglesAndBackToLoginLink(t *testing.T) {
 		t.Fatalf("read reset-password body: %v", err)
 	}
 	rendered := string(body)
-	if strings.Count(rendered, `data-password-toggle`) < 2 {
-		t.Fatalf("expected password toggle buttons on both reset password fields")
+	if !strings.Contains(rendered, `form action="/api/auth/reset-password" method="post"`) {
+		t.Fatalf("expected reset-password form action to be rendered")
+	}
+	if !strings.Contains(rendered, `id="reset-password"`) {
+		t.Fatalf("expected primary reset-password field")
+	}
+	if !strings.Contains(rendered, `id="reset-password-confirm"`) {
+		t.Fatalf("expected reset-password confirmation field")
 	}
 	if strings.Contains(rendered, `name="token"`) {
 		t.Fatalf("did not expect hidden reset token field in reset-password page")

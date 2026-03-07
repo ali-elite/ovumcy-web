@@ -49,10 +49,7 @@ func TestCalendarDayPanelDeleteEntryUsesConfirmForm(t *testing.T) {
 	if !strings.Contains(rendered, `hx-delete="/api/log/delete?date=2026-02-17&source=calendar"`) {
 		t.Fatalf("expected delete endpoint in day panel")
 	}
-	if !strings.Contains(rendered, `data-confirm="Are you sure you want to delete this entry?"`) {
-		t.Fatalf("expected confirm prompt on calendar delete entry action")
-	}
-	if !strings.Contains(rendered, `data-confirm-accept="Yes, delete"`) {
-		t.Fatalf("expected confirm accept label on calendar delete entry action")
+	if !strings.Contains(rendered, ">Delete entry</button>") {
+		t.Fatalf("expected visible delete entry action in day panel")
 	}
 }

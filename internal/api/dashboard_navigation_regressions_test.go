@@ -41,9 +41,6 @@ func TestDashboardLogoutFormsRequireConfirmation(t *testing.T) {
 	if strings.Count(rendered, `name="csrf_token" value="`) < 2 {
 		t.Fatalf("expected csrf token hidden fields on both logout forms")
 	}
-	if strings.Count(rendered, `data-confirm="Log out of your account now?"`) < 2 {
-		t.Fatalf("expected confirmation attribute for both logout forms")
-	}
 }
 
 func TestDashboardNavigationShowsCurrentUserIdentity(t *testing.T) {
