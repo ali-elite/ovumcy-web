@@ -1,0 +1,32 @@
+<svg width="1400" height="560" viewBox="0 0 1400 560" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ovumcyPromoTitle ovumcyPromoDesc">
+  <title id="ovumcyPromoTitle">Ovumcy promo card</title>
+  <desc id="ovumcyPromoDesc">Promotional card for Ovumcy with the app icon, product name, and privacy-first self-hosted positioning.</desc>
+
+  <rect width="1400" height="560" rx="28" fill="#EEF0F7"/>
+
+  <!-- Icon box: x=80, y=120, w=320, h=320, center=(240,280) -->
+  <rect x="80" y="120" width="320" height="320" rx="48" fill="#FFFFFF" stroke="#D9D3EA" stroke-width="4"/>
+
+  <!-- Icon centered in box: translate(120,144) scale(4) -->
+  <g transform="translate(120 144) scale(4)">
+    <path d="M30 8C44.359 8 56 19.641 56 34" stroke="#A989E7" stroke-width="5.2" stroke-linecap="round"/>
+    <path d="M52.852 41.279C49.856 51.4 40.477 58.8 29.391 58.8C15.865 58.8 4.8 47.735 4.8 34.209" stroke="#A989E7" stroke-width="5.2" stroke-linecap="round"/>
+    <path d="M8.425 26.312C11.572 16.344 20.9 9.2 31.901 9.2" stroke="#FF7F93" stroke-width="3.8" stroke-linecap="round"/>
+    <circle cx="38.8" cy="24.2" r="6.8" fill="#FF7F93"/>
+  </g>
+
+  <text x="460" y="210" fill="#4A3D6A" font-family="Quicksand, Nunito, Avenir Next, Segoe UI, sans-serif" font-size="92" font-weight="700" letter-spacing="1">Ovumcy</text>
+  <text x="460" y="282" fill="#4A3D6A" fill-opacity="0.84" font-family="Quicksand, Nunito, Avenir Next, Segoe UI, sans-serif" font-size="40" font-weight="500">Privacy-first, self-hosted cycle tracking</text>
+  <text x="460" y="340" fill="#4A3D6A" fill-opacity="0.65" font-family="Quicksand, Nunito, Avenir Next, Segoe UI, sans-serif" font-size="26" font-weight="400">Simple daily tracking and useful cycle insights</text>
+  <text x="460" y="374" fill="#4A3D6A" fill-opacity="0.65" font-family="Quicksand, Nunito, Avenir Next, Segoe UI, sans-serif" font-size="26" font-weight="400">with sensitive data under your control.</text>
+
+  <rect x="460" y="420" width="180" height="52" rx="26" fill="#F6F3FF" stroke="#D9D3EA" stroke-width="2"/>
+  <text x="550" y="446" fill="#4A3D6A" font-family="Quicksand, Nunito, Avenir Next, Segoe UI, sans-serif" font-size="24" font-weight="700" text-anchor="middle" dominant-baseline="middle">Self-hosted</text>
+
+  <rect x="660" y="420" width="196" height="52" rx="26" fill="#FFF1F4" stroke="#FFD2DA" stroke-width="2"/>
+  <text x="758" y="446" fill="#8A4053" font-family="Quicksand, Nunito, Avenir Next, Segoe UI, sans-serif" font-size="24" font-weight="700" text-anchor="middle" dominant-baseline="middle">No telemetry</text>
+
+  <rect x="876" y="420" width="180" height="52" rx="26" fill="#F0FAF4" stroke="#B8E0C8" stroke-width="2"/>
+  <text x="966" y="446" fill="#2D6A4F" font-family="Quicksand, Nunito, Avenir Next, Segoe UI, sans-serif" font-size="24" font-weight="700" text-anchor="middle" dominant-baseline="middle">Open source</text>
+
+</svg>
