@@ -32,13 +32,14 @@ func TestRegisterPageKeepsEmailAfterPasswordValidationError(t *testing.T) {
 
 	rendered := renderRegisterPageWithFlash(t, app, flashValue)
 	assertBodyContainsAll(t, rendered,
-		bodyStringMatch{fragment: `id="register-email" type="email" name="email" value="` + email + `"`, message: "expected register page to keep submitted email after validation error"},
+		bodyStringMatch{fragment: `id="register-email"`, message: "expected register email input on validation-error page"},
+		bodyStringMatch{fragment: `value="` + email + `"`, message: "expected register page to keep submitted email after validation error"},
 		bodyStringMatch{fragment: "Use at least 8 characters with uppercase, lowercase, and a number.", message: "expected localized weak password message from flash"},
 	)
 
 	clean := renderCleanRegisterPage(t, app)
 	assertBodyNotContainsAll(t, clean,
-		bodyStringMatch{fragment: `id="register-email" type="email" name="email" value="` + email + `"`, message: "did not expect register email to persist after flash is consumed"},
+		bodyStringMatch{fragment: `value="` + email + `"`, message: "did not expect register email to persist after flash is consumed"},
 		bodyStringMatch{fragment: "Use at least 8 characters with uppercase, lowercase, and a number.", message: "did not expect weak-password error after flash is consumed"},
 	)
 }

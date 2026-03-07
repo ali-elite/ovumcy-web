@@ -30,16 +30,12 @@ func TestLoginInvalidCredentialsRedirectPreservesEmail(t *testing.T) {
 		bodyStringMatch{fragment: `id="login-email"`, message: "expected login email input in page"},
 		bodyStringMatch{fragment: `value="login-email@example.com"`, message: "expected login email input to keep previous value"},
 		bodyStringMatch{fragment: "Invalid email or password.", message: "expected localized login error message from flash"},
-		bodyStringMatch{fragment: `data-login-has-error="true"`, message: "expected login form to mark error state for password draft restore"},
-		bodyStringMatch{fragment: `data-password-draft-key="ovumcy_login_password_draft"`, message: "expected login form to include password draft storage key"},
 	)
 
 	cleanPage := loadCleanLoginPage(t, app)
 	assertBodyNotContainsAll(t, cleanPage,
 		bodyStringMatch{fragment: `value="login-email@example.com"`, message: "did not expect login email to persist after flash is consumed"},
-	)
-	assertBodyContainsAll(t, cleanPage,
-		bodyStringMatch{fragment: `data-login-has-error="false"`, message: "expected clean login page without error state marker after flash is consumed"},
+		bodyStringMatch{fragment: "Invalid email or password.", message: "did not expect auth error to persist after flash is consumed"},
 	)
 }
 

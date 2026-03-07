@@ -63,10 +63,9 @@ func TestRegisterSuccessSetsAuthCookieAndShowsRecoveryStep(t *testing.T) {
 		t.Fatalf("read recovery response body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, "Save your recovery code") {
-		t.Fatalf("expected recovery code screen after register")
-	}
-	if !strings.Contains(rendered, "Continue to app") {
-		t.Fatalf("expected continue button after register")
-	}
+	assertBodyContainsAll(t, rendered,
+		bodyStringMatch{fragment: `id="recovery-code"`, message: "expected dedicated recovery code page after register"},
+		bodyStringMatch{fragment: `id="recovery-code-saved"`, message: "expected recovery confirmation checkbox after register"},
+		bodyStringMatch{fragment: `form action="/onboarding"`, message: "expected new-owner recovery flow to continue to onboarding"},
+	)
 }

@@ -28,12 +28,14 @@ func TestForgotPasswordPageStartsWithEmailStep(t *testing.T) {
 		t.Fatalf("read forgot-password body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, `name="email"`) {
-		t.Fatalf("expected email input on initial forgot-password page")
-	}
-	if strings.Contains(rendered, `name="recovery_code"`) {
-		t.Fatalf("did not expect recovery code input before email step")
-	}
+	assertBodyContainsAll(t, rendered,
+		bodyStringMatch{fragment: `id="forgot-email"`, message: "expected email step input on initial forgot-password page"},
+		bodyStringMatch{fragment: `form action="/api/auth/forgot-password"`, message: "expected forgot-password form on initial page"},
+	)
+	assertBodyNotContainsAll(t, rendered,
+		bodyStringMatch{fragment: `id="recovery-code"`, message: "did not expect recovery step input before the email step is completed"},
+		bodyStringMatch{fragment: `type="hidden" name="email"`, message: "did not expect hidden carried email before flash transition"},
+	)
 }
 
 func TestForgotPasswordEmailStepTransitionsToRecoveryCodeStep(t *testing.T) {
@@ -55,6 +57,9 @@ func TestForgotPasswordEmailStepTransitionsToRecoveryCodeStep(t *testing.T) {
 	}
 	if location := response.Header.Get("Location"); location != "/forgot-password" {
 		t.Fatalf("expected redirect to /forgot-password, got %q", location)
+	}
+	if strings.TrimSpace(response.Header.Get("Location")) == "" {
+		t.Fatal("expected forgot-password flow to redirect back to the same path")
 	}
 
 	flashCookie := responseCookieValue(response.Cookies(), flashCookieName)
@@ -79,10 +84,8 @@ func TestForgotPasswordEmailStepTransitionsToRecoveryCodeStep(t *testing.T) {
 		t.Fatalf("read forgot-password step2 body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, `name="recovery_code"`) {
-		t.Fatalf("expected recovery code input on step2 page")
-	}
-	if !strings.Contains(rendered, `type="hidden" name="email"`) {
-		t.Fatalf("expected hidden email field on step2 page")
-	}
+	assertBodyContainsAll(t, rendered,
+		bodyStringMatch{fragment: `id="recovery-code"`, message: "expected recovery step input after flash-driven transition"},
+		bodyStringMatch{fragment: `type="hidden" name="email" value="forgot-page-step@example.com"`, message: "expected carried email to remain in the recovery step"},
+	)
 }

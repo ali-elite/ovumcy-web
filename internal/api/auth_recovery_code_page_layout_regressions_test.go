@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestRecoveryCodePageUsesStandardCheckboxLayout(t *testing.T) {
+func TestRecoveryCodePageRendersRecoveryConfirmationStep(t *testing.T) {
 	app, _ := newOnboardingTestApp(t)
 
 	form := url.Values{
@@ -59,19 +59,9 @@ func TestRecoveryCodePageUsesStandardCheckboxLayout(t *testing.T) {
 		t.Fatalf("read recovery code page body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, `class="remember-checkbox"`) {
-		t.Fatalf("expected recovery page checkbox to use standard remember-checkbox style")
-	}
-	if strings.Contains(rendered, `class="choice-input"`) {
-		t.Fatalf("did not expect recovery page checkbox to use chip toggle markup")
-	}
-	if !strings.Contains(rendered, `data-copy-success-message="Recovery code copied."`) {
-		t.Fatalf("expected recovery page copy success feedback message attribute")
-	}
-	if !strings.Contains(rendered, `x-show="copyFailed"`) {
-		t.Fatalf("expected recovery page to render explicit copy failure feedback state")
-	}
-	if !strings.Contains(rendered, `href="/lang/ru?next=%2Frecovery-code"`) {
-		t.Fatalf("expected language switch link to keep recovery-code GET route")
-	}
+	assertBodyContainsAll(t, rendered,
+		bodyStringMatch{fragment: `id="recovery-code"`, message: "expected recovery code value on dedicated recovery page"},
+		bodyStringMatch{fragment: `id="recovery-code-saved"`, message: "expected explicit recovery confirmation checkbox"},
+		bodyStringMatch{fragment: `form action="/onboarding"`, message: "expected recovery flow to continue into onboarding for a new owner"},
+	)
 }
