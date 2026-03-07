@@ -1,3 +1,5 @@
+  initPWAInstallPrompt();
+
   onDocumentReady(function () {
     initThemePreference();
     initAuthPanelTransitions();

@@ -9,6 +9,38 @@
     };
   }
 
+  window.pwaInstallBanner = function () {
+    return {
+      visible: false,
+      busy: false,
+      mode: "",
+      init: function () {
+        var self = this;
+        subscribePWAInstallState(function (state) {
+          self.syncInstallState(state);
+        });
+      },
+      dismiss: function () {
+        dismissPWAInstallPrompt();
+      },
+      install: function () {
+        if (this.busy || this.mode !== "prompt") {
+          return;
+        }
+
+        requestPWAInstallation().then(function () {
+          // State is synchronized via subscribePWAInstallState.
+        });
+      },
+      syncInstallState: function (state) {
+        var safeState = state || {};
+        this.visible = !!safeState.available && !safeState.installed;
+        this.busy = !!safeState.busy;
+        this.mode = String(safeState.mode || "");
+      }
+    };
+  };
+
   window.appShellState = function () {
     return {
       mobileMenu: false,

@@ -8,9 +8,17 @@
   <meta name="csrf-token" content="{{.CSRFToken}}">
   <title>{{.Title}}</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/pwa/apple-touch-icon.png">
+  <meta id="theme-color-meta" name="theme-color" content="#fff9f0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Ovumcy">
   <script>
     (function () {
       var theme = "light";
+      var themeColorMeta = document.getElementById("theme-color-meta");
       try {
         var raw = window.localStorage.getItem("ovumcy_theme");
         if (raw === "dark" || raw === "light") {
@@ -24,6 +32,9 @@
 
       document.documentElement.setAttribute("data-theme", theme);
       document.documentElement.style.colorScheme = theme;
+      if (themeColorMeta) {
+        themeColorMeta.setAttribute("content", theme === "dark" ? "#18141f" : "#fff9f0");
+      }
     })();
   </script>
   <link rel="stylesheet" href="/static/css/tailwind.css?v=20260304-1">
@@ -111,6 +122,34 @@
       </div>
       {{end}}
     </header>
+
+    <section
+      x-data="pwaInstallBanner()"
+      x-cloak
+      x-show="visible"
+      x-transition
+      class="container-main mobile-install-banner sm:hidden"
+      aria-live="polite">
+      <div class="mobile-install-shell reveal">
+        <div class="mobile-install-copy">
+          <span class="mobile-install-kicker">{{t .Messages "pwa.install.kicker"}}</span>
+          <div class="mobile-install-heading">
+            <img src="/static/brand/ovumcy-icon.svg" width="40" height="40" alt="" class="mobile-install-icon" aria-hidden="true">
+            <div class="space-y-1">
+              <h2 class="mobile-install-title">{{t .Messages "pwa.install.title"}}</h2>
+              <p class="mobile-install-text" x-show="mode === 'prompt'">{{t .Messages "pwa.install.prompt_text"}}</p>
+              <p class="mobile-install-text" x-show="mode === 'ios'">{{t .Messages "pwa.install.ios_text"}}</p>
+              <p class="mobile-install-text" x-show="mode === 'menu'">{{t .Messages "pwa.install.menu_text"}}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-install-actions">
+          <button type="button" class="btn-primary" x-show="mode === 'prompt'" :disabled="busy" @click="install()">{{t .Messages "pwa.install.action.install"}}</button>
+          <button type="button" class="btn-secondary" @click="dismiss()">{{t .Messages "pwa.install.action.later"}}</button>
+        </div>
+      </div>
+    </section>
 
     <main class="container-main py-8 sm:py-10{{if and .CurrentUser (not .HideNavigation)}} main-with-mobile-nav{{end}}">
       {{template "content" .}}
@@ -316,4 +355,3 @@
   {{end}}
 </div>
 {{end}}
-

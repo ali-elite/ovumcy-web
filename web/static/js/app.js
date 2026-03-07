@@ -10,6 +10,8 @@
   var THEME_STORAGE_KEY = "ovumcy_theme";
   var THEME_LIGHT = "light";
   var THEME_DARK = "dark";
+  var THEME_COLOR_LIGHT = "#fff9f0";
+  var THEME_COLOR_DARK = "#18141f";
   var TIMEZONE_COOKIE_NAME = "ovumcy_tz";
   var TIMEZONE_HEADER_NAME = "X-Ovumcy-Timezone";
   var TIMEZONE_COOKIE_MAX_AGE_SECONDS = 31536000;
@@ -82,10 +84,20 @@
     }
   }
 
+  function updateThemeColorMeta(theme) {
+    var meta = document.getElementById("theme-color-meta");
+    if (!meta) {
+      return;
+    }
+
+    meta.setAttribute("content", theme === THEME_DARK ? THEME_COLOR_DARK : THEME_COLOR_LIGHT);
+  }
+
   function applyTheme(theme) {
     var resolved = resolveTheme(theme);
     document.documentElement.setAttribute("data-theme", resolved);
     document.documentElement.style.colorScheme = resolved;
+    updateThemeColorMeta(resolved);
     window.__ovumcyTheme = resolved;
     return resolved;
   }
@@ -675,6 +687,280 @@
     });
   }
 
+  var PWA_INSTALL_DISMISS_STORAGE_KEY = "ovumcy_pwa_install_hidden_v1";
+  var PWA_INSTALL_FALLBACK_DELAY_MS = 1200;
+
+  var pwaInstallDeferredEvent = null;
+  var pwaInstallFallbackTimer = 0;
+  var pwaInstallSubscribers = [];
+  var pwaInstallState = {
+    available: false,
+    busy: false,
+    installed: false,
+    mode: ""
+  };
+
+  function readLocalStorageValue(key) {
+    if (!key) {
+      return "";
+    }
+    try {
+      return String(window.localStorage.getItem(key) || "");
+    } catch {
+      return "";
+    }
+  }
+
+  function writeLocalStorageValue(key, value) {
+    if (!key) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(key, String(value || ""));
+    } catch {
+      // Ignore storage quota and privacy mode errors.
+    }
+  }
+
+  function removeLocalStorageValue(key) {
+    if (!key) {
+      return;
+    }
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // Ignore storage cleanup failures.
+    }
+  }
+
+  function wasPWAInstallDismissed() {
+    return readLocalStorageValue(PWA_INSTALL_DISMISS_STORAGE_KEY) === "1";
+  }
+
+  function storePWAInstallDismissed() {
+    writeLocalStorageValue(PWA_INSTALL_DISMISS_STORAGE_KEY, "1");
+  }
+
+  function clearPWAInstallDismissed() {
+    removeLocalStorageValue(PWA_INSTALL_DISMISS_STORAGE_KEY);
+  }
+
+  function isStandalonePWA() {
+    if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) {
+      return true;
+    }
+    return window.navigator && window.navigator.standalone === true;
+  }
+
+  function pwaUserAgent() {
+    if (!window.navigator) {
+      return "";
+    }
+    return String(window.navigator.userAgent || window.navigator.vendor || "").toLowerCase();
+  }
+
+  function isIOSDevice() {
+    var ua = pwaUserAgent();
+    if (/iphone|ipad|ipod/.test(ua)) {
+      return true;
+    }
+    return !!(window.navigator && window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+  }
+
+  function isLikelyMobileClient() {
+    if (window.matchMedia) {
+      if (window.matchMedia("(max-width: 640px)").matches) {
+        return true;
+      }
+      if (window.matchMedia("(pointer: coarse)").matches && window.matchMedia("(max-width: 900px)").matches) {
+        return true;
+      }
+    }
+
+    return /android|iphone|ipad|ipod|mobile/.test(pwaUserAgent());
+  }
+
+  function clonePWAInstallState() {
+    return {
+      available: !!pwaInstallState.available,
+      busy: !!pwaInstallState.busy,
+      installed: !!pwaInstallState.installed,
+      mode: String(pwaInstallState.mode || "")
+    };
+  }
+
+  function emitPWAInstallState() {
+    var snapshot = clonePWAInstallState();
+    for (var index = 0; index < pwaInstallSubscribers.length; index++) {
+      pwaInstallSubscribers[index](snapshot);
+    }
+  }
+
+  function setPWAInstallState(nextState) {
+    var safeState = nextState || {};
+    pwaInstallState.available = !!safeState.available;
+    pwaInstallState.busy = !!safeState.busy;
+    pwaInstallState.installed = !!safeState.installed;
+    pwaInstallState.mode = String(safeState.mode || "");
+    emitPWAInstallState();
+  }
+
+  function clearPWAInstallFallbackTimer() {
+    if (!pwaInstallFallbackTimer) {
+      return;
+    }
+    window.clearTimeout(pwaInstallFallbackTimer);
+    pwaInstallFallbackTimer = 0;
+  }
+
+  function schedulePWAInstallFallback() {
+    if (isStandalonePWA() || wasPWAInstallDismissed()) {
+      return;
+    }
+
+    clearPWAInstallFallbackTimer();
+    pwaInstallFallbackTimer = window.setTimeout(function () {
+      if (pwaInstallDeferredEvent || isStandalonePWA()) {
+        return;
+      }
+
+      if (isIOSDevice()) {
+        setPWAInstallState({
+          available: true,
+          busy: false,
+          installed: false,
+          mode: "ios"
+        });
+        return;
+      }
+
+      if (isLikelyMobileClient()) {
+        setPWAInstallState({
+          available: true,
+          busy: false,
+          installed: false,
+          mode: "menu"
+        });
+      }
+    }, PWA_INSTALL_FALLBACK_DELAY_MS);
+  }
+
+  function dismissPWAInstallPrompt() {
+    pwaInstallDeferredEvent = null;
+    clearPWAInstallFallbackTimer();
+    storePWAInstallDismissed();
+    setPWAInstallState({
+      available: false,
+      busy: false,
+      installed: isStandalonePWA(),
+      mode: ""
+    });
+  }
+
+  function markPWAInstalled() {
+    pwaInstallDeferredEvent = null;
+    clearPWAInstallFallbackTimer();
+    clearPWAInstallDismissed();
+    setPWAInstallState({
+      available: false,
+      busy: false,
+      installed: true,
+      mode: ""
+    });
+  }
+
+  function handleBeforeInstallPrompt(event) {
+    if (!event) {
+      return;
+    }
+    if (isStandalonePWA() || wasPWAInstallDismissed()) {
+      return;
+    }
+
+    if (typeof event.preventDefault === "function") {
+      event.preventDefault();
+    }
+    pwaInstallDeferredEvent = event;
+    clearPWAInstallFallbackTimer();
+    setPWAInstallState({
+      available: true,
+      busy: false,
+      installed: false,
+      mode: "prompt"
+    });
+  }
+
+  function initPWAInstallPrompt() {
+    if (window.__ovumcyPWAInstallInitialized) {
+      return;
+    }
+    window.__ovumcyPWAInstallInitialized = true;
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", markPWAInstalled);
+
+    setPWAInstallState({
+      available: false,
+      busy: false,
+      installed: isStandalonePWA(),
+      mode: ""
+    });
+
+    schedulePWAInstallFallback();
+  }
+
+  function requestPWAInstallation() {
+    if (!pwaInstallDeferredEvent || typeof pwaInstallDeferredEvent.prompt !== "function") {
+      return Promise.resolve(false);
+    }
+
+    var installEvent = pwaInstallDeferredEvent;
+    setPWAInstallState({
+      available: true,
+      busy: true,
+      installed: false,
+      mode: "prompt"
+    });
+
+    return Promise.resolve(installEvent.prompt())
+      .catch(function () {
+        return null;
+      })
+      .then(function () {
+        return installEvent.userChoice;
+      })
+      .catch(function () {
+        return { outcome: "dismissed" };
+      })
+      .then(function (choice) {
+        var outcome = choice && choice.outcome ? String(choice.outcome) : "dismissed";
+        pwaInstallDeferredEvent = null;
+
+        if (outcome === "accepted") {
+          markPWAInstalled();
+          return true;
+        }
+
+        dismissPWAInstallPrompt();
+        return false;
+      });
+  }
+
+  function subscribePWAInstallState(listener) {
+    if (typeof listener !== "function") {
+      return function () {};
+    }
+
+    pwaInstallSubscribers.push(listener);
+    listener(clonePWAInstallState());
+
+    return function () {
+      pwaInstallSubscribers = pwaInstallSubscribers.filter(function (candidate) {
+        return candidate !== listener;
+      });
+    };
+  }
+
   function renderErrorStatus(target, text) {
     target.textContent = "";
     var block = document.createElement("div");
@@ -1122,6 +1408,38 @@
     };
   }
 
+  window.pwaInstallBanner = function () {
+    return {
+      visible: false,
+      busy: false,
+      mode: "",
+      init: function () {
+        var self = this;
+        subscribePWAInstallState(function (state) {
+          self.syncInstallState(state);
+        });
+      },
+      dismiss: function () {
+        dismissPWAInstallPrompt();
+      },
+      install: function () {
+        if (this.busy || this.mode !== "prompt") {
+          return;
+        }
+
+        requestPWAInstallation().then(function () {
+          // State is synchronized via subscribePWAInstallState.
+        });
+      },
+      syncInstallState: function (state) {
+        var safeState = state || {};
+        this.visible = !!safeState.available && !safeState.installed;
+        this.busy = !!safeState.busy;
+        this.mode = String(safeState.mode || "");
+      }
+    };
+  };
+
   window.appShellState = function () {
     return {
       mobileMenu: false,
@@ -1515,6 +1833,8 @@
       }
     };
   };
+
+  initPWAInstallPrompt();
 
   onDocumentReady(function () {
     initThemePreference();

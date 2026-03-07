@@ -1352,6 +1352,75 @@
     min-height: 1.25rem;
   }
 
+  .mobile-install-banner {
+    margin-top: 0.9rem;
+  }
+
+  .mobile-install-shell {
+    display: grid;
+    gap: 0.9rem;
+    border-radius: 1.15rem;
+    border: 1px solid var(--line-soft);
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(255, 243, 229, 0.95)),
+      var(--bg-card);
+    box-shadow: var(--shadow-soft);
+    padding: 0.95rem 1rem;
+  }
+
+  .mobile-install-copy {
+    min-width: 0;
+  }
+
+  .mobile-install-kicker {
+    display: inline-block;
+    margin-bottom: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+  }
+
+  .mobile-install-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.78rem;
+  }
+
+  .mobile-install-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 2.5rem;
+  }
+
+  .mobile-install-title {
+    margin: 0;
+    font-size: 1.06rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--text-primary);
+  }
+
+  .mobile-install-text {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+
+  .mobile-install-actions {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .mobile-install-actions button {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
   .mobile-tabbar {
     position: fixed;
     left: 0.75rem;
@@ -1624,6 +1693,12 @@
     background: rgba(62, 49, 84, 0.72);
   }
 
+  :root[data-theme="dark"] .mobile-install-shell {
+    background:
+      linear-gradient(145deg, rgba(47, 40, 62, 0.98), rgba(34, 28, 45, 0.95)),
+      var(--bg-card);
+  }
+
   :root[data-theme="dark"] .mobile-tabbar {
     background: rgba(30, 24, 40, 0.95);
     box-shadow: 0 12px 24px rgba(7, 5, 11, 0.55);
@@ -1773,6 +1848,14 @@
       left: 1rem;
       right: 1rem;
       max-width: none;
+    }
+
+    .mobile-install-shell {
+      padding: 0.9rem;
+    }
+
+    .mobile-install-title {
+      font-size: 1rem;
     }
   }
 }

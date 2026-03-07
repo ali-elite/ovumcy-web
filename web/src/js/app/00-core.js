@@ -10,6 +10,8 @@
   var THEME_STORAGE_KEY = "ovumcy_theme";
   var THEME_LIGHT = "light";
   var THEME_DARK = "dark";
+  var THEME_COLOR_LIGHT = "#fff9f0";
+  var THEME_COLOR_DARK = "#18141f";
   var TIMEZONE_COOKIE_NAME = "ovumcy_tz";
   var TIMEZONE_HEADER_NAME = "X-Ovumcy-Timezone";
   var TIMEZONE_COOKIE_MAX_AGE_SECONDS = 31536000;
@@ -82,10 +84,20 @@
     }
   }
 
+  function updateThemeColorMeta(theme) {
+    var meta = document.getElementById("theme-color-meta");
+    if (!meta) {
+      return;
+    }
+
+    meta.setAttribute("content", theme === THEME_DARK ? THEME_COLOR_DARK : THEME_COLOR_LIGHT);
+  }
+
   function applyTheme(theme) {
     var resolved = resolveTheme(theme);
     document.documentElement.setAttribute("data-theme", resolved);
     document.documentElement.style.colorScheme = resolved;
+    updateThemeColorMeta(resolved);
     window.__ovumcyTheme = resolved;
     return resolved;
   }
