@@ -151,6 +151,7 @@ test.describe('Security and role-based access', () => {
     await registerOwnerAndOpenSettings(page, 'security-owner-access');
 
     await expect(page.locator('section#settings-cycle')).toBeVisible();
+    await expect(page.locator('#settings-symptoms-section')).toBeVisible();
     await expect(page.locator('[data-export-section]')).toBeVisible();
     await expect(page.locator('form[action="/api/settings/clear-data"]')).toBeVisible();
 
@@ -179,6 +180,7 @@ test.describe('Security and role-based access', () => {
     await expect(page).toHaveURL(/\/settings$/);
 
     await expect(page.locator('section#settings-cycle')).toHaveCount(0);
+    await expect(page.locator('#settings-symptoms-section')).toHaveCount(0);
     await expect(page.locator('[data-export-section]')).toHaveCount(0);
     await expect(page.locator('form[action="/api/settings/clear-data"]')).toHaveCount(0);
 
