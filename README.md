@@ -1,5 +1,3 @@
-# Ovumcy
-
 [![CI](https://github.com/terraincognita07/ovumcy/actions/workflows/ci.yml/badge.svg)](https://github.com/terraincognita07/ovumcy/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/terraincognita07/ovumcy/actions/workflows/codeql.yml/badge.svg)](https://github.com/terraincognita07/ovumcy/actions/workflows/codeql.yml)
 [![Coverage](https://codecov.io/gh/terraincognita07/ovumcy/graph/badge.svg)](https://codecov.io/gh/terraincognita07/ovumcy)
@@ -11,12 +9,14 @@
 [![Self-hosted](https://img.shields.io/badge/Self--hosted-yes-2ea44f)](https://github.com/terraincognita07/ovumcy/blob/main/docs/self-hosted.md)
 [![No telemetry](https://img.shields.io/badge/Telemetry-none-2ea44f)](https://github.com/terraincognita07/ovumcy#privacy-and-security)
 
+<p align="center">
+  <img src="docs/screenshots/ovumcy-readme-hero.svg" alt="Ovumcy" width="820">
+</p>
+
 Ovumcy is a privacy-first, self-hosted menstrual cycle tracker.
 It is built for people who want fast daily tracking, useful cycle insights, and data that stays under their control.
 
 Ovumcy runs as a single Go service with a server-rendered web UI, can be installed on a phone home screen, and supports SQLite by default with Postgres as an advanced self-hosted path.
-
-![Ovumcy promo card](docs/screenshots/ovumcy-promo-card.svg)
 
 This README describes the current `main` branch. The latest tagged release is `v0.3.1`.
 
