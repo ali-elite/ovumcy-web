@@ -26,6 +26,49 @@ Most cycle tracking apps depend on cloud accounts, analytics, or third-party inf
 
 Ovumcy is designed as a self-hosted alternative for people who want simple daily tracking, useful cycle insights, and full control over sensitive health data.
 
+## How Ovumcy Is Different
+
+Different cycle trackers optimize for different things. Here is how the product models compare.
+
+This comparison focuses on product models rather than specific brands, because privacy, export, and telemetry policies vary between apps.
+
+| Capability | Ovumcy | Local-first app | Cloud-first tracker |
+| --- | --- | --- | --- |
+| Self-hosted by the user or operator | :white_check_mark: | Device-local | :x: |
+| No vendor account required | :white_check_mark: | :white_check_mark: | :x: |
+| Multi-device browser access | :white_check_mark: | :x: | :white_check_mark: |
+| No telemetry or ad trackers by product default | :white_check_mark: | Varies | Varies |
+| Open data export | :white_check_mark: | Varies | Varies |
+| Operator-controlled storage | :white_check_mark: | Device-only | :x: |
+
+Ovumcy trades single-device simplicity for self-hosted control, operator-managed storage, and browser access from any device.
+
+## Short FAQ
+
+### Does Ovumcy require a cloud account?
+
+No. Ovumcy is designed to run as a self-hosted application under your control.
+
+### Where is the data stored?
+
+On the server where you deploy Ovumcy. SQLite is the default baseline, and PostgreSQL is available for more advanced self-hosted setups.
+
+### Does Ovumcy use analytics or ad trackers?
+
+No. Ovumcy is designed without telemetry or advertising trackers.
+
+### Can I export my data?
+
+Yes. Ovumcy supports CSV and JSON export so your records stay portable.
+
+### Do I need technical knowledge to install Ovumcy?
+
+Basic familiarity with Docker is enough for the supported quick start. A `docker-compose.yml` with working defaults is included in the repository.
+
+### Is Ovumcy a medical product?
+
+No. Ovumcy provides estimates and logs based on recorded data. It is not a medical device and should not be treated as diagnostic or treatment advice.
+
 ## Screenshots
 
 ### Get Started Quickly
