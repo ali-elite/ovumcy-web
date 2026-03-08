@@ -47,6 +47,7 @@
         data-onboarding-form-step="1"
         class="space-y-4">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="hidden" name="client_timezone" value="" data-onboarding-timezone-field>
 
         <label class="field-label" for="last-period-start">{{t .Messages "onboarding.step1.field"}}</label>
         <input
@@ -82,6 +83,7 @@
         data-onboarding-form-step="2"
         class="space-y-6">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <input type="hidden" name="client_timezone" value="" data-onboarding-timezone-field>
 
         <div class="space-y-2">
           <div class="flex items-center justify-between gap-2">
@@ -147,6 +149,7 @@
 
       <form hx-post="/onboarding/complete" hx-target="#onboarding-step3-status" hx-swap="innerHTML" data-onboarding-form-step="3">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <input type="hidden" name="client_timezone" value="" data-onboarding-timezone-field>
         <div class="flex flex-wrap items-center gap-3">
           <button type="button" class="btn-secondary" data-onboarding-go-step="2">{{t .Messages "onboarding.button.back"}}</button>
           <button type="submit" class="btn-primary">{{t .Messages "onboarding.button.start"}}</button>

@@ -60,6 +60,6 @@ func (repo *SymptomRepository) FindByIDForUser(symptomID uint, userID uint) (mod
 	return symptom, nil
 }
 
-func (repo *SymptomRepository) Delete(symptom *models.SymptomType) error {
-	return repo.database.Delete(symptom).Error
+func (repo *SymptomRepository) Update(symptom *models.SymptomType) error {
+	return repo.database.Save(symptom).Error
 }

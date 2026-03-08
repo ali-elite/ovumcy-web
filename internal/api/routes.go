@@ -56,6 +56,9 @@ func registerAPIRoutes(app *fiber.App, handler *Handler) {
 	symptoms := api.Group("/symptoms", handler.AuthRequired)
 	symptoms.Get("", handler.OwnerOnly, handler.GetSymptoms)
 	symptoms.Post("", handler.OwnerOnly, handler.CreateSymptom)
+	symptoms.Post("/:id", handler.OwnerOnly, handler.UpdateSymptom)
+	symptoms.Post("/:id/archive", handler.OwnerOnly, handler.ArchiveSymptom)
+	symptoms.Post("/:id/restore", handler.OwnerOnly, handler.RestoreSymptom)
 	symptoms.Delete("/:id", handler.OwnerOnly, handler.DeleteSymptom)
 
 	stats := api.Group("/stats", handler.AuthRequired)

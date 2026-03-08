@@ -15,4 +15,7 @@ var pageTemplates = []string{
 	"privacy",
 }
 
-var partialTemplateFiles = []string{"day_editor_partial.html"}
+var partialTemplateFiles = []string{
+	"day_editor_partial.html",
+	"settings_symptoms_section.html",
+}

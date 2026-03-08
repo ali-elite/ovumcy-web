@@ -71,13 +71,15 @@ func newRateLimitTestHandler(t *testing.T) *api.Handler {
 		t.Fatalf("open rate-limit test database: %v", err)
 	}
 
+	i18nManager := newRateLimitTestI18nManager(t)
+
 	handler, err := api.NewHandler(
 		"0123456789abcdef0123456789abcdef",
 		templateDir,
 		time.UTC,
-		newRateLimitTestI18nManager(t),
+		i18nManager,
 		false,
-		buildDependencies(db.NewRepositories(database)),
+		buildDependencies(db.NewRepositories(database), i18nManager),
 	)
 	if err != nil {
 		t.Fatalf("init rate-limit test handler: %v", err)

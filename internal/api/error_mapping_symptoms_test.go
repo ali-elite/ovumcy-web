@@ -17,22 +17,27 @@ func TestMapSymptomCreateError(t *testing.T) {
 		{
 			name: "invalid name",
 			err:  services.ErrInvalidSymptomName,
-			want: globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom name"),
+			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom name"),
 		},
 		{
 			name: "invalid color",
 			err:  services.ErrInvalidSymptomColor,
-			want: globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom color"),
+			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom color"),
+		},
+		{
+			name: "duplicate name",
+			err:  services.ErrSymptomNameAlreadyExists,
+			want: settingsFormErrorSpec(fiber.StatusConflict, APIErrorCategoryConflict, "symptom name already exists"),
 		},
 		{
 			name: "create failed",
 			err:  services.ErrCreateSymptomFailed,
-			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to create symptom"),
+			want: settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to create symptom"),
 		},
 		{
 			name: "unknown",
 			err:  errors.New("unknown"),
-			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to create symptom"),
+			want: settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to create symptom"),
 		},
 	}
 
@@ -46,44 +51,49 @@ func TestMapSymptomCreateError(t *testing.T) {
 	}
 }
 
-func TestMapSymptomDeleteError(t *testing.T) {
+func TestMapSymptomUpdateArchiveAndRestoreErrors(t *testing.T) {
 	testCases := []struct {
 		name string
-		err  error
+		got  APIErrorSpec
 		want APIErrorSpec
 	}{
 		{
-			name: "not found",
-			err:  services.ErrSymptomNotFound,
-			want: globalErrorSpec(fiber.StatusNotFound, APIErrorCategoryNotFound, "symptom not found"),
+			name: "update builtin forbidden",
+			got:  mapSymptomUpdateError(services.ErrBuiltinSymptomEditForbidden),
+			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "built-in symptom cannot be edited"),
 		},
 		{
-			name: "builtin forbidden",
-			err:  services.ErrBuiltinSymptomDeleteForbidden,
-			want: globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "built-in symptom cannot be deleted"),
+			name: "archive builtin forbidden",
+			got:  mapSymptomArchiveError(services.ErrBuiltinSymptomHideForbidden),
+			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "built-in symptom cannot be hidden"),
 		},
 		{
-			name: "delete failed",
-			err:  services.ErrDeleteSymptomFailed,
-			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to delete symptom"),
+			name: "restore builtin forbidden",
+			got:  mapSymptomRestoreError(services.ErrBuiltinSymptomShowForbidden),
+			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "built-in symptom cannot be restored"),
 		},
 		{
-			name: "clean logs failed",
-			err:  services.ErrCleanSymptomLogsFailed,
-			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to clean symptom logs"),
+			name: "restore duplicate name",
+			got:  mapSymptomRestoreError(services.ErrSymptomNameAlreadyExists),
+			want: settingsFormErrorSpec(fiber.StatusConflict, APIErrorCategoryConflict, "symptom name already exists"),
 		},
 		{
-			name: "unknown",
-			err:  errors.New("unknown"),
-			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to delete symptom"),
+			name: "archive failed",
+			got:  mapSymptomArchiveError(services.ErrArchiveSymptomFailed),
+			want: settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to hide symptom"),
+		},
+		{
+			name: "restore failed",
+			got:  mapSymptomRestoreError(services.ErrRestoreSymptomFailed),
+			want: settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to restore symptom"),
 		},
 	}
 
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			if got := mapSymptomDeleteError(testCase.err); got != testCase.want {
-				t.Fatalf("unexpected mapped error: got %#v want %#v", got, testCase.want)
+			if testCase.got != testCase.want {
+				t.Fatalf("unexpected mapped error: got %#v want %#v", testCase.got, testCase.want)
 			}
 		})
 	}

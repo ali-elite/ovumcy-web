@@ -8,28 +8,62 @@ import (
 func mapSymptomCreateError(err error) APIErrorSpec {
 	switch services.ClassifySymptomCreateError(err) {
 	case services.SymptomCreateErrorInvalidName:
-		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom name")
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom name")
 	case services.SymptomCreateErrorInvalidColor:
-		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom color")
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom color")
+	case services.SymptomCreateErrorDuplicateName:
+		return settingsFormErrorSpec(fiber.StatusConflict, APIErrorCategoryConflict, "symptom name already exists")
 	case services.SymptomCreateErrorFailed:
-		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to create symptom")
+		return settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to create symptom")
 	default:
-		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to create symptom")
+		return settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to create symptom")
 	}
 }
 
-func mapSymptomDeleteError(err error) APIErrorSpec {
-	switch services.ClassifySymptomDeleteError(err) {
-	case services.SymptomDeleteErrorNotFound:
-		return globalErrorSpec(fiber.StatusNotFound, APIErrorCategoryNotFound, "symptom not found")
-	case services.SymptomDeleteErrorBuiltinForbidden:
-		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "built-in symptom cannot be deleted")
-	case services.SymptomDeleteErrorDeleteFailed:
-		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to delete symptom")
-	case services.SymptomDeleteErrorCleanLogsFailed:
-		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to clean symptom logs")
+func mapSymptomUpdateError(err error) APIErrorSpec {
+	switch services.ClassifySymptomUpdateError(err) {
+	case services.SymptomUpdateErrorNotFound:
+		return settingsFormErrorSpec(fiber.StatusNotFound, APIErrorCategoryNotFound, "symptom not found")
+	case services.SymptomUpdateErrorInvalidName:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom name")
+	case services.SymptomUpdateErrorInvalidColor:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom color")
+	case services.SymptomUpdateErrorDuplicateName:
+		return settingsFormErrorSpec(fiber.StatusConflict, APIErrorCategoryConflict, "symptom name already exists")
+	case services.SymptomUpdateErrorBuiltinForbidden:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "built-in symptom cannot be edited")
+	case services.SymptomUpdateErrorFailed:
+		return settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to update symptom")
 	default:
-		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to delete symptom")
+		return settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to update symptom")
+	}
+}
+
+func mapSymptomArchiveError(err error) APIErrorSpec {
+	switch services.ClassifySymptomArchiveError(err) {
+	case services.SymptomArchiveErrorNotFound:
+		return settingsFormErrorSpec(fiber.StatusNotFound, APIErrorCategoryNotFound, "symptom not found")
+	case services.SymptomArchiveErrorBuiltinForbidden:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "built-in symptom cannot be hidden")
+	case services.SymptomArchiveErrorFailed:
+		return settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to hide symptom")
+	default:
+		return settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to hide symptom")
+	}
+}
+
+func mapSymptomRestoreError(err error) APIErrorSpec {
+	switch services.ClassifySymptomRestoreError(err) {
+	case services.SymptomRestoreErrorNotFound:
+		return settingsFormErrorSpec(fiber.StatusNotFound, APIErrorCategoryNotFound, "symptom not found")
+	case services.SymptomRestoreErrorBuiltinForbidden:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "built-in symptom cannot be restored")
+	case services.SymptomRestoreErrorDuplicateName:
+		return settingsFormErrorSpec(fiber.StatusConflict, APIErrorCategoryConflict, "symptom name already exists")
+	case services.SymptomRestoreErrorFailed:
+		return settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to restore symptom")
+	default:
+		return settingsFormErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to restore symptom")
 	}
 }
 

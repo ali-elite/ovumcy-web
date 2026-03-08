@@ -202,6 +202,7 @@ const (
 	SymptomCreateErrorUnknown SymptomCreateErrorKind = iota
 	SymptomCreateErrorInvalidName
 	SymptomCreateErrorInvalidColor
+	SymptomCreateErrorDuplicateName
 	SymptomCreateErrorFailed
 )
 
@@ -211,6 +212,8 @@ func ClassifySymptomCreateError(err error) SymptomCreateErrorKind {
 		return SymptomCreateErrorInvalidName
 	case errors.Is(err, ErrInvalidSymptomColor):
 		return SymptomCreateErrorInvalidColor
+	case errors.Is(err, ErrSymptomNameAlreadyExists):
+		return SymptomCreateErrorDuplicateName
 	case errors.Is(err, ErrCreateSymptomFailed):
 		return SymptomCreateErrorFailed
 	default:
@@ -218,28 +221,81 @@ func ClassifySymptomCreateError(err error) SymptomCreateErrorKind {
 	}
 }
 
-type SymptomDeleteErrorKind uint8
+type SymptomUpdateErrorKind uint8
 
 const (
-	SymptomDeleteErrorUnknown SymptomDeleteErrorKind = iota
-	SymptomDeleteErrorNotFound
-	SymptomDeleteErrorBuiltinForbidden
-	SymptomDeleteErrorDeleteFailed
-	SymptomDeleteErrorCleanLogsFailed
+	SymptomUpdateErrorUnknown SymptomUpdateErrorKind = iota
+	SymptomUpdateErrorNotFound
+	SymptomUpdateErrorInvalidName
+	SymptomUpdateErrorInvalidColor
+	SymptomUpdateErrorDuplicateName
+	SymptomUpdateErrorBuiltinForbidden
+	SymptomUpdateErrorFailed
 )
 
-func ClassifySymptomDeleteError(err error) SymptomDeleteErrorKind {
+func ClassifySymptomUpdateError(err error) SymptomUpdateErrorKind {
 	switch {
 	case errors.Is(err, ErrSymptomNotFound):
-		return SymptomDeleteErrorNotFound
-	case errors.Is(err, ErrBuiltinSymptomDeleteForbidden):
-		return SymptomDeleteErrorBuiltinForbidden
-	case errors.Is(err, ErrDeleteSymptomFailed):
-		return SymptomDeleteErrorDeleteFailed
-	case errors.Is(err, ErrCleanSymptomLogsFailed):
-		return SymptomDeleteErrorCleanLogsFailed
+		return SymptomUpdateErrorNotFound
+	case errors.Is(err, ErrInvalidSymptomName):
+		return SymptomUpdateErrorInvalidName
+	case errors.Is(err, ErrInvalidSymptomColor):
+		return SymptomUpdateErrorInvalidColor
+	case errors.Is(err, ErrSymptomNameAlreadyExists):
+		return SymptomUpdateErrorDuplicateName
+	case errors.Is(err, ErrBuiltinSymptomEditForbidden):
+		return SymptomUpdateErrorBuiltinForbidden
+	case errors.Is(err, ErrUpdateSymptomFailed):
+		return SymptomUpdateErrorFailed
 	default:
-		return SymptomDeleteErrorUnknown
+		return SymptomUpdateErrorUnknown
+	}
+}
+
+type SymptomArchiveErrorKind uint8
+
+const (
+	SymptomArchiveErrorUnknown SymptomArchiveErrorKind = iota
+	SymptomArchiveErrorNotFound
+	SymptomArchiveErrorBuiltinForbidden
+	SymptomArchiveErrorFailed
+)
+
+func ClassifySymptomArchiveError(err error) SymptomArchiveErrorKind {
+	switch {
+	case errors.Is(err, ErrSymptomNotFound):
+		return SymptomArchiveErrorNotFound
+	case errors.Is(err, ErrBuiltinSymptomHideForbidden):
+		return SymptomArchiveErrorBuiltinForbidden
+	case errors.Is(err, ErrArchiveSymptomFailed):
+		return SymptomArchiveErrorFailed
+	default:
+		return SymptomArchiveErrorUnknown
+	}
+}
+
+type SymptomRestoreErrorKind uint8
+
+const (
+	SymptomRestoreErrorUnknown SymptomRestoreErrorKind = iota
+	SymptomRestoreErrorNotFound
+	SymptomRestoreErrorBuiltinForbidden
+	SymptomRestoreErrorDuplicateName
+	SymptomRestoreErrorFailed
+)
+
+func ClassifySymptomRestoreError(err error) SymptomRestoreErrorKind {
+	switch {
+	case errors.Is(err, ErrSymptomNotFound):
+		return SymptomRestoreErrorNotFound
+	case errors.Is(err, ErrBuiltinSymptomShowForbidden):
+		return SymptomRestoreErrorBuiltinForbidden
+	case errors.Is(err, ErrSymptomNameAlreadyExists):
+		return SymptomRestoreErrorDuplicateName
+	case errors.Is(err, ErrRestoreSymptomFailed):
+		return SymptomRestoreErrorFailed
+	default:
+		return SymptomRestoreErrorUnknown
 	}
 }
 

@@ -16,8 +16,9 @@ func (handler *Handler) OnboardingStep1(c *fiber.Ctx) error {
 		return redirectOrJSON(c, "/dashboard")
 	}
 
-	today := services.DateAtLocation(time.Now().In(handler.location), handler.location)
-	values, validationError := handler.parseOnboardingStep1Values(c, today)
+	location := handler.requestLocationFromOnboardingForm(c)
+	today := services.DateAtLocation(time.Now().In(location), location)
+	values, validationError := handler.parseOnboardingStep1Values(c, today, location)
 	if validationError != "" {
 		return handler.respondMappedError(c, onboardingValidationErrorSpec(validationError))
 	}
@@ -42,6 +43,8 @@ func (handler *Handler) OnboardingStep2(c *fiber.Ctx) error {
 	if !services.RequiresOnboarding(user) {
 		return redirectOrJSON(c, "/dashboard")
 	}
+
+	_ = handler.requestLocationFromOnboardingForm(c)
 
 	values, validationError := handler.parseOnboardingStep2Input(c)
 	if validationError != "" {

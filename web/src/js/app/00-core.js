@@ -158,7 +158,7 @@
     if (!name || !value) {
       return;
     }
-    var cookie = name + "=" + encodeURIComponent(value) +
+    var cookie = name + "=" + value +
       "; Path=/" +
       "; SameSite=Lax" +
       "; Max-Age=" + String(maxAgeSeconds || 0);

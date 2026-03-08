@@ -1,6 +1,7 @@
 package api
 
 import (
+	"net/url"
 	"strings"
 	"time"
 )
@@ -25,6 +26,13 @@ func parseRequestTimezone(raw string) (*time.Location, string, bool) {
 	value := strings.TrimSpace(raw)
 	if value == "" || len(value) > maxRequestTimezoneLength {
 		return nil, "", false
+	}
+	if strings.Contains(value, "%") {
+		decoded, err := url.PathUnescape(value)
+		if err != nil {
+			return nil, "", false
+		}
+		value = strings.TrimSpace(decoded)
 	}
 	if !isSafeTimezoneIdentifier(value) {
 		return nil, "", false

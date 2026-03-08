@@ -16,7 +16,7 @@ func assertExportServiceLoadDataForRangeFiltersInclusiveBoundaries(t *testing.T,
 	user := createDayServiceTestUser(t, database, email)
 
 	repositories := db.NewRepositories(database)
-	symptomService := NewSymptomService(repositories.Symptoms, repositories.DailyLogs)
+	symptomService := NewSymptomService(repositories.Symptoms)
 	exportService := NewExportService(dayService, symptomService)
 
 	logs := []models.DailyLog{
@@ -84,7 +84,7 @@ func TestExportServiceBuildSummaryForRangeFiltersInclusiveBoundaries(t *testing.
 	user := createDayServiceTestUser(t, database, "export-range-summary-service@example.com")
 
 	repositories := db.NewRepositories(database)
-	symptomService := NewSymptomService(repositories.Symptoms, repositories.DailyLogs)
+	symptomService := NewSymptomService(repositories.Symptoms)
 	exportService := NewExportService(dayService, symptomService)
 
 	logs := []models.DailyLog{

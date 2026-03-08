@@ -83,7 +83,7 @@ func main() {
 	config := mustLoadRuntimeConfig(location)
 	database := mustOpenDatabase(config.DatabaseConfig)
 	i18nManager := mustNewI18nManager(config.DefaultLanguage)
-	dependencies := buildDependencies(db.NewRepositories(database))
+	dependencies := buildDependencies(db.NewRepositories(database), i18nManager)
 	handler := mustNewHandler(config, i18nManager, dependencies)
 	app := newFiberApp(config, handler)
 	stopSignals := installGracefulShutdown(app)
@@ -178,13 +178,13 @@ func mustNewI18nManager(defaultLanguage string) *i18n.Manager {
 	return i18nManager
 }
 
-func buildDependencies(repositories *db.Repositories) api.Dependencies {
+func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager) api.Dependencies {
 	authService := services.NewAuthService(repositories.Users)
 	attemptLimiter := services.NewAttemptLimiter()
 	passwordResetService := services.NewPasswordResetService(authService, attemptLimiter)
 	loginService := services.NewLoginService(authService, passwordResetService)
 	dayService := services.NewDayService(repositories.DailyLogs, repositories.Users)
-	symptomService := services.NewSymptomService(repositories.Symptoms, repositories.DailyLogs)
+	symptomService := services.NewSymptomService(repositories.Symptoms, services.BuiltinSymptomReservedNames(i18nManager)...)
 	registrationService := services.NewRegistrationService(authService, repositories.Users)
 	viewerService := services.NewViewerService(dayService, symptomService)
 	statsService := services.NewStatsService(dayService, symptomService)
@@ -207,7 +207,7 @@ func buildDependencies(repositories *db.Repositories) api.Dependencies {
 		DashboardViewService: dashboardViewService,
 		ExportService:        exportService,
 		SettingsService:      settingsService,
-		SettingsViewService:  services.NewSettingsViewService(settingsService, notificationService, exportService),
+		SettingsViewService:  services.NewSettingsViewService(settingsService, notificationService, exportService, symptomService),
 		OnboardingService:    services.NewOnboardingService(repositories.Users),
 		SetupService:         services.NewSetupService(repositories.Users),
 	}

@@ -60,7 +60,7 @@ func newOnboardingTestAppWithCookieSecureAndCSRF(t *testing.T, cookieSecure bool
 		t.Fatalf("init i18n: %v", err)
 	}
 
-	handler, err := NewHandler("test-secret-key", templatesDir, time.UTC, i18nManager, cookieSecure, newTestHandlerDependencies(database))
+	handler, err := NewHandler("test-secret-key", templatesDir, time.UTC, i18nManager, cookieSecure, newTestHandlerDependencies(database, i18nManager))
 	if err != nil {
 		t.Fatalf("init handler: %v", err)
 	}
@@ -75,14 +75,18 @@ func newOnboardingTestAppWithCookieSecureAndCSRF(t *testing.T, cookieSecure bool
 	return app, database
 }
 
-func newTestHandlerDependencies(database *gorm.DB) Dependencies {
+func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager) Dependencies {
 	repositories := db.NewRepositories(database)
 	authService := services.NewAuthService(repositories.Users)
 	attemptLimiter := services.NewAttemptLimiter()
 	passwordResetService := services.NewPasswordResetService(authService, attemptLimiter)
 	loginService := services.NewLoginService(authService, passwordResetService)
 	dayService := services.NewDayService(repositories.DailyLogs, repositories.Users)
-	symptomService := services.NewSymptomService(repositories.Symptoms, repositories.DailyLogs)
+	reservedBuiltinNames := make([]string, 0)
+	if i18nManager != nil {
+		reservedBuiltinNames = services.BuiltinSymptomReservedNames(i18nManager)
+	}
+	symptomService := services.NewSymptomService(repositories.Symptoms, reservedBuiltinNames...)
 	registrationService := services.NewRegistrationService(authService, repositories.Users)
 	viewerService := services.NewViewerService(dayService, symptomService)
 	statsService := services.NewStatsService(dayService, symptomService)
@@ -91,7 +95,7 @@ func newTestHandlerDependencies(database *gorm.DB) Dependencies {
 	exportService := services.NewExportService(dayService, symptomService)
 	settingsService := services.NewSettingsService(repositories.Users)
 	notificationService := services.NewNotificationService()
-	settingsViewService := services.NewSettingsViewService(settingsService, notificationService, exportService)
+	settingsViewService := services.NewSettingsViewService(settingsService, notificationService, exportService, symptomService)
 	onboardingService := services.NewOnboardingService(repositories.Users)
 	setupService := services.NewSetupService(repositories.Users)
 

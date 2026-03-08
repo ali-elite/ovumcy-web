@@ -18,6 +18,7 @@ func TestOpenSQLiteAppliesEmbeddedMigrationsOnCleanDatabase(t *testing.T) {
 	database := openSQLiteForMigrationBootstrapTest(t, databasePath)
 
 	assertUsersSchemaReconciled(t, database)
+	assertSymptomTypesSchemaReconciled(t, database)
 	assertDailyLogsSchemaReconciled(t, database)
 	assertNormalizedEmailIndexExists(t, database)
 	assertAllEmbeddedMigrationsApplied(t, database)
@@ -30,6 +31,7 @@ func TestOpenSQLiteUpgradesLegacyInitSchema(t *testing.T) {
 	database := openSQLiteForMigrationBootstrapTest(t, databasePath)
 
 	assertUsersSchemaReconciled(t, database)
+	assertSymptomTypesSchemaReconciled(t, database)
 	assertDailyLogsSchemaReconciled(t, database)
 	assertNormalizedEmailIndexExists(t, database)
 	assertAllEmbeddedMigrationsApplied(t, database)
@@ -208,6 +210,14 @@ func assertUsersSchemaReconciled(t *testing.T, database *gorm.DB) {
 		if !database.Migrator().HasColumn("users", column) {
 			t.Fatalf("expected users.%s column to exist after migrations", column)
 		}
+	}
+}
+
+func assertSymptomTypesSchemaReconciled(t *testing.T, database *gorm.DB) {
+	t.Helper()
+
+	if !database.Migrator().HasColumn("symptom_types", "archived_at") {
+		t.Fatal("expected symptom_types.archived_at column to exist after migrations")
 	}
 }
 

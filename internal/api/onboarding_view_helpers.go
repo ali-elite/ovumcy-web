@@ -8,9 +8,9 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
-func (handler *Handler) buildOnboardingViewData(c *fiber.Ctx, user *models.User, now time.Time) fiber.Map {
+func (handler *Handler) buildOnboardingViewData(c *fiber.Ctx, user *models.User, now time.Time, location *time.Location) fiber.Map {
 	messages := currentMessages(c)
-	state := services.BuildOnboardingViewState(user, c.Query("step"), now, handler.location)
+	state := services.BuildOnboardingViewState(user, c.Query("step"), now, location)
 
 	lastPeriodStart := ""
 	if state.LastPeriodStart != nil {

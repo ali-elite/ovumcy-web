@@ -8,13 +8,13 @@
   }
 
   configureHTMXForCSP();
+  initClientTimezone();
   initPWAInstallPrompt();
 
   onDocumentReady(function () {
     initThemePreference();
     initAuthPanelTransitions();
     initLanguageSwitcher();
-    initClientTimezone();
     initPasswordToggles();
     initLoginValidation();
     initRegisterValidation();

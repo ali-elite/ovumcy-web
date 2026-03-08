@@ -63,18 +63,3 @@ func PhaseIcon(phase string) string {
 		return "✨"
 	}
 }
-
-func SymptomGroup(name string) string {
-	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "cramps", "headache", "breast tenderness", "back pain":
-		return "pain"
-	case "mood swings", "fatigue", "irritability", "insomnia":
-		return "mood"
-	case "bloating", "nausea", "diarrhea", "constipation", "swelling", "food cravings":
-		return "digestion"
-	case "acne", "spotting":
-		return "skin"
-	default:
-		return "other"
-	}
-}

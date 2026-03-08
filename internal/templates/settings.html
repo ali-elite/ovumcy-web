@@ -138,6 +138,10 @@
   </section>
   {{end}}
 
+  {{if eq .CurrentUser.Role "owner"}}
+  {{template "settings_symptoms_section_content" .}}
+  {{end}}
+
   <section class="journal-card p-5 sm:p-6" id="settings-change-password">
     <h2 class="journal-subtitle">🔒 {{t .Messages "settings.change_password.title"}}</h2>
     <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.change_password.subtitle"}}</p>

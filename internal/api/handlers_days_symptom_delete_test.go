@@ -11,11 +11,11 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/models"
 )
 
-func TestDeleteSymptomRemovesIDFromLogs(t *testing.T) {
+func TestDeleteSymptomArchivesAndKeepsIDsInLogs(t *testing.T) {
 	t.Parallel()
 
 	app, database := newOnboardingTestApp(t)
-	user := createOnboardingTestUser(t, database, "delete-symptom-cleanup@example.com", "StrongPass1", true)
+	user := createOnboardingTestUser(t, database, "hide-symptom-history@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
 	symptom := models.SymptomType{
@@ -33,7 +33,7 @@ func TestDeleteSymptomRemovesIDFromLogs(t *testing.T) {
 		Date:       time.Date(2026, time.February, 18, 0, 0, 0, 0, time.UTC),
 		IsPeriod:   false,
 		Flow:       models.FlowNone,
-		SymptomIDs: []uint{symptom.ID, symptom.ID},
+		SymptomIDs: []uint{symptom.ID},
 		Notes:      "",
 	}
 	if err := database.Create(&logEntry).Error; err != nil {
@@ -41,11 +41,12 @@ func TestDeleteSymptomRemovesIDFromLogs(t *testing.T) {
 	}
 
 	request := httptest.NewRequest(http.MethodDelete, "/api/symptoms/"+strconv.FormatUint(uint64(symptom.ID), 10), nil)
+	request.Header.Set("Accept", "application/json")
 	request.Header.Set("Cookie", authCookie)
 
 	response, err := app.Test(request, -1)
 	if err != nil {
-		t.Fatalf("delete symptom request failed: %v", err)
+		t.Fatalf("hide symptom request failed: %v", err)
 	}
 	defer response.Body.Close()
 
@@ -54,19 +55,19 @@ func TestDeleteSymptomRemovesIDFromLogs(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", response.StatusCode, string(body))
 	}
 
-	var deletedCount int64
-	if err := database.Model(&models.SymptomType{}).Where("id = ?", symptom.ID).Count(&deletedCount).Error; err != nil {
-		t.Fatalf("count deleted symptom: %v", err)
+	stored := models.SymptomType{}
+	if err := database.First(&stored, symptom.ID).Error; err != nil {
+		t.Fatalf("load stored symptom: %v", err)
 	}
-	if deletedCount != 0 {
-		t.Fatalf("expected symptom to be deleted, count=%d", deletedCount)
+	if stored.ArchivedAt == nil {
+		t.Fatalf("expected symptom to be archived, got %#v", stored)
 	}
 
 	updated := models.DailyLog{}
 	if err := database.First(&updated, logEntry.ID).Error; err != nil {
 		t.Fatalf("load updated log: %v", err)
 	}
-	if len(updated.SymptomIDs) != 0 {
-		t.Fatalf("expected symptom IDs to be removed from log, got %#v", updated.SymptomIDs)
+	if len(updated.SymptomIDs) != 1 || updated.SymptomIDs[0] != symptom.ID {
+		t.Fatalf("expected symptom IDs to remain in log history, got %#v", updated.SymptomIDs)
 	}
 }

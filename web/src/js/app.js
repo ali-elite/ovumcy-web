@@ -158,7 +158,7 @@
     if (!name || !value) {
       return;
     }
-    var cookie = name + "=" + encodeURIComponent(value) +
+    var cookie = name + "=" + value +
       "; Path=/" +
       "; SameSite=Lax" +
       "; Max-Age=" + String(maxAgeSeconds || 0);
@@ -1766,6 +1766,111 @@
     }
   }
 
+  function normalizeHexColor(value) {
+    var normalized = String(value || "").trim().toUpperCase();
+    if (!/^#[0-9A-F]{6}$/.test(normalized)) {
+      return "";
+    }
+    return normalized;
+  }
+
+  function syncColorPresetButtons(root, activeColor) {
+    if (!root || !root.querySelectorAll) {
+      return;
+    }
+
+    var normalized = normalizeHexColor(activeColor);
+    var buttons = root.querySelectorAll("[data-color-preset]");
+    for (var index = 0; index < buttons.length; index++) {
+      var button = buttons[index];
+      var selected = normalizeHexColor(button.getAttribute("data-color-preset")) === normalized;
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+      button.setAttribute("data-selected", selected ? "true" : "false");
+    }
+  }
+
+  function syncColorControl(root, nextValue) {
+    if (!root || !root.querySelector) {
+      return;
+    }
+
+    var valueInput = root.querySelector("[data-color-value]");
+    var picker = root.querySelector("[data-color-picker]");
+    var normalized = normalizeHexColor(nextValue);
+
+    if (!normalized && valueInput) {
+      normalized = normalizeHexColor(valueInput.value);
+    }
+    if (!normalized && picker) {
+      normalized = normalizeHexColor(picker.value);
+    }
+    if (!normalized) {
+      normalized = "#E8799F";
+    }
+
+    if (valueInput) {
+      valueInput.value = normalized;
+    }
+    if (picker) {
+      picker.value = normalized;
+    }
+
+    syncColorPresetButtons(root, normalized);
+  }
+
+  function bindColorControls() {
+    var roots = document.querySelectorAll("[data-color-control]");
+    for (var index = 0; index < roots.length; index++) {
+      var root = roots[index];
+      if (root.dataset.colorControlBound !== "1") {
+        root.dataset.colorControlBound = "1";
+
+        root.addEventListener("click", function (event) {
+          var button = closestFromEvent(event, "[data-color-preset]");
+          if (!button || !this.contains(button)) {
+            return;
+          }
+
+          event.preventDefault();
+          syncColorControl(this, button.getAttribute("data-color-preset"));
+        });
+
+        root.addEventListener("input", function (event) {
+          if (!event.target || !event.target.matches) {
+            return;
+          }
+
+          if (event.target.matches("[data-color-picker]")) {
+            syncColorControl(this, event.target.value);
+            return;
+          }
+
+          if (!event.target.matches("[data-color-value]")) {
+            return;
+          }
+
+          var normalized = normalizeHexColor(event.target.value);
+          event.target.value = String(event.target.value || "").toUpperCase();
+          syncColorPresetButtons(this, normalized);
+          if (normalized) {
+            syncColorControl(this, normalized);
+          }
+        });
+
+        root.addEventListener("change", function (event) {
+          if (!event.target || !event.target.matches) {
+            return;
+          }
+          if (event.target.matches("[data-color-value], [data-color-picker]")) {
+            syncColorControl(this, event.target.value);
+          }
+        });
+      }
+
+      syncColorControl(root);
+    }
+  }
+
   function syncCalendarURL(selectedDate) {
     if (!window.history || typeof window.history.replaceState !== "function") {
       return;
@@ -1911,6 +2016,17 @@
     renderOnboardingDayOptions(state);
   }
 
+  function syncOnboardingTimezoneFields(state) {
+    if (!state || !state.timezoneFields) {
+      return;
+    }
+
+    var timezone = currentClientTimezone();
+    for (var index = 0; index < state.timezoneFields.length; index++) {
+      state.timezoneFields[index].value = timezone;
+    }
+  }
+
   function syncOnboardingStepTwo(state) {
     var guidance;
 
@@ -1994,6 +2110,7 @@
             periodLong: root.querySelector("[data-onboarding-step2-message='period-long']"),
             cycleShort: root.querySelector("[data-onboarding-step2-message='cycle-short']")
           },
+          timezoneFields: root.querySelectorAll("[data-onboarding-timezone-field]"),
           statusTargets: {
             "1": root.querySelector("#onboarding-step1-status"),
             "2": root.querySelector("#onboarding-step2-status"),
@@ -2061,6 +2178,7 @@
           }
 
           guidance = syncOnboardingStepTwo(currentState);
+          syncOnboardingTimezoneFields(currentState);
           if (!guidance.invalid) {
             clearOnboardingStatus(currentState, "2");
             return;
@@ -2092,6 +2210,7 @@
 
       syncOnboardingStepUI(state);
       syncOnboardingURL(state);
+      syncOnboardingTimezoneFields(state);
       syncOnboardingStartDate(state);
       syncOnboardingStepTwo(state);
     }
@@ -2214,6 +2333,7 @@
     bindMobileMenu();
     bindPWAInstallBanner();
     bindSettingsCycleForms();
+    bindColorControls();
     bindDashboardEditors();
     bindDayEditorForms();
     bindCalendarViews();
@@ -2231,13 +2351,13 @@
   }
 
   configureHTMXForCSP();
+  initClientTimezone();
   initPWAInstallPrompt();
 
   onDocumentReady(function () {
     initThemePreference();
     initAuthPanelTransitions();
     initLanguageSwitcher();
-    initClientTimezone();
     initPasswordToggles();
     initLoginValidation();
     initRegisterValidation();

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
 )
@@ -12,13 +13,14 @@ type stubSymptomRepo struct {
 	countErr   error
 	builtinCnt int64
 
-	createErr  error
-	findErr    error
-	deleteErr  error
-	findResult models.SymptomType
-	created    []models.SymptomType
-	deleted    []models.SymptomType
-	listed     []models.SymptomType
+	createErr      error
+	createBatchErr error
+	findErr        error
+	updateErr      error
+	findResult     models.SymptomType
+	created        []models.SymptomType
+	updated        []models.SymptomType
+	listed         []models.SymptomType
 }
 
 func (stub *stubSymptomRepo) CountBuiltinByUser(uint) (int64, error) {
@@ -47,6 +49,9 @@ func (stub *stubSymptomRepo) Create(symptom *models.SymptomType) error {
 }
 
 func (stub *stubSymptomRepo) CreateBatch([]models.SymptomType) error {
+	if stub.createBatchErr != nil {
+		return stub.createBatchErr
+	}
 	stub.builtinCnt = 1
 	return nil
 }
@@ -58,45 +63,17 @@ func (stub *stubSymptomRepo) FindByIDForUser(uint, uint) (models.SymptomType, er
 	return stub.findResult, nil
 }
 
-func (stub *stubSymptomRepo) Delete(symptom *models.SymptomType) error {
-	if stub.deleteErr != nil {
-		return stub.deleteErr
-	}
-	stub.deleted = append(stub.deleted, *symptom)
-	return nil
-}
-
-type stubSymptomLogRepo struct {
-	listErr   error
-	updateErr error
-	logs      []models.DailyLog
-	updated   []models.DailyLog
-}
-
-func (stub *stubSymptomLogRepo) ListByUser(uint) ([]models.DailyLog, error) {
-	if stub.listErr != nil {
-		return nil, stub.listErr
-	}
-	result := make([]models.DailyLog, len(stub.logs))
-	copy(result, stub.logs)
-	return result, nil
-}
-
-func (stub *stubSymptomLogRepo) UpdateSymptomIDs(entry *models.DailyLog) error {
+func (stub *stubSymptomRepo) Update(symptom *models.SymptomType) error {
 	if stub.updateErr != nil {
 		return stub.updateErr
 	}
-	stub.updated = append(stub.updated, *entry)
-	for index := range stub.logs {
-		if stub.logs[index].ID == entry.ID {
-			stub.logs[index].SymptomIDs = entry.SymptomIDs
-		}
-	}
+	stub.updated = append(stub.updated, *symptom)
+	stub.findResult = *symptom
 	return nil
 }
 
 func TestValidateSymptomIDsSortsAndDeduplicates(t *testing.T) {
-	service := NewSymptomService(&stubSymptomRepo{countByIDs: 3}, &stubSymptomLogRepo{})
+	service := NewSymptomService(&stubSymptomRepo{countByIDs: 3})
 
 	ids, err := service.ValidateSymptomIDs(10, []uint{3, 1, 3, 2})
 	if err != nil {
@@ -108,7 +85,7 @@ func TestValidateSymptomIDsSortsAndDeduplicates(t *testing.T) {
 }
 
 func TestValidateSymptomIDsReturnsInvalidID(t *testing.T) {
-	service := NewSymptomService(&stubSymptomRepo{countByIDs: 1}, &stubSymptomLogRepo{})
+	service := NewSymptomService(&stubSymptomRepo{countByIDs: 1})
 
 	_, err := service.ValidateSymptomIDs(10, []uint{3, 1})
 	if !errors.Is(err, ErrInvalidSymptomID) {
@@ -118,7 +95,7 @@ func TestValidateSymptomIDsReturnsInvalidID(t *testing.T) {
 
 func TestCreateSymptomForUserAppliesDefaultsAndTrim(t *testing.T) {
 	repo := &stubSymptomRepo{}
-	service := NewSymptomService(repo, &stubSymptomLogRepo{})
+	service := NewSymptomService(repo)
 
 	symptom, err := service.CreateSymptomForUser(10, "  Custom  ", " ", " #A1B2C3 ")
 	if err != nil {
@@ -136,13 +113,16 @@ func TestCreateSymptomForUserAppliesDefaultsAndTrim(t *testing.T) {
 	if symptom.Color != "#A1B2C3" {
 		t.Fatalf("expected trimmed color #A1B2C3, got %q", symptom.Color)
 	}
+	if !symptom.IsActive() {
+		t.Fatalf("expected new custom symptom to be active")
+	}
 	if len(repo.created) != 1 {
 		t.Fatalf("expected one create call, got %d", len(repo.created))
 	}
 }
 
 func TestCreateSymptomForUserRejectsInvalidColor(t *testing.T) {
-	service := NewSymptomService(&stubSymptomRepo{}, &stubSymptomLogRepo{})
+	service := NewSymptomService(&stubSymptomRepo{})
 
 	_, err := service.CreateSymptomForUser(10, "Custom", "A", "not-color")
 	if !errors.Is(err, ErrInvalidSymptomColor) {
@@ -150,8 +130,52 @@ func TestCreateSymptomForUserRejectsInvalidColor(t *testing.T) {
 	}
 }
 
+func TestCreateSymptomForUserRejectsDuplicateName(t *testing.T) {
+	service := NewSymptomService(&stubSymptomRepo{
+		listed: []models.SymptomType{
+			{ID: 7, UserID: 10, Name: "Custom"},
+		},
+	})
+
+	_, err := service.CreateSymptomForUser(10, "Custom", "A", "#123456")
+	if !errors.Is(err, ErrSymptomNameAlreadyExists) {
+		t.Fatalf("expected ErrSymptomNameAlreadyExists, got %v", err)
+	}
+}
+
+func TestCreateSymptomForUserRejectsCaseInsensitiveDuplicateName(t *testing.T) {
+	service := NewSymptomService(&stubSymptomRepo{
+		listed: []models.SymptomType{
+			{ID: 7, UserID: 10, Name: "Головокружение 2.0"},
+		},
+	})
+
+	_, err := service.CreateSymptomForUser(10, "головокружение 2.0", "A", "#123456")
+	if !errors.Is(err, ErrSymptomNameAlreadyExists) {
+		t.Fatalf("expected ErrSymptomNameAlreadyExists, got %v", err)
+	}
+}
+
+func TestCreateSymptomForUserRejectsBuiltinDisplayNameCollision(t *testing.T) {
+	service := NewSymptomService(&stubSymptomRepo{}, "Усталость")
+
+	_, err := service.CreateSymptomForUser(10, "Усталость", "A", "#123456")
+	if !errors.Is(err, ErrSymptomNameAlreadyExists) {
+		t.Fatalf("expected built-in display name collision to return ErrSymptomNameAlreadyExists, got %v", err)
+	}
+}
+
+func TestCreateSymptomForUserRejectsMarkupLikeName(t *testing.T) {
+	service := NewSymptomService(&stubSymptomRepo{})
+
+	_, err := service.CreateSymptomForUser(10, "<script>alert('xss')</script>", "A", "#123456")
+	if !errors.Is(err, ErrInvalidSymptomName) {
+		t.Fatalf("expected ErrInvalidSymptomName, got %v", err)
+	}
+}
+
 func TestCreateSymptomForUserReturnsTypedCreateError(t *testing.T) {
-	service := NewSymptomService(&stubSymptomRepo{createErr: errors.New("insert failed")}, &stubSymptomLogRepo{})
+	service := NewSymptomService(&stubSymptomRepo{createErr: errors.New("insert failed")})
 
 	_, err := service.CreateSymptomForUser(10, "Custom", "A", "#123456")
 	if !errors.Is(err, ErrCreateSymptomFailed) {
@@ -159,64 +183,181 @@ func TestCreateSymptomForUserReturnsTypedCreateError(t *testing.T) {
 	}
 }
 
-func TestDeleteSymptomForUserRejectsBuiltin(t *testing.T) {
+func TestUpdateSymptomForUserRejectsBuiltin(t *testing.T) {
 	service := NewSymptomService(&stubSymptomRepo{
 		findResult: models.SymptomType{ID: 7, UserID: 10, IsBuiltin: true},
-	}, &stubSymptomLogRepo{})
+	})
 
-	err := service.DeleteSymptomForUser(10, 7)
-	if !errors.Is(err, ErrBuiltinSymptomDeleteForbidden) {
-		t.Fatalf("expected ErrBuiltinSymptomDeleteForbidden, got %v", err)
+	_, err := service.UpdateSymptomForUser(10, 7, "Custom", "A", "#123456")
+	if !errors.Is(err, ErrBuiltinSymptomEditForbidden) {
+		t.Fatalf("expected ErrBuiltinSymptomEditForbidden, got %v", err)
 	}
 }
 
-func TestDeleteSymptomForUserReturnsTypedNotFound(t *testing.T) {
-	service := NewSymptomService(&stubSymptomRepo{findErr: errors.New("not found")}, &stubSymptomLogRepo{})
+func TestUpdateSymptomForUserReturnsTypedNotFound(t *testing.T) {
+	service := NewSymptomService(&stubSymptomRepo{findErr: errors.New("not found")})
 
-	err := service.DeleteSymptomForUser(10, 7)
+	_, err := service.UpdateSymptomForUser(10, 7, "Custom", "A", "#123456")
 	if !errors.Is(err, ErrSymptomNotFound) {
 		t.Fatalf("expected ErrSymptomNotFound, got %v", err)
 	}
 }
 
-func TestDeleteSymptomForUserDeletesAndCleansLogs(t *testing.T) {
+func TestUpdateSymptomForUserPersistsTrimmedValues(t *testing.T) {
 	repo := &stubSymptomRepo{
-		findResult: models.SymptomType{ID: 7, UserID: 10, IsBuiltin: false},
-	}
-	logs := &stubSymptomLogRepo{
-		logs: []models.DailyLog{
-			{ID: 1, UserID: 10, SymptomIDs: []uint{7, 8, 7}},
-			{ID: 2, UserID: 10, SymptomIDs: []uint{8}},
+		findResult: models.SymptomType{
+			ID:     7,
+			UserID: 10,
+			Name:   "Old",
+			Icon:   "A",
+			Color:  "#111111",
 		},
 	}
-	service := NewSymptomService(repo, logs)
+	service := NewSymptomService(repo)
 
-	if err := service.DeleteSymptomForUser(10, 7); err != nil {
-		t.Fatalf("DeleteSymptomForUser() unexpected error: %v", err)
+	symptom, err := service.UpdateSymptomForUser(10, 7, "  Updated  ", " ", " #A1B2C3 ")
+	if err != nil {
+		t.Fatalf("UpdateSymptomForUser() unexpected error: %v", err)
 	}
-	if len(repo.deleted) != 1 || repo.deleted[0].ID != 7 {
-		t.Fatalf("expected symptom id=7 to be deleted, got %#v", repo.deleted)
+	if symptom.Name != "Updated" {
+		t.Fatalf("expected updated name, got %q", symptom.Name)
 	}
-	if len(logs.updated) != 1 || logs.updated[0].ID != 1 {
-		t.Fatalf("expected one updated log id=1, got %#v", logs.updated)
+	if symptom.Icon != defaultSymptomIcon {
+		t.Fatalf("expected default icon on blank update, got %q", symptom.Icon)
 	}
-	if len(logs.logs[0].SymptomIDs) != 1 || logs.logs[0].SymptomIDs[0] != 8 {
-		t.Fatalf("expected symptom cleanup in first log, got %#v", logs.logs[0].SymptomIDs)
+	if symptom.Color != "#A1B2C3" {
+		t.Fatalf("expected updated color, got %q", symptom.Color)
+	}
+	if len(repo.updated) != 1 || repo.updated[0].ID != 7 {
+		t.Fatalf("expected one update for symptom 7, got %#v", repo.updated)
 	}
 }
 
-func TestDeleteSymptomForUserReturnsTypedCleanupError(t *testing.T) {
-	repo := &stubSymptomRepo{
-		findResult: models.SymptomType{ID: 7, UserID: 10, IsBuiltin: false},
-	}
-	logs := &stubSymptomLogRepo{
-		listErr: errors.New("list failed"),
-	}
-	service := NewSymptomService(repo, logs)
+func TestUpdateSymptomForUserRejectsDuplicateName(t *testing.T) {
+	service := NewSymptomService(&stubSymptomRepo{
+		findResult: models.SymptomType{
+			ID:     7,
+			UserID: 10,
+			Name:   "Joint stiffness",
+			Icon:   "A",
+			Color:  "#111111",
+		},
+		listed: []models.SymptomType{
+			{ID: 7, UserID: 10, Name: "Joint stiffness"},
+			{ID: 9, UserID: 10, Name: "Joint support"},
+		},
+	})
 
-	err := service.DeleteSymptomForUser(10, 7)
-	if !errors.Is(err, ErrCleanSymptomLogsFailed) {
-		t.Fatalf("expected ErrCleanSymptomLogsFailed, got %v", err)
+	_, err := service.UpdateSymptomForUser(10, 7, "JOINT SUPPORT", "A", "#123456")
+	if !errors.Is(err, ErrSymptomNameAlreadyExists) {
+		t.Fatalf("expected ErrSymptomNameAlreadyExists, got %v", err)
+	}
+}
+
+func TestArchiveAndRestoreSymptomForUserUpdateArchivedAt(t *testing.T) {
+	repo := &stubSymptomRepo{
+		findResult: models.SymptomType{
+			ID:     7,
+			UserID: 10,
+			Name:   "Custom",
+			Icon:   "A",
+			Color:  "#111111",
+		},
+	}
+	service := NewSymptomService(repo)
+
+	archivedAt := time.Date(2026, time.March, 8, 10, 0, 0, 0, time.FixedZone("MSK", 3*60*60))
+	if err := service.ArchiveSymptomForUser(10, 7, archivedAt); err != nil {
+		t.Fatalf("ArchiveSymptomForUser() unexpected error: %v", err)
+	}
+	if len(repo.updated) != 1 || repo.updated[0].ArchivedAt == nil {
+		t.Fatalf("expected archived symptom update, got %#v", repo.updated)
+	}
+	if repo.updated[0].ArchivedAt.Location() != time.UTC {
+		t.Fatalf("expected archived_at to be normalized to UTC")
+	}
+
+	repo.findResult = repo.updated[0]
+	if err := service.RestoreSymptomForUser(10, 7); err != nil {
+		t.Fatalf("RestoreSymptomForUser() unexpected error: %v", err)
+	}
+	if len(repo.updated) != 2 || repo.updated[1].ArchivedAt != nil {
+		t.Fatalf("expected restored symptom to clear archived_at, got %#v", repo.updated)
+	}
+}
+
+func TestArchiveAndRestoreSymptomForUserReturnTypedErrors(t *testing.T) {
+	builtinService := NewSymptomService(&stubSymptomRepo{
+		findResult: models.SymptomType{ID: 7, UserID: 10, IsBuiltin: true},
+	})
+	if err := builtinService.ArchiveSymptomForUser(10, 7, time.Now().UTC()); !errors.Is(err, ErrBuiltinSymptomHideForbidden) {
+		t.Fatalf("expected ErrBuiltinSymptomHideForbidden, got %v", err)
+	}
+	if err := builtinService.RestoreSymptomForUser(10, 7); !errors.Is(err, ErrBuiltinSymptomShowForbidden) {
+		t.Fatalf("expected ErrBuiltinSymptomShowForbidden, got %v", err)
+	}
+
+	notFoundService := NewSymptomService(&stubSymptomRepo{findErr: errors.New("not found")})
+	if err := notFoundService.ArchiveSymptomForUser(10, 7, time.Now().UTC()); !errors.Is(err, ErrSymptomNotFound) {
+		t.Fatalf("expected ErrSymptomNotFound on archive, got %v", err)
+	}
+	if err := notFoundService.RestoreSymptomForUser(10, 7); !errors.Is(err, ErrSymptomNotFound) {
+		t.Fatalf("expected ErrSymptomNotFound on restore, got %v", err)
+	}
+}
+
+func TestRestoreSymptomForUserRejectsDuplicateActiveName(t *testing.T) {
+	repo := &stubSymptomRepo{
+		findResult: models.SymptomType{
+			ID:         7,
+			UserID:     10,
+			Name:       "Головокружение 2.0",
+			Icon:       "A",
+			Color:      "#111111",
+			ArchivedAt: ptrSymptomTime(mustSymptomTestDay(t, "2026-03-01")),
+		},
+		listed: []models.SymptomType{
+			{ID: 7, UserID: 10, Name: "Головокружение 2.0", ArchivedAt: ptrSymptomTime(mustSymptomTestDay(t, "2026-03-01"))},
+			{ID: 9, UserID: 10, Name: "головокружение 2.0"},
+		},
+	}
+	service := NewSymptomService(repo)
+
+	if err := service.RestoreSymptomForUser(10, 7); !errors.Is(err, ErrSymptomNameAlreadyExists) {
+		t.Fatalf("expected ErrSymptomNameAlreadyExists on restore collision, got %v", err)
+	}
+}
+
+func TestFetchPickerSymptomsKeepsSelectedArchivedSymptoms(t *testing.T) {
+	repo := &stubSymptomRepo{
+		builtinCnt: 1,
+		listed: []models.SymptomType{
+			{ID: 1, Name: "Headache", IsBuiltin: true},
+			{ID: 2, Name: "Joint stiffness"},
+			{ID: 3, Name: "Caffeine crash", ArchivedAt: ptrSymptomTime(mustSymptomTestDay(t, "2026-03-01"))},
+		},
+	}
+	service := NewSymptomService(repo)
+
+	filtered, err := service.FetchPickerSymptoms(10, []uint{3})
+	if err != nil {
+		t.Fatalf("FetchPickerSymptoms() unexpected error: %v", err)
+	}
+	if len(filtered) != 3 {
+		t.Fatalf("expected active plus selected archived symptoms, got %#v", filtered)
+	}
+
+	filtered, err = service.FetchPickerSymptoms(10, nil)
+	if err != nil {
+		t.Fatalf("FetchPickerSymptoms() unexpected error: %v", err)
+	}
+	if len(filtered) != 2 {
+		t.Fatalf("expected only active symptoms when nothing selected, got %#v", filtered)
+	}
+	for _, symptom := range filtered {
+		if !symptom.IsActive() {
+			t.Fatalf("did not expect archived symptom without selection, got %#v", filtered)
+		}
 	}
 }
 
@@ -228,7 +369,7 @@ func TestCalculateFrequenciesIncludesTotalDaysContext(t *testing.T) {
 			{ID: 2, Name: "B", Icon: "B"},
 		},
 	}
-	service := NewSymptomService(repo, &stubSymptomLogRepo{})
+	service := NewSymptomService(repo)
 
 	logs := []models.DailyLog{
 		{SymptomIDs: []uint{1}},
@@ -261,7 +402,7 @@ func TestCalculateFrequenciesSortsByCountThenName(t *testing.T) {
 			{ID: 2, Name: "Alpha", Icon: "A"},
 		},
 	}
-	service := NewSymptomService(repo, &stubSymptomLogRepo{})
+	service := NewSymptomService(repo)
 
 	logs := []models.DailyLog{
 		{SymptomIDs: []uint{1}},
@@ -278,4 +419,17 @@ func TestCalculateFrequenciesSortsByCountThenName(t *testing.T) {
 	if result[0].Name != "Alpha" || result[1].Name != "Beta" {
 		t.Fatalf("expected alphabetical tie-break, got %#v", result)
 	}
+}
+
+func mustSymptomTestDay(t *testing.T, raw string) time.Time {
+	t.Helper()
+	parsed, err := time.ParseInLocation("2006-01-02", raw, time.UTC)
+	if err != nil {
+		t.Fatalf("parse day %q: %v", raw, err)
+	}
+	return parsed
+}
+
+func ptrSymptomTime(value time.Time) *time.Time {
+	return &value
 }

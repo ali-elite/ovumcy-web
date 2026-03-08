@@ -39,7 +39,7 @@ func TestNewHandlerRejectsEmptySecret(t *testing.T) {
 		t.Fatalf("init i18n: %v", err)
 	}
 
-	_, err = NewHandler("   ", templatesDir, time.UTC, i18nManager, false, newTestHandlerDependencies(database))
+	_, err = NewHandler("   ", templatesDir, time.UTC, i18nManager, false, newTestHandlerDependencies(database, i18nManager))
 	if err == nil {
 		t.Fatal("expected error for empty secret")
 	}

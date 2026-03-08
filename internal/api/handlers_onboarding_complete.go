@@ -21,7 +21,7 @@ func (handler *Handler) OnboardingComplete(c *fiber.Ctx) error {
 			return handler.respondMappedError(c, onboardingFinishErrorSpec())
 		}
 	}
-	_, err := handler.onboardingSvc.CompleteOnboardingForUser(user.ID, handler.location)
+	_, err := handler.onboardingSvc.CompleteOnboardingForUser(user.ID, handler.requestLocationFromOnboardingForm(c))
 	if err != nil {
 		if services.ClassifyOnboardingCompletionError(err) == services.OnboardingCompletionErrorStepsRequired {
 			return handler.respondMappedError(c, onboardingStepsRequiredErrorSpec())

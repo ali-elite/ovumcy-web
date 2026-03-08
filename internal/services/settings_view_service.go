@@ -11,6 +11,7 @@ import (
 var (
 	ErrSettingsViewLoadSettings = errors.New("settings view load settings")
 	ErrSettingsViewLoadExport   = errors.New("settings view load export")
+	ErrSettingsViewLoadSymptoms = errors.New("settings view load symptoms")
 )
 
 type SettingsViewLoader interface {
@@ -19,6 +20,10 @@ type SettingsViewLoader interface {
 
 type SettingsViewExportBuilder interface {
 	BuildSummary(userID uint, from *time.Time, to *time.Time, location *time.Location) (ExportSummary, error)
+}
+
+type SettingsViewSymptomProvider interface {
+	FetchSymptoms(userID uint) ([]models.SymptomType, error)
 }
 
 type SettingsViewInput struct {
@@ -36,6 +41,13 @@ type SettingsExportViewData struct {
 	HasSummaryForOwner bool
 }
 
+type SettingsSymptomsViewData struct {
+	ActiveCustomSymptoms   []models.SymptomType
+	ArchivedCustomSymptoms []models.SymptomType
+	HasCustomSymptoms      bool
+	HasArchivedSymptoms    bool
+}
+
 type SettingsPageViewData struct {
 	CurrentUser             models.User
 	ErrorKey                string
@@ -48,16 +60,19 @@ type SettingsPageViewData struct {
 	TodayISO                string
 	CycleStartMinISO        string
 	Export                  SettingsExportViewData
+	Symptoms                SettingsSymptomsViewData
 	HasOwnerExportViewState bool
+	HasOwnerSymptomsView    bool
 }
 
 type SettingsViewService struct {
 	settings      SettingsViewLoader
 	notifications *NotificationService
 	export        SettingsViewExportBuilder
+	symptoms      SettingsViewSymptomProvider
 }
 
-func NewSettingsViewService(settings SettingsViewLoader, notifications *NotificationService, export SettingsViewExportBuilder) *SettingsViewService {
+func NewSettingsViewService(settings SettingsViewLoader, notifications *NotificationService, export SettingsViewExportBuilder, symptoms SettingsViewSymptomProvider) *SettingsViewService {
 	if notifications == nil {
 		notifications = NewNotificationService()
 	}
@@ -65,6 +80,7 @@ func NewSettingsViewService(settings SettingsViewLoader, notifications *Notifica
 		settings:      settings,
 		notifications: notifications,
 		export:        export,
+		symptoms:      symptoms,
 	}
 }
 
@@ -122,6 +138,15 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 		return viewData, nil
 	}
 
+	if service.symptoms != nil {
+		symptomsViewData, err := service.BuildSettingsSymptomsViewData(&resolvedUser)
+		if err != nil {
+			return SettingsPageViewData{}, err
+		}
+		viewData.Symptoms = symptomsViewData
+		viewData.HasOwnerSymptomsView = true
+	}
+
 	if service.export == nil {
 		return viewData, nil
 	}
@@ -151,5 +176,35 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 	}
 	viewData.HasOwnerExportViewState = true
 
+	return viewData, nil
+}
+
+func (service *SettingsViewService) BuildSettingsSymptomsViewData(user *models.User) (SettingsSymptomsViewData, error) {
+	if user == nil || user.Role != models.RoleOwner || service.symptoms == nil {
+		return SettingsSymptomsViewData{}, nil
+	}
+
+	symptoms, err := service.symptoms.FetchSymptoms(user.ID)
+	if err != nil {
+		return SettingsSymptomsViewData{}, fmt.Errorf("%w: %v", ErrSettingsViewLoadSymptoms, err)
+	}
+
+	viewData := SettingsSymptomsViewData{
+		ActiveCustomSymptoms:   make([]models.SymptomType, 0),
+		ArchivedCustomSymptoms: make([]models.SymptomType, 0),
+	}
+	for _, symptom := range symptoms {
+		if symptom.IsBuiltin {
+			continue
+		}
+		if symptom.IsActive() {
+			viewData.ActiveCustomSymptoms = append(viewData.ActiveCustomSymptoms, symptom)
+			continue
+		}
+		viewData.ArchivedCustomSymptoms = append(viewData.ArchivedCustomSymptoms, symptom)
+	}
+
+	viewData.HasCustomSymptoms = len(viewData.ActiveCustomSymptoms) > 0
+	viewData.HasArchivedSymptoms = len(viewData.ArchivedCustomSymptoms) > 0
 	return viewData, nil
 }

@@ -32,6 +32,19 @@ func TestResolveRequestLocationFallsBackToCookieWhenHeaderInvalid(t *testing.T) 
 	}
 }
 
+func TestResolveRequestLocationAcceptsEncodedCookieTimezone(t *testing.T) {
+	location, cookieValue := resolveRequestLocation("", "Europe%2FMoscow", time.UTC)
+	if location == nil {
+		t.Fatal("expected non-nil location")
+	}
+	if location.String() != "Europe/Moscow" {
+		t.Fatalf("expected decoded cookie timezone Europe/Moscow, got %q", location.String())
+	}
+	if cookieValue != "" {
+		t.Fatalf("expected no cookie rewrite for valid cookie fallback, got %q", cookieValue)
+	}
+}
+
 func TestResolveRequestLocationFallsBackToDefaultWhenNoValidInput(t *testing.T) {
 	fallback := time.FixedZone("UTC+4", 4*60*60)
 	location, cookieValue := resolveRequestLocation("bad timezone", "also bad", fallback)

@@ -12,7 +12,7 @@ type ViewerDayReader interface {
 }
 
 type ViewerSymptomReader interface {
-	FetchSymptoms(userID uint) ([]models.SymptomType, error)
+	FetchPickerSymptoms(userID uint, selectedIDs []uint) ([]models.SymptomType, error)
 }
 
 type ViewerService struct {
@@ -27,11 +27,11 @@ func NewViewerService(days ViewerDayReader, symptoms ViewerSymptomReader) *Viewe
 	}
 }
 
-func (service *ViewerService) FetchSymptomsForViewer(user *models.User) ([]models.SymptomType, error) {
+func (service *ViewerService) FetchSymptomsForViewer(user *models.User, selectedIDs []uint) ([]models.SymptomType, error) {
 	if !ShouldExposeSymptomsForViewer(user) {
 		return []models.SymptomType{}, nil
 	}
-	return service.symptoms.FetchSymptoms(user.ID)
+	return service.symptoms.FetchPickerSymptoms(user.ID, selectedIDs)
 }
 
 func (service *ViewerService) FetchLogsForViewer(user *models.User, from time.Time, to time.Time, location *time.Location) ([]models.DailyLog, error) {
@@ -57,7 +57,7 @@ func (service *ViewerService) FetchDayLogForViewer(user *models.User, day time.T
 		return models.DailyLog{}, nil, err
 	}
 
-	symptoms, err := service.FetchSymptomsForViewer(user)
+	symptoms, err := service.FetchSymptomsForViewer(user, logEntry.SymptomIDs)
 	if err != nil {
 		return models.DailyLog{}, nil, err
 	}

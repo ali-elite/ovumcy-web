@@ -31,14 +31,16 @@ func (stub *stubViewerDayReader) FetchLogsForUser(uint, time.Time, time.Time, *t
 }
 
 type stubViewerSymptomReader struct {
-	symptoms []models.SymptomType
-	err      error
+	symptoms        []models.SymptomType
+	lastSelectedIDs []uint
+	err             error
 }
 
-func (stub *stubViewerSymptomReader) FetchSymptoms(uint) ([]models.SymptomType, error) {
+func (stub *stubViewerSymptomReader) FetchPickerSymptoms(_ uint, selectedIDs []uint) ([]models.SymptomType, error) {
 	if stub.err != nil {
 		return nil, stub.err
 	}
+	stub.lastSelectedIDs = append([]uint{}, selectedIDs...)
 	result := make([]models.SymptomType, len(stub.symptoms))
 	copy(result, stub.symptoms)
 	return result, nil
@@ -49,7 +51,7 @@ func TestViewerServiceFetchSymptomsForViewer_OnlyOwner(t *testing.T) {
 		symptoms: []models.SymptomType{{Name: "Headache"}},
 	})
 
-	ownerSymptoms, err := service.FetchSymptomsForViewer(&models.User{ID: 10, Role: models.RoleOwner})
+	ownerSymptoms, err := service.FetchSymptomsForViewer(&models.User{ID: 10, Role: models.RoleOwner}, []uint{4})
 	if err != nil {
 		t.Fatalf("FetchSymptomsForViewer(owner) unexpected error: %v", err)
 	}
@@ -57,7 +59,7 @@ func TestViewerServiceFetchSymptomsForViewer_OnlyOwner(t *testing.T) {
 		t.Fatalf("expected owner symptoms to load, got %#v", ownerSymptoms)
 	}
 
-	partnerSymptoms, err := service.FetchSymptomsForViewer(&models.User{ID: 11, Role: models.RolePartner})
+	partnerSymptoms, err := service.FetchSymptomsForViewer(&models.User{ID: 11, Role: models.RolePartner}, []uint{4})
 	if err != nil {
 		t.Fatalf("FetchSymptomsForViewer(partner) unexpected error: %v", err)
 	}
@@ -113,6 +115,28 @@ func TestViewerServiceFetchDayLogForViewer_PropagatesErrors(t *testing.T) {
 	_, _, err = service.FetchDayLogForViewer(&models.User{ID: 10, Role: models.RoleOwner}, time.Now().UTC(), time.UTC)
 	if !errors.Is(err, symptomErr) {
 		t.Fatalf("expected symptom fetch error, got %v", err)
+	}
+}
+
+func TestViewerServiceFetchDayLogForViewer_PassesSelectedIDsToPicker(t *testing.T) {
+	symptomReader := &stubViewerSymptomReader{
+		symptoms: []models.SymptomType{{ID: 8, Name: "Custom"}},
+	}
+	service := NewViewerService(
+		&stubViewerDayReader{
+			entry: models.DailyLog{
+				SymptomIDs: []uint{8, 3},
+			},
+		},
+		symptomReader,
+	)
+
+	_, _, err := service.FetchDayLogForViewer(&models.User{ID: 10, Role: models.RoleOwner}, time.Now().UTC(), time.UTC)
+	if err != nil {
+		t.Fatalf("FetchDayLogForViewer(owner) unexpected error: %v", err)
+	}
+	if len(symptomReader.lastSelectedIDs) != 2 || symptomReader.lastSelectedIDs[0] != 8 || symptomReader.lastSelectedIDs[1] != 3 {
+		t.Fatalf("expected picker selected IDs [8 3], got %#v", symptomReader.lastSelectedIDs)
 	}
 }
 

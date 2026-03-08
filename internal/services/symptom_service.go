@@ -3,9 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"sort"
-	"strings"
+	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
 )
@@ -13,21 +12,18 @@ import (
 var ErrInvalidSymptomID = errors.New("invalid symptom id")
 
 var (
-	ErrInvalidSymptomName            = errors.New("invalid symptom name")
-	ErrInvalidSymptomColor           = errors.New("invalid symptom color")
-	ErrSymptomNotFound               = errors.New("symptom not found")
-	ErrBuiltinSymptomDeleteForbidden = errors.New("built-in symptom cannot be deleted")
-	ErrCreateSymptomFailed           = errors.New("create symptom failed")
-	ErrDeleteSymptomFailed           = errors.New("delete symptom failed")
-	ErrCleanSymptomLogsFailed        = errors.New("clean symptom logs failed")
+	ErrInvalidSymptomName          = errors.New("invalid symptom name")
+	ErrInvalidSymptomColor         = errors.New("invalid symptom color")
+	ErrSymptomNameAlreadyExists    = errors.New("symptom name already exists")
+	ErrSymptomNotFound             = errors.New("symptom not found")
+	ErrBuiltinSymptomEditForbidden = errors.New("built-in symptom cannot be edited")
+	ErrBuiltinSymptomHideForbidden = errors.New("built-in symptom cannot be hidden")
+	ErrBuiltinSymptomShowForbidden = errors.New("built-in symptom cannot be restored")
+	ErrCreateSymptomFailed         = errors.New("create symptom failed")
+	ErrUpdateSymptomFailed         = errors.New("update symptom failed")
+	ErrArchiveSymptomFailed        = errors.New("archive symptom failed")
+	ErrRestoreSymptomFailed        = errors.New("restore symptom failed")
 )
-
-const (
-	maxSymptomNameLength = 80
-	defaultSymptomIcon   = "✨"
-)
-
-var hexSymptomColorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 
 type SymptomRepository interface {
 	CountBuiltinByUser(userID uint) (int64, error)
@@ -36,17 +32,12 @@ type SymptomRepository interface {
 	Create(symptom *models.SymptomType) error
 	CreateBatch(symptoms []models.SymptomType) error
 	FindByIDForUser(symptomID uint, userID uint) (models.SymptomType, error)
-	Delete(symptom *models.SymptomType) error
-}
-
-type SymptomLogRepository interface {
-	ListByUser(userID uint) ([]models.DailyLog, error)
-	UpdateSymptomIDs(entry *models.DailyLog) error
+	Update(symptom *models.SymptomType) error
 }
 
 type SymptomService struct {
-	symptoms SymptomRepository
-	logs     SymptomLogRepository
+	symptoms         SymptomRepository
+	reservedNameKeys map[string]struct{}
 }
 
 type SymptomFrequency struct {
@@ -56,70 +47,108 @@ type SymptomFrequency struct {
 	TotalDays int
 }
 
-func NewSymptomService(symptoms SymptomRepository, logs SymptomLogRepository) *SymptomService {
+func NewSymptomService(symptoms SymptomRepository, reservedBuiltinNames ...string) *SymptomService {
 	return &SymptomService{
-		symptoms: symptoms,
-		logs:     logs,
+		symptoms:         symptoms,
+		reservedNameKeys: builtinSymptomReservedNameKeys(reservedBuiltinNames),
 	}
-}
-
-func (service *SymptomService) CreateUserSymptom(symptom *models.SymptomType) error {
-	return service.symptoms.Create(symptom)
 }
 
 func (service *SymptomService) CreateSymptomForUser(userID uint, name string, icon string, color string) (models.SymptomType, error) {
-	name = strings.TrimSpace(name)
-	icon = strings.TrimSpace(icon)
-	color = strings.TrimSpace(color)
-
-	if name == "" || len(name) > maxSymptomNameLength {
-		return models.SymptomType{}, ErrInvalidSymptomName
-	}
-	if icon == "" {
-		icon = defaultSymptomIcon
-	}
-	if !hexSymptomColorPattern.MatchString(color) {
-		return models.SymptomType{}, ErrInvalidSymptomColor
-	}
-
-	symptom := models.SymptomType{
-		UserID:    userID,
-		Name:      name,
-		Icon:      icon,
-		Color:     color,
-		IsBuiltin: false,
-	}
-	if err := service.symptoms.Create(&symptom); err != nil {
+	normalized, err := service.normalizeCustomSymptomInput(userID, 0, name, icon, color)
+	if err != nil {
+		if isSymptomValidationError(err) {
+			return models.SymptomType{}, err
+		}
 		return models.SymptomType{}, fmt.Errorf("%w: %v", ErrCreateSymptomFailed, err)
+	}
+
+	if err := service.symptoms.Create(&normalized); err != nil {
+		return models.SymptomType{}, fmt.Errorf("%w: %v", ErrCreateSymptomFailed, err)
+	}
+	return normalized, nil
+}
+
+func (service *SymptomService) UpdateSymptomForUser(userID uint, symptomID uint, name string, icon string, color string) (models.SymptomType, error) {
+	symptom, err := service.symptoms.FindByIDForUser(symptomID, userID)
+	if err != nil {
+		return models.SymptomType{}, fmt.Errorf("%w: %v", ErrSymptomNotFound, err)
+	}
+	if symptom.IsBuiltin {
+		return models.SymptomType{}, ErrBuiltinSymptomEditForbidden
+	}
+
+	normalized, err := service.normalizeCustomSymptomInput(userID, symptom.ID, name, icon, color)
+	if err != nil {
+		if isSymptomValidationError(err) {
+			return models.SymptomType{}, err
+		}
+		return models.SymptomType{}, fmt.Errorf("%w: %v", ErrUpdateSymptomFailed, err)
+	}
+
+	symptom.Name = normalized.Name
+	symptom.Icon = normalized.Icon
+	symptom.Color = normalized.Color
+	if err := service.symptoms.Update(&symptom); err != nil {
+		return models.SymptomType{}, fmt.Errorf("%w: %v", ErrUpdateSymptomFailed, err)
 	}
 	return symptom, nil
 }
 
-func (service *SymptomService) FindSymptomForUser(symptomID uint, userID uint) (models.SymptomType, error) {
-	return service.symptoms.FindByIDForUser(symptomID, userID)
-}
-
-func (service *SymptomService) DeleteSymptom(symptom *models.SymptomType) error {
-	return service.symptoms.Delete(symptom)
-}
-
-func (service *SymptomService) DeleteSymptomForUser(userID uint, symptomID uint) error {
+func (service *SymptomService) ArchiveSymptomForUser(userID uint, symptomID uint, archivedAt time.Time) error {
 	symptom, err := service.symptoms.FindByIDForUser(symptomID, userID)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrSymptomNotFound, err)
 	}
 	if symptom.IsBuiltin {
-		return ErrBuiltinSymptomDeleteForbidden
+		return ErrBuiltinSymptomHideForbidden
+	}
+	if symptom.ArchivedAt != nil {
+		return nil
 	}
 
-	if err := service.symptoms.Delete(&symptom); err != nil {
-		return fmt.Errorf("%w: %v", ErrDeleteSymptomFailed, err)
-	}
-
-	if err := service.RemoveSymptomFromLogs(userID, symptom.ID); err != nil {
-		return fmt.Errorf("%w: %v", ErrCleanSymptomLogsFailed, err)
+	archivedAt = archivedAt.UTC()
+	symptom.ArchivedAt = &archivedAt
+	if err := service.symptoms.Update(&symptom); err != nil {
+		return fmt.Errorf("%w: %v", ErrArchiveSymptomFailed, err)
 	}
 	return nil
+}
+
+func (service *SymptomService) RestoreSymptomForUser(userID uint, symptomID uint) error {
+	symptom, err := service.symptoms.FindByIDForUser(symptomID, userID)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrSymptomNotFound, err)
+	}
+	if symptom.IsBuiltin {
+		return ErrBuiltinSymptomShowForbidden
+	}
+	if symptom.ArchivedAt == nil {
+		return nil
+	}
+	if err := service.ensureSymptomNameAvailable(userID, symptom.ID, symptom.Name); err != nil {
+		if isSymptomValidationError(err) {
+			return err
+		}
+		return fmt.Errorf("%w: %v", ErrRestoreSymptomFailed, err)
+	}
+
+	symptom.ArchivedAt = nil
+	if err := service.symptoms.Update(&symptom); err != nil {
+		return fmt.Errorf("%w: %v", ErrRestoreSymptomFailed, err)
+	}
+	return nil
+}
+
+func isSymptomValidationError(err error) bool {
+	return errors.Is(err, ErrInvalidSymptomName) ||
+		errors.Is(err, ErrInvalidSymptomColor) ||
+		errors.Is(err, ErrSymptomNameAlreadyExists) ||
+		errors.Is(err, ErrBuiltinSymptomEditForbidden)
+}
+
+func (service *SymptomService) FindSymptomForUser(symptomID uint, userID uint) (models.SymptomType, error) {
+	return service.symptoms.FindByIDForUser(symptomID, userID)
 }
 
 func (service *SymptomService) CalculateFrequencies(userID uint, logs []models.DailyLog) ([]SymptomFrequency, error) {
@@ -188,7 +217,7 @@ func (service *SymptomService) EnsureBuiltinSymptoms(userID uint) error {
 	}
 	existingByName := make(map[string]struct{}, len(existing))
 	for _, symptom := range existing {
-		key := strings.ToLower(strings.TrimSpace(symptom.Name))
+		key := normalizeSymptomNameKey(symptom.Name)
 		if key != "" {
 			existingByName[key] = struct{}{}
 		}
@@ -211,6 +240,34 @@ func (service *SymptomService) FetchSymptoms(userID uint) ([]models.SymptomType,
 	}
 	SortSymptomsByBuiltinAndName(symptoms)
 	return symptoms, nil
+}
+
+func (service *SymptomService) FetchPickerSymptoms(userID uint, selectedIDs []uint) ([]models.SymptomType, error) {
+	symptoms, err := service.FetchSymptoms(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(selectedIDs) == 0 {
+		return filterActiveSymptoms(symptoms), nil
+	}
+
+	selected := make(map[uint]struct{}, len(selectedIDs))
+	for _, id := range selectedIDs {
+		selected[id] = struct{}{}
+	}
+
+	filtered := make([]models.SymptomType, 0, len(symptoms))
+	for _, symptom := range symptoms {
+		if symptom.IsActive() {
+			filtered = append(filtered, symptom)
+			continue
+		}
+		if _, ok := selected[symptom.ID]; ok {
+			filtered = append(filtered, symptom)
+		}
+	}
+	return filtered, nil
 }
 
 func (service *SymptomService) ValidateSymptomIDs(userID uint, ids []uint) ([]uint, error) {
@@ -238,23 +295,76 @@ func (service *SymptomService) ValidateSymptomIDs(userID uint, ids []uint) ([]ui
 	return filtered, nil
 }
 
-func (service *SymptomService) RemoveSymptomFromLogs(userID uint, symptomID uint) error {
-	logs, err := service.logs.ListByUser(userID)
+func (service *SymptomService) normalizeCustomSymptomInput(userID uint, excludeID uint, name string, icon string, color string) (models.SymptomType, error) {
+	normalizedName, err := normalizeSymptomNameInput(name)
+	if err != nil {
+		return models.SymptomType{}, err
+	}
+	normalizedColor, err := normalizeSymptomColorInput(color)
+	if err != nil {
+		return models.SymptomType{}, err
+	}
+	normalizedIcon := normalizeSymptomIconInput(icon)
+
+	if err := service.ensureSymptomNameAvailable(userID, excludeID, normalizedName); err != nil {
+		return models.SymptomType{}, err
+	}
+
+	return models.SymptomType{
+		UserID:    userID,
+		Name:      normalizedName,
+		Icon:      normalizedIcon,
+		Color:     normalizedColor,
+		IsBuiltin: false,
+	}, nil
+}
+
+func (service *SymptomService) ensureSymptomNameAvailable(userID uint, excludeID uint, name string) error {
+	if _, reserved := service.reservedNameKeys[normalizeSymptomNameKey(name)]; reserved {
+		return ErrSymptomNameAlreadyExists
+	}
+
+	symptoms, err := service.symptoms.ListByUser(userID)
 	if err != nil {
 		return err
 	}
 
-	for index := range logs {
-		updated := RemoveUint(logs[index].SymptomIDs, symptomID)
-		if len(updated) == len(logs[index].SymptomIDs) {
+	targetKey := normalizeSymptomNameKey(name)
+	for _, symptom := range symptoms {
+		if excludeID != 0 && symptom.ID == excludeID {
 			continue
 		}
-		logs[index].SymptomIDs = updated
-		if err := service.logs.UpdateSymptomIDs(&logs[index]); err != nil {
-			return err
+		if normalizeSymptomNameKey(symptom.Name) == targetKey {
+			return ErrSymptomNameAlreadyExists
 		}
 	}
+
 	return nil
+}
+
+func builtinSymptomReservedNameKeys(extra []string) map[string]struct{} {
+	keys := make(map[string]struct{})
+	for _, symptom := range models.DefaultBuiltinSymptoms() {
+		keys[normalizeSymptomNameKey(symptom.Name)] = struct{}{}
+	}
+	for _, name := range extra {
+		key := normalizeSymptomNameKey(name)
+		if key == "" {
+			continue
+		}
+		keys[key] = struct{}{}
+	}
+	return keys
+}
+
+func filterActiveSymptoms(symptoms []models.SymptomType) []models.SymptomType {
+	filtered := make([]models.SymptomType, 0, len(symptoms))
+	for _, symptom := range symptoms {
+		if symptom.IsActive() {
+			filtered = append(filtered, symptom)
+		}
+	}
+	return filtered
 }
 
 func BuiltinSymptomRecordsForUser(userID uint) []models.SymptomType {
@@ -275,7 +385,7 @@ func BuiltinSymptomRecordsForUser(userID uint) []models.SymptomType {
 func MissingBuiltinSymptomsForUser(userID uint, existingByName map[string]struct{}) []models.SymptomType {
 	missing := make([]models.SymptomType, 0)
 	for _, symptom := range models.DefaultBuiltinSymptoms() {
-		key := strings.ToLower(strings.TrimSpace(symptom.Name))
+		key := normalizeSymptomNameKey(symptom.Name)
 		if _, ok := existingByName[key]; ok {
 			continue
 		}
@@ -300,8 +410,8 @@ func SortSymptomsByBuiltinAndName(symptoms []models.SymptomType) {
 			return left.IsBuiltin
 		}
 		if left.IsBuiltin && right.IsBuiltin {
-			leftIndex, leftHas := builtinOrder[strings.ToLower(strings.TrimSpace(left.Name))]
-			rightIndex, rightHas := builtinOrder[strings.ToLower(strings.TrimSpace(right.Name))]
+			leftIndex, leftHas := builtinOrder[normalizeSymptomNameKey(left.Name)]
+			rightIndex, rightHas := builtinOrder[normalizeSymptomNameKey(right.Name)]
 			switch {
 			case leftHas && rightHas && leftIndex != rightIndex:
 				return leftIndex < rightIndex
@@ -309,14 +419,14 @@ func SortSymptomsByBuiltinAndName(symptoms []models.SymptomType) {
 				return leftHas
 			}
 		}
-		return strings.ToLower(strings.TrimSpace(left.Name)) < strings.ToLower(strings.TrimSpace(right.Name))
+		return normalizeSymptomNameKey(left.Name) < normalizeSymptomNameKey(right.Name)
 	})
 }
 
 func builtinSymptomOrderMap() map[string]int {
 	order := make(map[string]int)
 	for index, symptom := range models.DefaultBuiltinSymptoms() {
-		order[strings.ToLower(strings.TrimSpace(symptom.Name))] = index
+		order[normalizeSymptomNameKey(symptom.Name)] = index
 	}
 	return order
 }

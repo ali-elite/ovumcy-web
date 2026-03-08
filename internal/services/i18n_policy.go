@@ -28,6 +28,17 @@ var authErrorTranslationKeys = map[string]string{
 	"display name too long":                           "settings.error.display_name_too_long",
 	"invalid cycle start date":                        "settings.error.invalid_last_period_start",
 	"invalid password":                                "settings.error.invalid_password",
+	"invalid symptom name":                            "settings.symptoms.error.invalid_name",
+	"invalid symptom color":                           "settings.symptoms.error.invalid_color",
+	"symptom name already exists":                     "settings.symptoms.error.duplicate_name",
+	"symptom not found":                               "settings.symptoms.error.not_found",
+	"built-in symptom cannot be edited":               "settings.symptoms.error.builtin_edit_forbidden",
+	"built-in symptom cannot be hidden":               "settings.symptoms.error.builtin_hide_forbidden",
+	"built-in symptom cannot be restored":             "settings.symptoms.error.builtin_restore_forbidden",
+	"failed to create symptom":                        "settings.symptoms.error.create_failed",
+	"failed to update symptom":                        "settings.symptoms.error.update_failed",
+	"failed to hide symptom":                          "settings.symptoms.error.hide_failed",
+	"failed to restore symptom":                       "settings.symptoms.error.restore_failed",
 	"period flow is required":                         "calendar.error.period_flow_required",
 	"date is required":                                "onboarding.error.date_required",
 	"invalid last period start":                       "onboarding.error.invalid_last_period_start",
@@ -46,25 +57,10 @@ var settingsStatusTranslationKeys = map[string]string{
 	"profile_updated":      "settings.success.profile_updated",
 	"profile_name_cleared": "settings.success.profile_name_cleared",
 	"data_cleared":         "settings.success.data_cleared",
-}
-
-var builtinSymptomTranslationKeys = map[string]string{
-	"acne":              "symptoms.acne",
-	"back pain":         "symptom.back_pain",
-	"bloating":          "symptoms.bloating",
-	"breast tenderness": "symptoms.breast_tenderness",
-	"constipation":      "symptom.constipation",
-	"cramps":            "symptoms.cramps",
-	"diarrhea":          "symptom.diarrhea",
-	"fatigue":           "symptoms.fatigue",
-	"food cravings":     "symptom.food_cravings",
-	"headache":          "symptoms.headache",
-	"insomnia":          "symptom.insomnia",
-	"irritability":      "symptom.irritability",
-	"mood swings":       "symptoms.mood_swings",
-	"nausea":            "symptom.nausea",
-	"spotting":          "symptom.spotting",
-	"swelling":          "symptom.swelling",
+	"symptom_created":      "settings.symptoms.success.created",
+	"symptom_updated":      "settings.symptoms.success.updated",
+	"symptom_hidden":       "settings.symptoms.success.hidden",
+	"symptom_restored":     "settings.symptoms.success.restored",
 }
 
 func AuthErrorTranslationKey(message string) string {
@@ -77,14 +73,6 @@ func AuthErrorTranslationKey(message string) string {
 
 func SettingsStatusTranslationKey(status string) string {
 	key, ok := settingsStatusTranslationKeys[strings.ToLower(strings.TrimSpace(status))]
-	if !ok {
-		return ""
-	}
-	return key
-}
-
-func BuiltinSymptomTranslationKey(name string) string {
-	key, ok := builtinSymptomTranslationKeys[strings.ToLower(strings.TrimSpace(name))]
 	if !ok {
 		return ""
 	}

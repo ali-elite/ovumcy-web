@@ -14,6 +14,7 @@ func TestOpenPostgresAppliesEmbeddedMigrationsOnCleanDatabase(t *testing.T) {
 	database := openPostgresForMigrationBootstrapTest(t, config)
 
 	assertUsersSchemaReconciled(t, database)
+	assertSymptomTypesSchemaReconciled(t, database)
 	assertAllEmbeddedMigrationsAppliedForDriver(t, database, DriverPostgres)
 	assertPostgresNormalizedEmailUniqueness(t, database)
 	assertPostgresDailyLogsSchemaReconciled(t, database)

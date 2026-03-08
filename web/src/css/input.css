@@ -487,6 +487,10 @@
     color: var(--text-primary);
   }
 
+  .input-field-compact {
+    padding: 0.66rem 0.78rem;
+  }
+
   .input-field:focus,
   .textarea-field:focus {
     outline: none;
@@ -774,6 +778,7 @@
   .choice-option {
     position: relative;
     display: block;
+    min-width: 0;
   }
 
   .choice-input {
@@ -816,6 +821,8 @@
     justify-content: flex-start;
     min-height: 2.65rem;
     position: relative;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .check-chip-sm {
@@ -855,6 +862,7 @@
   .symptom-grid {
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
     gap: 0.5rem;
   }
 
@@ -866,14 +874,17 @@
 
   .symptom-grid .choice-option {
     height: 100%;
+    min-width: 0;
   }
 
   .symptom-grid .check-chip {
     height: 100%;
-    align-items: center;
+    display: flex;
+    align-items: flex-start;
     line-height: 1.2;
     min-height: 2.65rem;
     padding: 0.62rem 0.7rem;
+    min-width: 0;
   }
 
   .symptom-icon {
@@ -888,6 +899,8 @@
 
   .symptom-label {
     display: block;
+    flex: 1 1 auto;
+    min-width: 0;
     font-family: "Segoe UI", Tahoma, Arial, sans-serif !important;
     font-weight: 600;
     text-align: left;
@@ -895,17 +908,172 @@
     word-spacing: normal;
     line-height: 1.25;
     white-space: normal;
-    overflow-wrap: break-word;
-    word-break: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     hyphens: none;
   }
 
   .symptom-label-nowrap {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 0.77rem;
-    line-height: 1.15;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 0.84rem;
+    line-height: 1.18;
+  }
+
+  .settings-symptom-form,
+  .settings-symptom-grid,
+  .settings-symptom-field,
+  .settings-symptom-action,
+  .settings-symptom-card-actions,
+  .symptom-color-control,
+  .symptom-color-row {
+    min-width: 0;
+  }
+
+  .settings-symptom-grid {
+    display: grid;
+    gap: 0.75rem;
+    align-items: end;
+  }
+
+  .settings-symptom-field {
+    min-width: 0;
+  }
+
+  .settings-symptom-icon-input {
+    text-align: center;
+  }
+
+  .settings-symptom-action {
+    display: flex;
+    align-items: end;
+  }
+
+  .settings-symptom-action .btn-primary,
+  .settings-symptom-action .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .settings-symptom-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .settings-symptom-card-actions form {
+    display: flex;
+  }
+
+  .symptom-color-control {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .symptom-color-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .symptom-color-value {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .symptom-color-picker {
+    width: 3.1rem;
+    min-width: 3.1rem;
+    height: 2.85rem;
+    border-radius: 0.86rem;
+    border: 2px solid rgba(232, 196, 168, 0.65);
+    background: #fff;
+    padding: 0.24rem;
+    cursor: pointer;
+  }
+
+  .symptom-color-picker:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.2);
+  }
+
+  .symptom-color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  .symptom-color-picker::-webkit-color-swatch,
+  .symptom-color-picker::-moz-color-swatch {
+    border: none;
+    border-radius: 0.6rem;
+  }
+
+  .symptom-color-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .symptom-color-preset {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    border: 2px solid rgba(140, 106, 70, 0.16);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.42);
+    transition:
+      transform 140ms ease,
+      box-shadow 140ms ease,
+      border-color 140ms ease;
+  }
+
+  .symptom-color-preset:hover,
+  .symptom-color-preset:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(140, 106, 70, 0.45);
+    box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.18);
+  }
+
+  .symptom-color-preset[data-selected="true"] {
+    border-color: rgba(162, 83, 75, 0.72);
+    box-shadow:
+      0 0 0 2px rgba(212, 165, 116, 0.18),
+      0 6px 12px rgba(140, 106, 70, 0.16);
+    transform: translateY(-1px);
+  }
+
+  .symptom-color-preset-rose {
+    background: #e8799f;
+  }
+
+  .symptom-color-preset-gold {
+    background: #d4a574;
+  }
+
+  .symptom-color-preset-amber {
+    background: #f59e0b;
+  }
+
+  .symptom-color-preset-coral {
+    background: #fb7185;
+  }
+
+  .symptom-color-preset-violet {
+    background: #8b5cf6;
+  }
+
+  .symptom-color-preset-sky {
+    background: #38bdf8;
+  }
+
+  .symptom-color-preset-teal {
+    background: #14b8a6;
+  }
+
+  .symptom-color-preset-slate {
+    background: #64748b;
   }
 
   .stats-symptom-row {
@@ -1000,6 +1168,10 @@
 
     .symptom-grid-compact {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .settings-symptom-grid {
+      grid-template-columns: minmax(0, 2.2fr) minmax(7rem, 0.8fr) minmax(0, 17rem) minmax(0, 11rem);
     }
 
     .stats-trend-panel {
@@ -1675,6 +1847,23 @@
     color: var(--text-primary);
   }
 
+  :root[data-theme="dark"] .symptom-color-picker {
+    background: rgba(31, 24, 48, 0.82);
+    border-color: rgba(173, 130, 216, 0.32);
+  }
+
+  :root[data-theme="dark"] .symptom-color-preset {
+    border-color: rgba(235, 227, 255, 0.18);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  }
+
+  :root[data-theme="dark"] .symptom-color-preset:hover,
+  :root[data-theme="dark"] .symptom-color-preset:focus-visible,
+  :root[data-theme="dark"] .symptom-color-preset[data-selected="true"] {
+    border-color: rgba(224, 177, 255, 0.55);
+    box-shadow: 0 0 0 2px rgba(173, 130, 216, 0.22);
+  }
+
   :root[data-theme="dark"] .choice-input:checked + .radio-tile,
   :root[data-theme="dark"] .choice-input:checked + .check-chip {
     border-color: rgba(222, 176, 117, 0.9);
@@ -1835,9 +2024,9 @@
     }
 
     .symptom-grid .symptom-label {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
     }
 
     .main-with-mobile-nav {

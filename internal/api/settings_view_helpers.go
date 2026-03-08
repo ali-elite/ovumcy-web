@@ -52,5 +52,17 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 		data["ExportDateToDisplay"] = viewData.Export.DateToDisplay
 	}
 
+	if viewData.HasOwnerSymptomsView {
+		data["ActiveCustomSymptoms"] = viewData.Symptoms.ActiveCustomSymptoms
+		data["ArchivedCustomSymptoms"] = viewData.Symptoms.ArchivedCustomSymptoms
+		data["HasCustomSymptoms"] = viewData.Symptoms.HasCustomSymptoms
+		data["HasArchivedSymptoms"] = viewData.Symptoms.HasArchivedSymptoms
+		data["SymptomStatusMessage"] = ""
+		data["SymptomErrorMessage"] = ""
+		data["SymptomDraftName"] = ""
+		data["SymptomDraftIcon"] = defaultSymptomDraftIcon("")
+		data["SymptomDraftColor"] = defaultSymptomDraftColor("")
+	}
+
 	return data, nil
 }

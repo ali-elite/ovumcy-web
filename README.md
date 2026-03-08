@@ -90,6 +90,7 @@ No. Ovumcy provides estimates and logs based on recorded data. It is not a medic
 ## Features
 
 - Daily tracking for period days, flow intensity, symptoms, and notes.
+- Owner-managed custom symptoms with create, rename, hide, and restore flows that preserve historical records.
 - Predictions for next period, ovulation, fertile window, and cycle phase.
 - Calendar and statistics views for longer-term pattern spotting.
 - Mobile home-screen install support on the current `main` branch.
@@ -258,14 +259,12 @@ The live roadmap now also exists in GitHub Issues and the `Ovumcy Roadmap` proje
 
 ### Next Up
 
-- Custom symptoms: add and hide symptoms beyond built-in defaults.
 - Import from other trackers: Clue, Flo CSV import.
 - Web Push notifications: period predictions delivered via browser push, no third-party services.
 - PDF export for clinical use: printable cycle summary for medical appointments.
 - Extended statistics: cycle variability, symptom heatmaps, phase correlations.
 - Partner invite via link: simplified partner onboarding without manual account setup.
 - Mobile UX improvements for calendar and day editor.
-- FAQ / comparison page for privacy-first positioning.
 - Recorded walkthrough or hero demo asset.
 
 ### Longer Term

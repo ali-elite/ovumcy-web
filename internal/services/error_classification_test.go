@@ -80,8 +80,17 @@ func TestClassifySymptomAndSettingsErrors(t *testing.T) {
 	if got := ClassifySymptomCreateError(ErrInvalidSymptomName); got != SymptomCreateErrorInvalidName {
 		t.Fatalf("expected SymptomCreateErrorInvalidName, got %v", got)
 	}
-	if got := ClassifySymptomDeleteError(fmt.Errorf("%w: anything", ErrCleanSymptomLogsFailed)); got != SymptomDeleteErrorCleanLogsFailed {
-		t.Fatalf("expected SymptomDeleteErrorCleanLogsFailed, got %v", got)
+	if got := ClassifySymptomCreateError(ErrSymptomNameAlreadyExists); got != SymptomCreateErrorDuplicateName {
+		t.Fatalf("expected SymptomCreateErrorDuplicateName, got %v", got)
+	}
+	if got := ClassifySymptomUpdateError(ErrBuiltinSymptomEditForbidden); got != SymptomUpdateErrorBuiltinForbidden {
+		t.Fatalf("expected SymptomUpdateErrorBuiltinForbidden, got %v", got)
+	}
+	if got := ClassifySymptomArchiveError(fmt.Errorf("%w: anything", ErrArchiveSymptomFailed)); got != SymptomArchiveErrorFailed {
+		t.Fatalf("expected SymptomArchiveErrorFailed, got %v", got)
+	}
+	if got := ClassifySymptomRestoreError(ErrBuiltinSymptomShowForbidden); got != SymptomRestoreErrorBuiltinForbidden {
+		t.Fatalf("expected SymptomRestoreErrorBuiltinForbidden, got %v", got)
 	}
 	if got := ClassifySettingsCycleValidationError(ErrSettingsPeriodLengthIncompatible); got != SettingsCycleValidationErrorPeriodLengthIncompatible {
 		t.Fatalf("expected SettingsCycleValidationErrorPeriodLengthIncompatible, got %v", got)

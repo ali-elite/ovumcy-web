@@ -1,41 +1,51 @@
 package models
 
+import "time"
+
 type SymptomType struct {
-	ID        uint   `gorm:"primaryKey"`
-	UserID    uint   `gorm:"not null;index"`
-	Name      string `gorm:"not null"`
-	Icon      string `gorm:"not null"`
-	Color     string `gorm:"not null"`
-	IsBuiltin bool   `gorm:"not null;default:false"`
+	ID         uint       `gorm:"primaryKey"`
+	UserID     uint       `gorm:"not null;index"`
+	Name       string     `gorm:"not null"`
+	Icon       string     `gorm:"not null"`
+	Color      string     `gorm:"not null"`
+	IsBuiltin  bool       `gorm:"not null;default:false"`
+	ArchivedAt *time.Time `gorm:"index"`
 }
 
 type BuiltinSymptom struct {
-	Name  string
-	Icon  string
-	Color string
+	Key            string
+	Name           string
+	TranslationKey string
+	Group          string
+	Icon           string
+	Color          string
 }
 
 var defaultBuiltinSymptoms = []BuiltinSymptom{
-	{Name: "Cramps", Icon: "🩸", Color: "#FF4444"},
-	{Name: "Headache", Icon: "🤕", Color: "#FFA500"},
-	{Name: "Mood swings", Icon: "😢", Color: "#9B59B6"},
-	{Name: "Bloating", Icon: "🎈", Color: "#3498DB"},
-	{Name: "Fatigue", Icon: "😴", Color: "#95A5A6"},
-	{Name: "Breast tenderness", Icon: "💔", Color: "#E91E63"},
-	{Name: "Acne", Icon: "🔴", Color: "#E74C3C"},
-	{Name: "Back pain", Icon: "🦴", Color: "#8E6E53"},
-	{Name: "Nausea", Icon: "🤢", Color: "#7CB342"},
-	{Name: "Spotting", Icon: "🩹", Color: "#C55A7A"},
-	{Name: "Irritability", Icon: "😤", Color: "#FF7043"},
-	{Name: "Insomnia", Icon: "🌙", Color: "#5C6BC0"},
-	{Name: "Food cravings", Icon: "🍫", Color: "#A1887F"},
-	{Name: "Diarrhea", Icon: "🚽", Color: "#26A69A"},
-	{Name: "Constipation", Icon: "🪨", Color: "#8D6E63"},
-	{Name: "Swelling", Icon: "💧", Color: "#64B5F6"},
+	{Key: "cramps", Name: "Cramps", TranslationKey: "symptoms.cramps", Group: "pain", Icon: "🩸", Color: "#FF4444"},
+	{Key: "headache", Name: "Headache", TranslationKey: "symptoms.headache", Group: "pain", Icon: "🤕", Color: "#FFA500"},
+	{Key: "mood_swings", Name: "Mood swings", TranslationKey: "symptoms.mood_swings", Group: "mood", Icon: "😢", Color: "#9B59B6"},
+	{Key: "bloating", Name: "Bloating", TranslationKey: "symptoms.bloating", Group: "digestion", Icon: "🎈", Color: "#3498DB"},
+	{Key: "fatigue", Name: "Fatigue", TranslationKey: "symptoms.fatigue", Group: "mood", Icon: "😴", Color: "#95A5A6"},
+	{Key: "breast_tenderness", Name: "Breast tenderness", TranslationKey: "symptoms.breast_tenderness", Group: "pain", Icon: "💔", Color: "#E91E63"},
+	{Key: "acne", Name: "Acne", TranslationKey: "symptoms.acne", Group: "skin", Icon: "🔴", Color: "#E74C3C"},
+	{Key: "back_pain", Name: "Back pain", TranslationKey: "symptom.back_pain", Group: "pain", Icon: "🦴", Color: "#8E6E53"},
+	{Key: "nausea", Name: "Nausea", TranslationKey: "symptom.nausea", Group: "digestion", Icon: "🤢", Color: "#7CB342"},
+	{Key: "spotting", Name: "Spotting", TranslationKey: "symptom.spotting", Group: "skin", Icon: "🩹", Color: "#C55A7A"},
+	{Key: "irritability", Name: "Irritability", TranslationKey: "symptom.irritability", Group: "mood", Icon: "😤", Color: "#FF7043"},
+	{Key: "insomnia", Name: "Insomnia", TranslationKey: "symptom.insomnia", Group: "mood", Icon: "🌙", Color: "#5C6BC0"},
+	{Key: "food_cravings", Name: "Food cravings", TranslationKey: "symptom.food_cravings", Group: "digestion", Icon: "🍫", Color: "#A1887F"},
+	{Key: "diarrhea", Name: "Diarrhea", TranslationKey: "symptom.diarrhea", Group: "digestion", Icon: "🚽", Color: "#26A69A"},
+	{Key: "constipation", Name: "Constipation", TranslationKey: "symptom.constipation", Group: "digestion", Icon: "🪨", Color: "#8D6E63"},
+	{Key: "swelling", Name: "Swelling", TranslationKey: "symptom.swelling", Group: "digestion", Icon: "💧", Color: "#64B5F6"},
 }
 
 func DefaultBuiltinSymptoms() []BuiltinSymptom {
 	symptoms := make([]BuiltinSymptom, len(defaultBuiltinSymptoms))
 	copy(symptoms, defaultBuiltinSymptoms)
 	return symptoms
+}
+
+func (symptom SymptomType) IsActive() bool {
+	return symptom.ArchivedAt == nil
 }
