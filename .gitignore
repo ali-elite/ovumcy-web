@@ -60,3 +60,4 @@ TASK-*.md
 .agents/
 test-results/
 playwright-report/
+docs/screenshots/ovumcy-social-preview.png
