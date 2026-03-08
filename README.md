@@ -18,7 +18,7 @@ It is built for people who want fast daily tracking, useful cycle insights, and 
 
 Ovumcy runs as a single Go service with a server-rendered web UI, can be installed on a phone home screen, and supports SQLite by default with Postgres as an advanced self-hosted path.
 
-This README describes the current `main` branch. The latest tagged release is `v0.3.1`.
+This README describes the current `main` branch. The latest tagged release is `v0.3.2`.
 
 ## Why Ovumcy Exists
 
@@ -80,7 +80,7 @@ Browser / Mobile Home Screen
 SQLite (default) / PostgreSQL (advanced)
 ```
 
-- `Browser UI`: server-rendered HTML with HTMX and Alpine.js, plus mobile home-screen install support.
+- `Browser UI`: server-rendered HTML with HTMX and plain JavaScript, plus mobile home-screen install support.
 - `Go application`: a single service that handles routing, templates, i18n, and domain logic.
 - `Storage`: SQLite is the baseline default; Postgres is an advanced self-hosted option.
 - `Deployment`: one binary or container, typically behind a reverse proxy.
@@ -88,7 +88,7 @@ SQLite (default) / PostgreSQL (advanced)
 ## Tech Stack
 
 - Backend: Go, Fiber, GORM.
-- Frontend: server-rendered HTML templates, HTMX, Alpine.js, Tailwind CSS.
+- Frontend: server-rendered HTML templates, HTMX, plain JavaScript, Tailwind CSS.
 - Storage: SQLite (baseline) or Postgres (advanced self-hosted).
 - Deployment: Docker or direct binary execution.
 
@@ -111,7 +111,7 @@ docker compose up -d
 Pin a specific image tag if needed:
 
 ```bash
-OVUMCY_IMAGE=ghcr.io/terraincognita07/ovumcy:v0.3.1 docker compose up -d
+OVUMCY_IMAGE=ghcr.io/terraincognita07/ovumcy:v0.3.2 docker compose up -d
 ```
 
 Then open `http://localhost:8080`.
@@ -206,7 +206,7 @@ For bugs and feature requests, open a GitHub issue:
 
 ## Releases
 
-- Latest tagged release: `v0.3.1`.
+- Latest tagged release: `v0.3.2`.
 - This README tracks the current `main` branch.
 - Publish release notes via GitHub Releases and keep [CHANGELOG.md](CHANGELOG.md) updated.
 

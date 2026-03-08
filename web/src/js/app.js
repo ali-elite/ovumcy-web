@@ -96,7 +96,6 @@
   function applyTheme(theme) {
     var resolved = resolveTheme(theme);
     document.documentElement.setAttribute("data-theme", resolved);
-    document.documentElement.style.colorScheme = resolved;
     updateThemeColorMeta(resolved);
     window.__ovumcyTheme = resolved;
     return resolved;
@@ -287,12 +286,10 @@
 
     var prefersReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!prefersReducedMotion) {
-      panel.style.opacity = "0";
-      panel.style.transform = "translateY(8px)";
-      panel.style.transition = "opacity 180ms ease, transform 180ms ease";
+      panel.classList.add("auth-panel-transition");
+      panel.classList.add("auth-panel-enter");
       window.requestAnimationFrame(function () {
-        panel.style.opacity = "1";
-        panel.style.transform = "translateY(0)";
+        panel.classList.remove("auth-panel-enter");
       });
     }
 
@@ -315,9 +312,8 @@
       }
 
       event.preventDefault();
-      panel.style.pointerEvents = "none";
-      panel.style.opacity = "0";
-      panel.style.transform = "translateY(-6px)";
+      panel.classList.add("auth-panel-transition");
+      panel.classList.add("auth-panel-exit");
       window.setTimeout(function () {
         window.location.href = href;
       }, 140);
@@ -1298,8 +1294,9 @@
       var textarea = document.createElement("textarea");
       textarea.value = text;
       textarea.setAttribute("readonly", "readonly");
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
+      textarea.className = "clipboard-helper";
+      textarea.setAttribute("aria-hidden", "true");
+      textarea.tabIndex = -1;
       document.body.appendChild(textarea);
       textarea.select();
 
@@ -1326,6 +1323,17 @@
     }
 
     return copyTextWithExecCommand(text);
+  }
+
+  function setNodeHidden(node, hidden) {
+    if (!node) {
+      return;
+    }
+    if (hidden) {
+      node.setAttribute("hidden", "");
+      return;
+    }
+    node.removeAttribute("hidden");
   }
 
   function parseDateValue(value) {
@@ -1369,13 +1377,6 @@
     return result;
   }
 
-  function setTimedFlag(target, key, timeoutMs) {
-    target[key] = true;
-    window.setTimeout(function () {
-      target[key] = false;
-    }, timeoutMs);
-  }
-
   function getRecoveryCodeText(refs) {
     var node = refs && refs.code ? refs.code : null;
     return node ? String(node.textContent || "").trim() : "";
@@ -1408,80 +1409,26 @@
     };
   }
 
-  window.pwaInstallBanner = function () {
-    return {
-      visible: false,
-      busy: false,
-      mode: "",
-      init: function () {
-        var self = this;
-        subscribePWAInstallState(function (state) {
-          self.syncInstallState(state);
-        });
-      },
-      dismiss: function () {
-        dismissPWAInstallPrompt();
-      },
-      install: function () {
-        if (this.busy || this.mode !== "prompt") {
-          return;
-        }
-
-        requestPWAInstallation().then(function () {
-          // State is synchronized via subscribePWAInstallState.
-        });
-      },
-      syncInstallState: function (state) {
-        var safeState = state || {};
-        this.visible = !!safeState.available && !safeState.installed;
-        this.busy = !!safeState.busy;
-        this.mode = String(safeState.mode || "");
-      }
-    };
-  };
-
-  window.appShellState = function () {
-    return {
-      mobileMenu: false,
-      theme: currentTheme(),
-      themeIcon: "\u{1F319}",
-      themeToggleLabel: "",
-      themeShortLabel: "",
-      init: function () {
-        this.syncThemeState(this.theme);
-      },
-      toggleMobileMenu: function () {
-        this.mobileMenu = !this.mobileMenu;
-      },
-      toggleTheme: function () {
-        var nextTheme = toggleThemePreference();
-        this.syncThemeState(nextTheme);
-      },
-      syncThemeState: function (rawTheme) {
-        this.theme = normalizeTheme(rawTheme) || currentTheme();
-        var messages = themeMessagesFromDataset();
-        var isDark = this.theme === THEME_DARK;
-
-        this.themeIcon = isDark ? "\u2600" : "\u{1F319}";
-        this.themeShortLabel = isDark ? messages.modeLight : messages.modeDark;
-        this.themeToggleLabel = isDark ? messages.toggleToLight : messages.toggleToDark;
-      }
-    };
-  };
-
-  window.settingsCycleForm = function (config) {
-    var safeConfig = config || {};
-    return {
-      cycleLength: Number(safeConfig.cycleLength || 28),
-      periodLength: Number(safeConfig.periodLength || 5),
-      autoPeriodFill: !!safeConfig.autoPeriodFill
-    };
-  };
+  function clampInteger(value, fallback, minValue, maxValue) {
+    var numeric = Number(value);
+    if (!isFinite(numeric)) {
+      numeric = fallback;
+    }
+    numeric = Math.round(numeric);
+    if (isFinite(minValue)) {
+      numeric = Math.max(minValue, numeric);
+    }
+    if (isFinite(maxValue)) {
+      numeric = Math.min(maxValue, numeric);
+    }
+    return numeric;
+  }
 
   function clearCheckedInputs(root, selector) {
     if (!root || !root.querySelectorAll) {
       return;
     }
+
     var inputs = root.querySelectorAll(selector);
     for (var index = 0; index < inputs.length; index++) {
       var input = inputs[index];
@@ -1492,348 +1439,798 @@
     }
   }
 
-  window.dayEditorForm = function (config) {
-    var safeConfig = config || {};
+  function cycleGuidanceState(cycleLength, periodLength) {
+    var gap = cycleLength - periodLength;
     return {
-      isPeriod: !!safeConfig.isPeriod,
-      clearNonPeriodSelections: function () {
-        clearCheckedInputs(this.$root, "input[name='symptom_ids']");
-      },
-      init: function () {
-        this.$watch("isPeriod", function (value) {
-          if (!value) {
-            this.clearNonPeriodSelections();
-          }
-        }.bind(this));
-      }
+      invalid: gap < 8,
+      warning: gap >= 8 && gap < 15,
+      periodLong: gap >= 15 && periodLength > 8,
+      cycleShort: gap >= 15 && periodLength <= 8 && cycleLength < 24
     };
-  };
+  }
 
-  window.dashboardTodayEditor = function (config) {
-    var safeConfig = config || {};
-
-    return {
-      isPeriod: !!safeConfig.isPeriod,
-      activeSymptoms: [],
-      notesPreview: "",
-      syncSymptoms: function () {
-        this.activeSymptoms = collectCheckedSymptomLabels(this.$root);
-      },
-      hasActiveSymptoms: function () {
-        return this.activeSymptoms.length > 0;
-      },
-      hasNotesPreview: function () {
-        return String(this.notesPreview || "").trim().length > 0;
-      },
-      clearNonPeriodSelections: function () {
-        clearCheckedInputs(this.$root, "input[name='symptom_ids']");
-        this.syncSymptoms();
-      },
-      init: function () {
-        var notesField = this.$root ? this.$root.querySelector("#today-notes") : null;
-        if (notesField) {
-          this.notesPreview = String(notesField.defaultValue || notesField.value || "");
-        }
-        this.syncSymptoms();
-        this.$watch("isPeriod", function (value) {
-          if (!value) {
-            this.clearNonPeriodSelections();
-          }
-        }.bind(this));
-      }
-    };
-  };
-
-  window.calendarView = function (config) {
-    var safeConfig = config || {};
-    return {
-      selectedDate: safeConfig.selectedDate || "",
-      isSelectedDay: function (value) {
-        return this.selectedDate === String(value || "");
-      },
-      selectDayFromEvent: function (event) {
-        var target = event && event.currentTarget ? event.currentTarget : null;
-        if (!target || typeof target.getAttribute !== "function") {
-          return;
-        }
-        this.selectDay(target.getAttribute("data-day"));
-      },
-      selectDay: function (value) {
-        this.selectedDate = value || "";
-        if (!this.selectedDate || !window.history || typeof window.history.replaceState !== "function") {
-          return;
-        }
-
-        try {
-          var currentURL = new URL(window.location.href);
-          currentURL.searchParams.set("day", this.selectedDate);
-          var nextPath = currentURL.pathname + currentURL.search + currentURL.hash;
-          window.history.replaceState({}, "", nextPath);
-        } catch {
-          // Ignore malformed URLs and keep current location unchanged.
-        }
-      }
-    };
-  };
-
-  window.onboardingFlow = function (config) {
-    var safeConfig = config || {};
-    var lang = safeConfig.lang || "en";
-    var periodExceedsCycleMessage = String(
-      safeConfig.periodExceedsCycleMessage || "Period length must not exceed cycle length."
-    );
-    function normalizeOnboardingStep(rawStep) {
-      var step = Number(rawStep);
-      if (!Number.isFinite(step)) {
-        step = 0;
-      }
-      step = Math.round(step);
-      if (step < 0) {
-        return 0;
-      }
-      if (step > 3) {
-        return 3;
-      }
-      return step;
+  function setDisabledByPeriod(root, isPeriod) {
+    if (!root || !root.querySelectorAll) {
+      return;
     }
 
-    return {
-      step: normalizeOnboardingStep(safeConfig.initialStep),
-      minDate: safeConfig.minDate || "",
-      maxDate: safeConfig.maxDate || "",
-      selectedDate: safeConfig.lastPeriodStart || "",
-      cycleLength: Number(safeConfig.cycleLength || 28),
-      periodLength: Number(safeConfig.periodLength || 5),
-      autoPeriodFill: safeConfig.autoPeriodFill !== false,
-      dayOptions: [],
-      periodExceedsCycleMessage: periodExceedsCycleMessage,
-      clearStepStatuses: function () {
-        var statusIDs = ["onboarding-step1-status", "onboarding-step2-status", "onboarding-step3-status"];
-        for (var index = 0; index < statusIDs.length; index++) {
-          var node = document.getElementById(statusIDs[index]);
-          if (node) {
-            node.textContent = "";
-          }
-        }
-      },
-      clearStepStatus: function (statusID) {
-        var node = document.getElementById(statusID);
-        if (!node) {
-          return;
-        }
-        node.textContent = "";
-      },
-      syncStepInURL: function () {
-        if (!window.history || typeof window.history.replaceState !== "function") {
-          return;
-        }
-        try {
-          var currentURL = new URL(window.location.href);
-          if (this.step > 0) {
-            currentURL.searchParams.set("step", String(this.step));
-          } else {
-            currentURL.searchParams.delete("step");
-          }
-          var nextPath = currentURL.pathname + currentURL.search + currentURL.hash;
-          var currentPath = window.location.pathname + window.location.search + window.location.hash;
-          if (nextPath !== currentPath) {
-            window.history.replaceState({}, "", nextPath);
-          }
-        } catch {
-          // Ignore malformed URLs and keep current location unchanged.
-        }
-      },
-      renderStepStatus: function (statusID, kind, message) {
-        var node = document.getElementById(statusID);
-        if (!node) {
-          return;
-        }
-        node.textContent = "";
-        if (!message) {
-          return;
-        }
+    var dependentInputs = root.querySelectorAll("[data-disable-without-period='true']");
+    for (var index = 0; index < dependentInputs.length; index++) {
+      dependentInputs[index].disabled = !isPeriod;
+    }
+  }
 
-        var status = document.createElement("div");
-        status.className = kind;
-        status.textContent = String(message);
-        node.appendChild(status);
-      },
-      normalizeStepTwoValues: function () {
-        var cycle = Number(this.cycleLength);
-        if (!Number.isFinite(cycle)) {
-          cycle = 28;
-        }
-        cycle = Math.max(15, Math.min(90, Math.round(cycle)));
-        this.cycleLength = cycle;
+  function syncPeriodFieldsets(root, isPeriod) {
+    if (!root || !root.querySelectorAll) {
+      return;
+    }
 
-        var period = Number(this.periodLength);
-        if (!Number.isFinite(period)) {
-          period = 5;
-        }
-        period = Math.max(1, Math.min(14, Math.round(period)));
-        this.periodLength = period;
-      },
-      onCycleLengthChanged: function () {
-        this.normalizeStepTwoValues();
-        this.clearStepStatus("onboarding-step2-status");
-      },
-      onPeriodLengthChanged: function () {
-        this.normalizeStepTwoValues();
-        this.clearStepStatus("onboarding-step2-status");
-      },
-      validateStepTwoBeforeSubmit: function (event) {
-        this.normalizeStepTwoValues();
-        if ((this.cycleLength - this.periodLength) < 8) {
-          if (event && typeof event.preventDefault === "function") {
+    var fieldsets = root.querySelectorAll("[data-period-fields]");
+    for (var index = 0; index < fieldsets.length; index++) {
+      setNodeHidden(fieldsets[index], !isPeriod);
+    }
+    setDisabledByPeriod(root, isPeriod);
+  }
+
+  function syncThemeToggleButtons() {
+    var buttons = document.querySelectorAll("[data-theme-toggle]");
+    var theme = currentTheme();
+    var messages = themeMessagesFromDataset();
+    var isDark = theme === THEME_DARK;
+    var iconText = isDark ? "\u2600" : "\u{1F319}";
+    var nextModeLabel = isDark ? messages.modeLight : messages.modeDark;
+    var toggleLabel = isDark ? messages.toggleToLight : messages.toggleToDark;
+
+    for (var index = 0; index < buttons.length; index++) {
+      var button = buttons[index];
+      var icon = button.querySelector("[data-theme-toggle-icon]");
+      var text = button.querySelector("[data-theme-toggle-text]");
+
+      button.setAttribute("aria-label", toggleLabel);
+      button.setAttribute("title", toggleLabel);
+      if (icon) {
+        icon.textContent = iconText;
+      }
+      if (text) {
+        text.textContent = nextModeLabel;
+      }
+    }
+  }
+
+  function bindThemeToggleButtons() {
+    var buttons = document.querySelectorAll("[data-theme-toggle]");
+    for (var index = 0; index < buttons.length; index++) {
+      var button = buttons[index];
+      if (button.dataset.themeToggleBound === "1") {
+        continue;
+      }
+
+      button.dataset.themeToggleBound = "1";
+      button.addEventListener("click", function () {
+        toggleThemePreference();
+        syncThemeToggleButtons();
+      });
+    }
+
+    syncThemeToggleButtons();
+  }
+
+  function syncMobileMenu(button, menu) {
+    var expanded = button.getAttribute("aria-expanded") === "true";
+    setNodeHidden(menu, !expanded);
+  }
+
+  function bindMobileMenu() {
+    var button = document.querySelector("[data-mobile-menu-toggle]");
+    var menu = document.querySelector("[data-mobile-menu]");
+    if (!button || !menu) {
+      return;
+    }
+
+    if (button.dataset.mobileMenuBound !== "1") {
+      button.dataset.mobileMenuBound = "1";
+      button.addEventListener("click", function () {
+        var expanded = button.getAttribute("aria-expanded") === "true";
+        button.setAttribute("aria-expanded", expanded ? "false" : "true");
+        syncMobileMenu(button, menu);
+      });
+    }
+
+    syncMobileMenu(button, menu);
+  }
+
+  function syncPWAInstallBanner(banner, state) {
+    var safeState = state || {};
+    var visible = !!safeState.available && !safeState.installed;
+    var mode = String(safeState.mode || "");
+    var installButton = banner.querySelector("[data-pwa-install-action='install']");
+    var promptCopy = banner.querySelector("[data-pwa-install-copy='prompt']");
+    var iosCopy = banner.querySelector("[data-pwa-install-copy='ios']");
+    var menuCopy = banner.querySelector("[data-pwa-install-copy='menu']");
+
+    setNodeHidden(banner, !visible);
+    if (!visible) {
+      return;
+    }
+
+    if (installButton) {
+      setNodeHidden(installButton, mode !== "prompt");
+      installButton.disabled = !!safeState.busy;
+    }
+
+    setNodeHidden(promptCopy, mode !== "prompt");
+    setNodeHidden(iosCopy, mode !== "ios");
+    setNodeHidden(menuCopy, mode !== "menu");
+  }
+
+  function bindPWAInstallBanner() {
+    var banner = document.querySelector("[data-pwa-install-banner]");
+    if (!banner) {
+      return;
+    }
+
+    if (banner.dataset.pwaInstallBound !== "1") {
+      banner.dataset.pwaInstallBound = "1";
+
+      var installButton = banner.querySelector("[data-pwa-install-action='install']");
+      var dismissButton = banner.querySelector("[data-pwa-install-action='dismiss']");
+      if (installButton) {
+        installButton.addEventListener("click", function () {
+          requestPWAInstallation();
+        });
+      }
+      if (dismissButton) {
+        dismissButton.addEventListener("click", function () {
+          dismissPWAInstallPrompt();
+        });
+      }
+
+      subscribePWAInstallState(function (state) {
+        syncPWAInstallBanner(banner, state);
+      });
+    }
+  }
+
+  function syncDashboardPreview(root) {
+    var periodToggle = root.querySelector("[data-period-toggle]");
+    var notesField = root.querySelector("[data-dashboard-notes]");
+    var preview = root.querySelector("[data-dashboard-preview]");
+    var isPeriod = !!(periodToggle && periodToggle.checked);
+    var notes = notesField ? String(notesField.value || "") : "";
+    var trimmedNotes = notes.trim();
+    var symptoms = collectCheckedSymptomLabels(root);
+    var hasSymptoms = symptoms.length > 0;
+    var hasNotes = trimmedNotes.length > 0;
+    var showPreview = isPeriod || hasSymptoms || hasNotes;
+    var symptomList = root.querySelector("[data-dashboard-symptom-list]");
+    var symptomEmpty = root.querySelector("[data-dashboard-symptom-empty]");
+    var notesValue = root.querySelector("[data-dashboard-notes-value]");
+    var notesEmpty = root.querySelector("[data-dashboard-notes-empty]");
+
+    syncPeriodFieldsets(root, isPeriod);
+
+    if (!preview) {
+      return;
+    }
+
+    setNodeHidden(preview, !showPreview);
+    setNodeHidden(root.querySelector("[data-dashboard-preview-heading='period']"), !isPeriod);
+    setNodeHidden(root.querySelector("[data-dashboard-preview-heading='other']"), isPeriod);
+    setNodeHidden(root.querySelector("[data-dashboard-period-summary]"), !isPeriod);
+    setNodeHidden(root.querySelector("[data-dashboard-other-summary]"), isPeriod);
+
+    if (symptomList) {
+      symptomList.textContent = "";
+      for (var index = 0; index < symptoms.length; index++) {
+        var item = document.createElement("li");
+        item.textContent = symptoms[index];
+        symptomList.appendChild(item);
+      }
+      setNodeHidden(symptomList, !hasSymptoms);
+    }
+
+    setNodeHidden(symptomEmpty, hasSymptoms);
+    if (notesValue) {
+      notesValue.textContent = notes;
+      setNodeHidden(notesValue, !hasNotes);
+    }
+    setNodeHidden(notesEmpty, hasNotes);
+  }
+
+  function bindDashboardEditors() {
+    var roots = document.querySelectorAll("[data-dashboard-editor]");
+    for (var index = 0; index < roots.length; index++) {
+      var root = roots[index];
+      if (root.dataset.dashboardEditorBound !== "1") {
+        root.dataset.dashboardEditorBound = "1";
+        root.__ovumcyDashboardWasPeriod = !!(root.querySelector("[data-period-toggle]") && root.querySelector("[data-period-toggle]").checked);
+
+        root.addEventListener("change", function (event) {
+          var periodToggle = event.target && event.target.matches && event.target.matches("[data-period-toggle]") ? event.target : null;
+          if (periodToggle) {
+            if (!periodToggle.checked && this.__ovumcyDashboardWasPeriod) {
+              clearCheckedInputs(this, "input[name='symptom_ids']");
+            }
+            this.__ovumcyDashboardWasPeriod = periodToggle.checked;
+          }
+
+          if (periodToggle || (event.target && event.target.name === "symptom_ids")) {
+            syncDashboardPreview(this);
+          }
+        });
+
+        root.addEventListener("input", function (event) {
+          if (event.target && event.target.matches && event.target.matches("[data-dashboard-notes]")) {
+            syncDashboardPreview(this);
+          }
+        });
+      }
+
+      syncDashboardPreview(root);
+    }
+  }
+
+  function syncDayEditorForm(form) {
+    var periodToggle = form.querySelector("[data-period-toggle]");
+    syncPeriodFieldsets(form, !!(periodToggle && periodToggle.checked));
+  }
+
+  function bindDayEditorForms() {
+    var forms = document.querySelectorAll("[data-day-editor-form]");
+    for (var index = 0; index < forms.length; index++) {
+      var form = forms[index];
+      if (form.dataset.dayEditorBound !== "1") {
+        form.dataset.dayEditorBound = "1";
+        form.__ovumcyDayEditorWasPeriod = !!(form.querySelector("[data-period-toggle]") && form.querySelector("[data-period-toggle]").checked);
+
+        form.addEventListener("change", function (event) {
+          if (!event.target || !event.target.matches || !event.target.matches("[data-period-toggle]")) {
+            return;
+          }
+
+          if (!event.target.checked && this.__ovumcyDayEditorWasPeriod) {
+            clearCheckedInputs(this, "input[name='symptom_ids']");
+          }
+          this.__ovumcyDayEditorWasPeriod = event.target.checked;
+          syncDayEditorForm(this);
+        });
+      }
+
+      syncDayEditorForm(form);
+    }
+  }
+
+  function syncSettingsCycleForm(root) {
+    var cycleInput = root.querySelector("[data-settings-cycle-length]");
+    var periodInput = root.querySelector("[data-settings-period-length]");
+    var cycleValue = root.querySelector("[data-settings-cycle-length-value]");
+    var periodValue = root.querySelector("[data-settings-period-length-value]");
+    if (!cycleInput || !periodInput) {
+      return;
+    }
+
+    var cycleLength = clampInteger(cycleInput.value, 28, 15, 90);
+    var periodLength = clampInteger(periodInput.value, 5, 1, 14);
+    var guidance = cycleGuidanceState(cycleLength, periodLength);
+
+    cycleInput.value = String(cycleLength);
+    periodInput.value = String(periodLength);
+    if (cycleValue) {
+      cycleValue.textContent = String(cycleLength);
+    }
+    if (periodValue) {
+      periodValue.textContent = String(periodLength);
+    }
+
+    setNodeHidden(root.querySelector("[data-settings-cycle-message='error']"), !guidance.invalid);
+    setNodeHidden(root.querySelector("[data-settings-cycle-message='warning']"), !guidance.warning);
+    setNodeHidden(root.querySelector("[data-settings-cycle-message='period-long']"), !guidance.periodLong);
+    setNodeHidden(root.querySelector("[data-settings-cycle-message='cycle-short']"), !guidance.cycleShort);
+  }
+
+  function bindSettingsCycleForms() {
+    var roots = document.querySelectorAll("[data-settings-cycle-form]");
+    for (var index = 0; index < roots.length; index++) {
+      var root = roots[index];
+      if (root.dataset.settingsCycleBound !== "1") {
+        root.dataset.settingsCycleBound = "1";
+
+        root.addEventListener("input", function (event) {
+          if (!event.target || !event.target.matches) {
+            return;
+          }
+          if (event.target.matches("[data-settings-cycle-length], [data-settings-period-length]")) {
+            syncSettingsCycleForm(this);
+          }
+        });
+
+        root.addEventListener("submit", function (event) {
+          var form = event.target;
+          if (!form || !form.matches || !form.matches("form")) {
+            return;
+          }
+
+          var cycleInput = this.querySelector("[data-settings-cycle-length]");
+          var periodInput = this.querySelector("[data-settings-period-length]");
+          var guidance = cycleGuidanceState(
+            clampInteger(cycleInput ? cycleInput.value : 28, 28, 15, 90),
+            clampInteger(periodInput ? periodInput.value : 5, 5, 1, 14)
+          );
+          if (guidance.invalid) {
             event.preventDefault();
           }
-          this.renderStepStatus("onboarding-step2-status", "status-error", this.periodExceedsCycleMessage);
-          return false;
-        }
-        this.clearStepStatus("onboarding-step2-status");
-        return true;
-      },
-      normalizeStartDateWithinBounds: function () {
-        var selected = parseDateValue(this.selectedDate);
-        if (!selected) {
-          this.selectedDate = "";
-          return;
-        }
-
-        var min = parseDateValue(this.minDate);
-        var max = parseDateValue(this.maxDate);
-
-        if (min && selected < min) {
-          this.selectedDate = formatDateValue(min);
-          return;
-        }
-        if (max && selected > max) {
-          this.selectedDate = formatDateValue(max);
-          return;
-        }
-
-        this.selectedDate = formatDateValue(selected);
-      },
-      init: function () {
-        this.step = normalizeOnboardingStep(this.step);
-        this.syncStepInURL();
-        this.dayOptions = buildDayOptions(this.minDate, this.maxDate, lang);
-        this.normalizeStartDateWithinBounds();
-        this.onStartDateChanged();
-      },
-      goToStep: function (value) {
-        var nextStep = normalizeOnboardingStep(value);
-        this.clearStepStatuses();
-        this.step = nextStep;
-        this.syncStepInURL();
-      },
-      begin: function () {
-        this.goToStep(1);
-      },
-      onStepOneSaved: function (event) {
-        this.advanceAfterSuccessfulRequest(event, 2);
-      },
-      onStepTwoSaved: function (event) {
-        this.advanceAfterSuccessfulRequest(event, 3);
-      },
-      advanceAfterSuccessfulRequest: function (event, targetStep) {
-        if (!event || !event.detail || !event.detail.successful) {
-          return;
-        }
-        this.goToStep(targetStep);
-      },
-      setStartDate: function (value) {
-        this.selectedDate = value || "";
-        this.onStartDateChanged();
-        this.clearStepStatus("onboarding-step1-status");
-      },
-      onStartDateChanged: function () {
-        this.normalizeStartDateWithinBounds();
-        this.clearStepStatus("onboarding-step1-status");
-      }
-    };
-  };
-
-  window.recoveryCodeTools = function () {
-    return {
-      copied: false,
-      copyFailed: false,
-      downloaded: false,
-      downloadFailed: false,
-      recoveryMessage: function (key, fallback) {
-        var root = this.$root;
-        if (root && root.dataset && root.dataset[key]) {
-          return String(root.dataset[key] || "");
-        }
-        return String(fallback || "");
-      },
-      notify: function (key, fallback, kind) {
-        var message = this.recoveryMessage(key, fallback);
-        if (!message || typeof window.showToast !== "function") {
-          return;
-        }
-        window.showToast(message, kind);
-      },
-      copyCode: function () {
-        var code = getRecoveryCodeText(this.$refs);
-        if (!code) {
-          return;
-        }
-
-        var self = this;
-        writeTextToClipboard(code).then(function () {
-          self.copied = true;
-          self.copyFailed = false;
-          self.downloaded = false;
-          self.downloadFailed = false;
-          self.notify("copySuccessMessage", "Recovery code copied.", "ok");
-          setTimedFlag(self, "copied", STATUS_CLEAR_MS);
-        }).catch(function () {
-          self.copied = false;
-          self.copyFailed = true;
-          self.downloaded = false;
-          self.downloadFailed = false;
-          self.notify("copyFailedMessage", "Failed to copy recovery code.", "error");
-          setTimedFlag(self, "copyFailed", STATUS_CLEAR_MS);
         });
-      },
-      downloadCode: function () {
-        var code = getRecoveryCodeText(this.$refs);
-        if (!code) {
-          return;
-        }
-
-        var self = this;
-        this.copied = false;
-        this.copyFailed = false;
-        this.downloaded = false;
-        this.downloadFailed = false;
-
-        try {
-          var content = "Ovumcy recovery code\n\n" + code + "\n\nStore this code offline and private.";
-          var blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-          var objectURL = URL.createObjectURL(blob);
-          var link = document.createElement("a");
-          link.href = objectURL;
-          link.download = "ovumcy-recovery-code.txt";
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-
-          window.setTimeout(function () {
-            URL.revokeObjectURL(objectURL);
-          }, DOWNLOAD_REVOKE_MS);
-
-          self.notify("downloadSuccessMessage", "Recovery code downloaded.", "ok");
-          setTimedFlag(self, "downloaded", STATUS_CLEAR_MS);
-        } catch {
-          self.notify("downloadFailedMessage", "Failed to download recovery code.", "error");
-          setTimedFlag(self, "downloadFailed", STATUS_CLEAR_MS);
-        }
       }
-    };
-  };
 
+      syncSettingsCycleForm(root);
+    }
+  }
+
+  function syncCalendarURL(selectedDate) {
+    if (!window.history || typeof window.history.replaceState !== "function") {
+      return;
+    }
+
+    try {
+      var currentURL = new URL(window.location.href);
+      if (selectedDate) {
+        currentURL.searchParams.set("day", selectedDate);
+      } else {
+        currentURL.searchParams.delete("day");
+      }
+      var nextPath = currentURL.pathname + currentURL.search + currentURL.hash;
+      window.history.replaceState({}, "", nextPath);
+    } catch {
+      // Ignore malformed URLs and keep current location unchanged.
+    }
+  }
+
+  function syncCalendarSelection(root) {
+    var selectedDate = String(root.getAttribute("data-selected-date") || "");
+    var buttons = root.querySelectorAll("button[data-day]");
+
+    for (var index = 0; index < buttons.length; index++) {
+      buttons[index].classList.toggle("selected", buttons[index].getAttribute("data-day") === selectedDate);
+    }
+  }
+
+  function bindCalendarViews() {
+    var roots = document.querySelectorAll("[data-calendar-view]");
+    for (var index = 0; index < roots.length; index++) {
+      var root = roots[index];
+      if (root.dataset.calendarViewBound !== "1") {
+        root.dataset.calendarViewBound = "1";
+
+        root.addEventListener("click", function (event) {
+          var button = closestFromEvent(event, "button[data-day]");
+          if (!button || !this.contains(button)) {
+            return;
+          }
+
+          var selectedDate = String(button.getAttribute("data-day") || "");
+          this.setAttribute("data-selected-date", selectedDate);
+          syncCalendarSelection(this);
+          syncCalendarURL(selectedDate);
+        });
+      }
+
+      syncCalendarSelection(root);
+    }
+  }
+
+  function normalizeOnboardingStep(rawStep) {
+    return clampInteger(rawStep, 0, 0, 3);
+  }
+
+  function clearOnboardingStatus(state, stepKey) {
+    var status = state.statusTargets[stepKey];
+    if (status) {
+      status.textContent = "";
+    }
+  }
+
+  function clearAllOnboardingStatuses(state) {
+    clearOnboardingStatus(state, "1");
+    clearOnboardingStatus(state, "2");
+    clearOnboardingStatus(state, "3");
+  }
+
+  function syncOnboardingURL(state) {
+    if (!window.history || typeof window.history.replaceState !== "function") {
+      return;
+    }
+
+    try {
+      var currentURL = new URL(window.location.href);
+      if (state.step > 0) {
+        currentURL.searchParams.set("step", String(state.step));
+      } else {
+        currentURL.searchParams.delete("step");
+      }
+      var nextPath = currentURL.pathname + currentURL.search + currentURL.hash;
+      if (nextPath !== (window.location.pathname + window.location.search + window.location.hash)) {
+        window.history.replaceState({}, "", nextPath);
+      }
+    } catch {
+      // Ignore malformed URLs and keep current location unchanged.
+    }
+  }
+
+  function renderOnboardingDayOptions(state) {
+    var container = state.dayOptionsContainer;
+    if (!container) {
+      return;
+    }
+
+    container.textContent = "";
+    for (var index = 0; index < state.dayOptions.length; index++) {
+      var day = state.dayOptions[index];
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "check-chip check-chip-sm justify-center";
+      button.setAttribute("data-onboarding-day-option", "true");
+      button.setAttribute("data-onboarding-day-value", day.value);
+      if (state.selectedDate === day.value) {
+        button.classList.add("choice-chip-active");
+      }
+      button.textContent = day.label;
+      container.appendChild(button);
+    }
+  }
+
+  function syncOnboardingStepUI(state) {
+    setNodeHidden(state.progress, state.step === 0);
+
+    for (var panelStep = 0; panelStep <= 3; panelStep++) {
+      setNodeHidden(state.panels[String(panelStep)], state.step !== panelStep);
+    }
+    for (var kickerStep = 1; kickerStep <= 3; kickerStep++) {
+      setNodeHidden(state.progressKickers[String(kickerStep)], state.step !== kickerStep);
+    }
+    if (state.progressBar) {
+      state.progressBar.setAttribute("data-step", String(state.step));
+    }
+  }
+
+  function syncOnboardingStartDate(state) {
+    var selectedDate = parseDateValue(state.selectedDate);
+    var minDate = parseDateValue(state.minDate);
+    var maxDate = parseDateValue(state.maxDate);
+
+    if (selectedDate && minDate && selectedDate < minDate) {
+      selectedDate = minDate;
+    }
+    if (selectedDate && maxDate && selectedDate > maxDate) {
+      selectedDate = maxDate;
+    }
+
+    state.selectedDate = selectedDate ? formatDateValue(selectedDate) : "";
+    if (state.startDateInput) {
+      state.startDateInput.value = state.selectedDate;
+    }
+    renderOnboardingDayOptions(state);
+  }
+
+  function syncOnboardingStepTwo(state) {
+    var guidance;
+
+    state.cycleLength = clampInteger(state.cycleLength, 28, 15, 90);
+    state.periodLength = clampInteger(state.periodLength, 5, 1, 14);
+    guidance = cycleGuidanceState(state.cycleLength, state.periodLength);
+
+    if (state.cycleInput) {
+      state.cycleInput.value = String(state.cycleLength);
+    }
+    if (state.periodInput) {
+      state.periodInput.value = String(state.periodLength);
+    }
+    if (state.cycleValue) {
+      state.cycleValue.textContent = String(state.cycleLength);
+    }
+    if (state.periodValue) {
+      state.periodValue.textContent = String(state.periodLength);
+    }
+
+    setNodeHidden(state.stepTwoMessages.error, !guidance.invalid);
+    setNodeHidden(state.stepTwoMessages.warning, !guidance.warning);
+    setNodeHidden(state.stepTwoMessages.periodLong, !guidance.periodLong);
+    setNodeHidden(state.stepTwoMessages.cycleShort, !guidance.cycleShort);
+
+    if (state.stepTwoSubmit) {
+      state.stepTwoSubmit.disabled = guidance.invalid;
+      state.stepTwoSubmit.classList.toggle("btn--disabled", guidance.invalid);
+    }
+
+    return guidance;
+  }
+
+  function goToOnboardingStep(state, nextStep) {
+    state.step = normalizeOnboardingStep(nextStep);
+    clearAllOnboardingStatuses(state);
+    syncOnboardingStepUI(state);
+    syncOnboardingURL(state);
+  }
+
+  function bindOnboardingFlows() {
+    var roots = document.querySelectorAll("[data-onboarding-flow]");
+    for (var index = 0; index < roots.length; index++) {
+      var root = roots[index];
+      var state = root.__ovumcyOnboardingState;
+
+      if (!state) {
+        state = {
+          root: root,
+          step: normalizeOnboardingStep(root.getAttribute("data-initial-step")),
+          minDate: String(root.getAttribute("data-min-date") || ""),
+          maxDate: String(root.getAttribute("data-max-date") || ""),
+          selectedDate: String(root.getAttribute("data-last-period-start") || ""),
+          cycleLength: clampInteger(root.getAttribute("data-cycle-length"), 28, 15, 90),
+          periodLength: clampInteger(root.getAttribute("data-period-length"), 5, 1, 14),
+          periodExceedsCycleMessage: String(root.getAttribute("data-period-exceeds-cycle-message") || "Period length must not exceed cycle length."),
+          lang: String(root.getAttribute("data-lang") || "en"),
+          progress: root.querySelector("[data-onboarding-progress]"),
+          progressBar: root.querySelector("[data-onboarding-progress-bar]"),
+          startDateInput: root.querySelector("[data-onboarding-start-date]"),
+          dayOptionsContainer: root.querySelector("[data-onboarding-day-options]"),
+          cycleInput: root.querySelector("[data-onboarding-cycle-length]"),
+          periodInput: root.querySelector("[data-onboarding-period-length]"),
+          cycleValue: root.querySelector("[data-onboarding-cycle-length-value]"),
+          periodValue: root.querySelector("[data-onboarding-period-length-value]"),
+          stepTwoSubmit: root.querySelector("[data-onboarding-step2-submit]"),
+          panels: {
+            "0": root.querySelector("[data-onboarding-panel='0']"),
+            "1": root.querySelector("[data-onboarding-panel='1']"),
+            "2": root.querySelector("[data-onboarding-panel='2']"),
+            "3": root.querySelector("[data-onboarding-panel='3']")
+          },
+          progressKickers: {
+            "1": root.querySelector("[data-onboarding-progress-kicker='1']"),
+            "2": root.querySelector("[data-onboarding-progress-kicker='2']"),
+            "3": root.querySelector("[data-onboarding-progress-kicker='3']")
+          },
+          stepTwoMessages: {
+            error: root.querySelector("[data-onboarding-step2-message='error']"),
+            warning: root.querySelector("[data-onboarding-step2-message='warning']"),
+            periodLong: root.querySelector("[data-onboarding-step2-message='period-long']"),
+            cycleShort: root.querySelector("[data-onboarding-step2-message='cycle-short']")
+          },
+          statusTargets: {
+            "1": root.querySelector("#onboarding-step1-status"),
+            "2": root.querySelector("#onboarding-step2-status"),
+            "3": root.querySelector("#onboarding-step3-status")
+          },
+          dayOptions: []
+        };
+        state.dayOptions = buildDayOptions(state.minDate, state.maxDate, state.lang);
+        root.__ovumcyOnboardingState = state;
+
+        root.addEventListener("click", function (event) {
+          var beginButton = closestFromEvent(event, "[data-onboarding-action='begin']");
+          if (beginButton && this.contains(beginButton)) {
+            goToOnboardingStep(this.__ovumcyOnboardingState, 1);
+            return;
+          }
+
+          var stepButton = closestFromEvent(event, "[data-onboarding-go-step]");
+          if (stepButton && this.contains(stepButton)) {
+            goToOnboardingStep(this.__ovumcyOnboardingState, stepButton.getAttribute("data-onboarding-go-step"));
+            return;
+          }
+
+          var dayButton = closestFromEvent(event, "button[data-onboarding-day-option]");
+          if (dayButton && this.contains(dayButton)) {
+            this.__ovumcyOnboardingState.selectedDate = String(dayButton.getAttribute("data-onboarding-day-value") || "");
+            clearOnboardingStatus(this.__ovumcyOnboardingState, "1");
+            syncOnboardingStartDate(this.__ovumcyOnboardingState);
+          }
+        });
+
+        root.addEventListener("input", function (event) {
+          var currentState = this.__ovumcyOnboardingState;
+          if (!event.target || !event.target.matches) {
+            return;
+          }
+
+          if (event.target.matches("[data-onboarding-start-date]")) {
+            currentState.selectedDate = String(event.target.value || "");
+            clearOnboardingStatus(currentState, "1");
+            syncOnboardingStartDate(currentState);
+            return;
+          }
+
+          if (event.target.matches("[data-onboarding-cycle-length]")) {
+            currentState.cycleLength = event.target.value;
+            clearOnboardingStatus(currentState, "2");
+            syncOnboardingStepTwo(currentState);
+            return;
+          }
+
+          if (event.target.matches("[data-onboarding-period-length]")) {
+            currentState.periodLength = event.target.value;
+            clearOnboardingStatus(currentState, "2");
+            syncOnboardingStepTwo(currentState);
+          }
+        });
+
+        root.addEventListener("submit", function (event) {
+          var form = event.target;
+          var currentState = this.__ovumcyOnboardingState;
+          var guidance;
+          if (!form || !form.matches || !form.matches("form[data-onboarding-form-step='2']")) {
+            return;
+          }
+
+          guidance = syncOnboardingStepTwo(currentState);
+          if (!guidance.invalid) {
+            clearOnboardingStatus(currentState, "2");
+            return;
+          }
+
+          event.preventDefault();
+          if (currentState.statusTargets["2"]) {
+            renderErrorStatus(currentState.statusTargets["2"], currentState.periodExceedsCycleMessage);
+          }
+        });
+
+        root.addEventListener("htmx:afterRequest", function (event) {
+          var source = event && event.detail && event.detail.elt ? event.detail.elt : event.target;
+          var form = source && source.matches && source.matches("form[data-onboarding-form-step]") ? source : null;
+          if (!form || !event.detail || !event.detail.successful) {
+            return;
+          }
+
+          switch (form.getAttribute("data-onboarding-form-step")) {
+            case "1":
+              goToOnboardingStep(this.__ovumcyOnboardingState, 2);
+              break;
+            case "2":
+              goToOnboardingStep(this.__ovumcyOnboardingState, 3);
+              break;
+          }
+        });
+      }
+
+      syncOnboardingStepUI(state);
+      syncOnboardingURL(state);
+      syncOnboardingStartDate(state);
+      syncOnboardingStepTwo(state);
+    }
+  }
+
+  function clearRecoveryStatuses(root) {
+    var nodes = root.querySelectorAll("[data-recovery-status]");
+    for (var index = 0; index < nodes.length; index++) {
+      setNodeHidden(nodes[index], true);
+    }
+  }
+
+  function showRecoveryStatus(root, statusKey) {
+    var nodes = root.querySelectorAll("[data-recovery-status]");
+    for (var index = 0; index < nodes.length; index++) {
+      var node = nodes[index];
+      setNodeHidden(node, node.getAttribute("data-recovery-status") !== statusKey);
+    }
+
+    if (root.__ovumcyRecoveryTimer) {
+      window.clearTimeout(root.__ovumcyRecoveryTimer);
+    }
+    root.__ovumcyRecoveryTimer = window.setTimeout(function () {
+      clearRecoveryStatuses(root);
+      root.__ovumcyRecoveryTimer = 0;
+    }, STATUS_CLEAR_MS);
+  }
+
+  function recoveryMessage(root, key, fallback) {
+    var dataset = root && root.dataset ? root.dataset : {};
+    return String(dataset[key] || fallback || "");
+  }
+
+  function notifyRecovery(root, key, fallback, kind) {
+    var message = recoveryMessage(root, key, fallback);
+    if (message && typeof window.showToast === "function") {
+      window.showToast(message, kind);
+    }
+  }
+
+  function downloadRecoveryCode(root) {
+    var code = getRecoveryCodeText({
+      code: root.querySelector("[data-recovery-code-value]")
+    });
+    if (!code) {
+      return;
+    }
+
+    try {
+      var content = "Ovumcy recovery code\n\n" + code + "\n\nStore this code offline and private.";
+      var blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      var objectURL = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = objectURL;
+      link.download = "ovumcy-recovery-code.txt";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.setTimeout(function () {
+        URL.revokeObjectURL(objectURL);
+      }, DOWNLOAD_REVOKE_MS);
+
+      showRecoveryStatus(root, "downloaded");
+      notifyRecovery(root, "downloadSuccessMessage", "Recovery code downloaded.", "ok");
+    } catch {
+      showRecoveryStatus(root, "download-failed");
+      notifyRecovery(root, "downloadFailedMessage", "Failed to download recovery code.", "error");
+    }
+  }
+
+  function bindRecoveryCodeTools() {
+    var roots = document.querySelectorAll("[data-recovery-code-tools]");
+    for (var index = 0; index < roots.length; index++) {
+      var root = roots[index];
+      if (root.dataset.recoveryCodeBound !== "1") {
+        root.dataset.recoveryCodeBound = "1";
+
+        root.addEventListener("click", function (event) {
+          var actionButton = closestFromEvent(event, "[data-recovery-action]");
+          var action;
+          var code;
+          var currentRoot = this;
+          if (!actionButton || !this.contains(actionButton)) {
+            return;
+          }
+
+          action = actionButton.getAttribute("data-recovery-action");
+          if (action === "download") {
+            downloadRecoveryCode(currentRoot);
+            return;
+          }
+          if (action !== "copy") {
+            return;
+          }
+
+          code = getRecoveryCodeText({
+            code: currentRoot.querySelector("[data-recovery-code-value]")
+          });
+          if (!code) {
+            return;
+          }
+
+          writeTextToClipboard(code).then(function () {
+            showRecoveryStatus(currentRoot, "copied");
+            notifyRecovery(currentRoot, "copySuccessMessage", "Recovery code copied.", "ok");
+          }).catch(function () {
+            showRecoveryStatus(currentRoot, "copy-failed");
+            notifyRecovery(currentRoot, "copyFailedMessage", "Failed to copy recovery code.", "error");
+          });
+        });
+      }
+
+      clearRecoveryStatuses(root);
+    }
+  }
+
+  function initCSPFriendlyComponents() {
+    bindThemeToggleButtons();
+    bindMobileMenu();
+    bindPWAInstallBanner();
+    bindSettingsCycleForms();
+    bindDashboardEditors();
+    bindDayEditorForms();
+    bindCalendarViews();
+    bindOnboardingFlows();
+    bindRecoveryCodeTools();
+  }
+
+  function configureHTMXForCSP() {
+    if (!window.htmx || !window.htmx.config) {
+      return;
+    }
+
+    window.htmx.config.allowEval = false;
+    window.htmx.config.includeIndicatorStyles = false;
+  }
+
+  configureHTMXForCSP();
   initPWAInstallPrompt();
 
   onDocumentReady(function () {
@@ -1848,5 +2245,10 @@
     initConfirmModal();
     initToastAPI();
     initHTMXHooks();
+    initCSPFriendlyComponents();
+
+    document.body.addEventListener("htmx:afterSwap", function () {
+      initCSPFriendlyComponents();
+    });
   });
 })();

@@ -3,8 +3,9 @@
       var textarea = document.createElement("textarea");
       textarea.value = text;
       textarea.setAttribute("readonly", "readonly");
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
+      textarea.className = "clipboard-helper";
+      textarea.setAttribute("aria-hidden", "true");
+      textarea.tabIndex = -1;
       document.body.appendChild(textarea);
       textarea.select();
 
@@ -31,6 +32,17 @@
     }
 
     return copyTextWithExecCommand(text);
+  }
+
+  function setNodeHidden(node, hidden) {
+    if (!node) {
+      return;
+    }
+    if (hidden) {
+      node.setAttribute("hidden", "");
+      return;
+    }
+    node.removeAttribute("hidden");
   }
 
   function parseDateValue(value) {
@@ -72,13 +84,6 @@
       });
     }
     return result;
-  }
-
-  function setTimedFlag(target, key, timeoutMs) {
-    target[key] = true;
-    window.setTimeout(function () {
-      target[key] = false;
-    }, timeoutMs);
   }
 
   function getRecoveryCodeText(refs) {

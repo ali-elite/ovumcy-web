@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"mime"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -54,15 +55,17 @@ type proxySettings struct {
 }
 
 const (
-	headerXContentTypeOptions = "X-Content-Type-Options"
-	headerReferrerPolicy      = "Referrer-Policy"
-	headerPermissionsPolicy   = "Permissions-Policy"
-	headerXFrameOptions       = "X-Frame-Options"
+	headerXContentTypeOptions   = "X-Content-Type-Options"
+	headerReferrerPolicy        = "Referrer-Policy"
+	headerPermissionsPolicy     = "Permissions-Policy"
+	headerXFrameOptions         = "X-Frame-Options"
+	headerContentSecurityPolicy = "Content-Security-Policy"
 
-	xContentTypeOptionsNoSniff = "nosniff"
-	referrerPolicyStrictOrigin = "strict-origin-when-cross-origin"
-	permissionsPolicyDefault   = "geolocation=(), camera=(), microphone=()"
-	xFrameOptionsDeny          = "DENY"
+	xContentTypeOptionsNoSniff   = "nosniff"
+	referrerPolicyStrictOrigin   = "strict-origin-when-cross-origin"
+	permissionsPolicyDefault     = "geolocation=(), camera=(), microphone=()"
+	xFrameOptionsDeny            = "DENY"
+	contentSecurityPolicyDefault = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'none'"
 )
 
 func main() {
@@ -221,10 +224,17 @@ func mustNewHandler(config runtimeConfig, i18nManager *i18n.Manager, dependencie
 func newFiberApp(config runtimeConfig, handler *api.Handler) *fiber.App {
 	app := fiber.New(fiberConfig(config.Proxy))
 	configureFiberMiddleware(app, config, handler)
+	registerStaticContentTypes()
 	app.Static("/static", filepath.Join("web", "static"))
 	api.RegisterRoutes(app, handler)
 	app.Use(handler.NotFound)
 	return app
+}
+
+func registerStaticContentTypes() {
+	if err := mime.AddExtensionType(".webmanifest", "application/manifest+json"); err != nil {
+		log.Printf("register .webmanifest MIME type: %v", err)
+	}
 }
 
 func fiberConfig(proxy proxySettings) fiber.Config {
@@ -276,6 +286,7 @@ func securityHeadersMiddleware() fiber.Handler {
 		c.Set(headerReferrerPolicy, referrerPolicyStrictOrigin)
 		c.Set(headerPermissionsPolicy, permissionsPolicyDefault)
 		c.Set(headerXFrameOptions, xFrameOptionsDeny)
+		c.Set(headerContentSecurityPolicy, contentSecurityPolicyDefault)
 		return c.Next()
 	}
 }

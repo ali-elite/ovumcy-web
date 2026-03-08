@@ -33,7 +33,7 @@ async function ensureOnboardingStepOneVisible(page: Page): Promise<void> {
   const stepOneVisible = await stepOneDateInput.isVisible().catch(() => false);
 
   if (!stepOneVisible) {
-    const beginButton = page.locator('div[x-show="step === 0"] button.btn-primary[type="button"]');
+    const beginButton = page.locator('[data-onboarding-action="begin"]');
     if (await beginButton.isVisible().catch(() => false)) {
       await beginButton.click();
     }

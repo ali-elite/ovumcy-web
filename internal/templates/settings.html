@@ -51,7 +51,7 @@
   </section>
 
   {{if eq .CurrentUser.Role "owner"}}
-  <section id="settings-cycle" class="journal-card p-5 sm:p-6" x-data='settingsCycleForm({ cycleLength: {{.CycleLength}}, periodLength: {{.PeriodLength}}, autoPeriodFill: {{if .AutoPeriodFill}}true{{else}}false{{end}} })'>
+  <section id="settings-cycle" class="journal-card p-5 sm:p-6" data-settings-cycle-form>
     <h2 class="journal-subtitle">🗓️ {{t .Messages "settings.cycle.title"}}</h2>
 
     <form
@@ -60,7 +60,6 @@
       hx-post="/settings/cycle"
       hx-target="#settings-cycle-status"
       hx-swap="innerHTML"
-      x-on:submit="if ((cycleLength - periodLength) < 8) { $event.preventDefault() }"
       class="mt-5 space-y-6"
       data-save-feedback>
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -68,7 +67,7 @@
       <div class="space-y-2">
         <div class="flex items-center justify-between gap-2">
           <label class="field-label" for="settings-cycle-length">{{t .Messages "settings.cycle.cycle_length"}}</label>
-          <span class="journal-muted text-sm"><span x-text="cycleLength">{{.CycleLength}}</span> {{t .Messages "common.days_short"}}</span>
+          <span class="journal-muted text-sm"><span data-settings-cycle-length-value>{{.CycleLength}}</span> {{t .Messages "common.days_short"}}</span>
         </div>
         <input
           id="settings-cycle-length"
@@ -77,14 +76,14 @@
           max="90"
           name="cycle_length"
           value="{{.CycleLength}}"
-          x-model.number="cycleLength"
+          data-settings-cycle-length
           class="w-full range-field">
       </div>
 
       <div class="space-y-2">
         <div class="flex items-center justify-between gap-2">
           <label class="field-label" for="settings-period-length">{{t .Messages "settings.cycle.period_length"}}</label>
-          <span class="journal-muted text-sm"><span x-text="periodLength">{{.PeriodLength}}</span> {{t .Messages "common.days_short"}}</span>
+          <span class="journal-muted text-sm"><span data-settings-period-length-value>{{.PeriodLength}}</span> {{t .Messages "common.days_short"}}</span>
         </div>
         <input
           id="settings-period-length"
@@ -93,7 +92,7 @@
           max="14"
           name="period_length"
           value="{{.PeriodLength}}"
-          x-model.number="periodLength"
+          data-settings-period-length
           class="w-full range-field">
       </div>
 
@@ -112,23 +111,15 @@
       </div>
 
       <div class="space-y-1">
-        <template x-if="(cycleLength - periodLength) < 8">
-          <p class="status-error text-sm">{{t .Messages "settings.cycle.error_incompatible"}}</p>
-        </template>
-        <template x-if="(cycleLength - periodLength) >= 8 && (cycleLength - periodLength) < 15">
-          <p class="warning-amber text-sm">{{t .Messages "settings.cycle.warning_approximate"}}</p>
-        </template>
-        <template x-if="(cycleLength - periodLength) >= 15 && periodLength > 8">
-          <p class="journal-muted text-sm">{{t .Messages "settings.cycle.info_period_long"}}</p>
-        </template>
-        <template x-if="(cycleLength - periodLength) >= 15 && periodLength <= 8 && cycleLength < 24">
-          <p class="journal-muted text-sm">{{t .Messages "settings.cycle.info_cycle_short"}}</p>
-        </template>
+        <p class="status-error text-sm" data-settings-cycle-message="error" hidden>{{t .Messages "settings.cycle.error_incompatible"}}</p>
+        <p class="warning-amber text-sm" data-settings-cycle-message="warning" hidden>{{t .Messages "settings.cycle.warning_approximate"}}</p>
+        <p class="journal-muted text-sm" data-settings-cycle-message="period-long" hidden>{{t .Messages "settings.cycle.info_period_long"}}</p>
+        <p class="journal-muted text-sm" data-settings-cycle-message="cycle-short" hidden>{{t .Messages "settings.cycle.info_cycle_short"}}</p>
       </div>
 
       <div class="space-y-2">
         <label class="period-toggle">
-          <input type="checkbox" name="auto_period_fill" value="true" x-model="autoPeriodFill" {{if .AutoPeriodFill}}checked{{end}}>
+          <input type="checkbox" name="auto_period_fill" value="true" {{if .AutoPeriodFill}}checked{{end}}>
           <span>🩸 {{t .Messages "settings.cycle.auto_period_fill"}}</span>
         </label>
         <p class="journal-muted text-sm">{{t .Messages "settings.cycle.auto_period_fill_hint"}}</p>
@@ -138,8 +129,7 @@
         <button
           type="submit"
           class="btn-primary"
-          :class="{ 'btn--disabled': (cycleLength - periodLength) < 8 }"
-          :disabled="(cycleLength - periodLength) < 8"
+          data-settings-cycle-submit
           data-save-button
           data-saving-label="{{t .Messages "common.saving"}}">{{t .Messages "settings.cycle.save"}}</button>
       </div>

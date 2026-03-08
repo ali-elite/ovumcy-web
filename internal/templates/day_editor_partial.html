@@ -16,22 +16,22 @@
     hx-swap="innerHTML"
     class="space-y-4 calendar-day-editor-form"
     data-save-feedback
-    x-data='dayEditorForm({ isPeriod: {{if .Log.IsPeriod}}true{{else}}false{{end}} })'>
+    data-day-editor-form>
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
     <label class="period-toggle">
-      <input type="checkbox" name="is_period" value="true" x-model="isPeriod" {{if .Log.IsPeriod}}checked{{end}}>
+      <input type="checkbox" name="is_period" value="true" data-period-toggle {{if .Log.IsPeriod}}checked{{end}}>
       <span>🩸 {{t .Messages "dashboard.period_day"}}</span>
     </label>
 
-    <fieldset class="space-y-2" x-cloak x-show="isPeriod" :disabled="!isPeriod">
+    <fieldset class="space-y-2" data-period-fields {{if not .Log.IsPeriod}}hidden{{end}}>
       <legend class="field-label">{{t .Messages "dashboard.flow"}}</legend>
-      {{template "period_flow_options" (dict "Messages" .Messages "SelectedFlow" .Log.Flow "Compact" true "DisableWhenNotPeriod" false)}}
+      {{template "period_flow_options" (dict "Messages" .Messages "SelectedFlow" .Log.Flow "Compact" true "DisableWhenNotPeriod" false "CurrentIsPeriod" .Log.IsPeriod)}}
     </fieldset>
 
     <fieldset class="space-y-2">
       <legend class="field-label">{{t .Messages "dashboard.symptoms"}}</legend>
-      {{template "symptom_options" (dict "Messages" .Messages "Symptoms" .Symptoms "SelectedSymptomID" .SelectedSymptomID "Lang" .Lang "Compact" true "IncludePreviewHooks" false "DisableWhenNotPeriod" true)}}
+      {{template "symptom_options" (dict "Messages" .Messages "Symptoms" .Symptoms "SelectedSymptomID" .SelectedSymptomID "Lang" .Lang "Compact" true "IncludePreviewHooks" false "DisableWhenNotPeriod" true "CurrentIsPeriod" .Log.IsPeriod)}}
     </fieldset>
 
     <label class="field-label" for="calendar-notes">{{t .Messages "dashboard.notes"}}</label>

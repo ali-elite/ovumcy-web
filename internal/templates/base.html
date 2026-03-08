@@ -15,33 +15,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Ovumcy">
-  <script>
-    (function () {
-      var theme = "light";
-      var themeColorMeta = document.getElementById("theme-color-meta");
-      try {
-        var raw = window.localStorage.getItem("ovumcy_theme");
-        if (raw === "dark" || raw === "light") {
-          theme = raw;
-        } else if (typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-          theme = "dark";
-        }
-      } catch (_error) {
-        theme = "light";
-      }
-
-      document.documentElement.setAttribute("data-theme", theme);
-      document.documentElement.style.colorScheme = theme;
-      if (themeColorMeta) {
-        themeColorMeta.setAttribute("content", theme === "dark" ? "#18141f" : "#fff9f0");
-      }
-    })();
-  </script>
+  <script src="/static/js/theme-bootstrap.js?v=20260308-1"></script>
   <link rel="stylesheet" href="/static/css/tailwind.css?v=20260304-1">
   <script defer src="/static/js/htmx.min.js?v=20260221-2"></script>
   <script defer src="/static/js/chart-lite.js?v=20260221-2"></script>
-  <script defer src="/static/js/app.js?v=20260304-1"></script>
-  <script defer src="/static/js/alpine.min.js?v=20260221-2"></script>
+  <script defer src="/static/js/app.js?v=20260308-1"></script>
 </head>
 <body
   data-confirm-cancel="{{t .Messages "confirm.no"}}"
@@ -52,7 +30,7 @@
   data-theme-label-light="{{t .Messages "theme.switch_to_light"}}"
   data-theme-name-dark="{{t .Messages "theme.name.dark"}}"
   data-theme-name-light="{{t .Messages "theme.name.light"}}">
-  <div class="app-shell" x-data="appShellState()">
+  <div class="app-shell">
     <header class="paper-header">
       <div class="container-main flex items-center justify-between py-4">
         <a href="{{if .CurrentUser}}{{if .HideNavigation}}/onboarding{{else}}/dashboard{{end}}{{else}}/login{{end}}" class="brand-mark" aria-label="{{t .Messages "app.name"}}">
@@ -71,15 +49,19 @@
             type="button"
             class="theme-toggle"
             data-theme-toggle
-            @click="toggleTheme()"
-            :aria-label="themeToggleLabel"
-            :title="themeToggleLabel">
-            <span class="theme-toggle-icon" aria-hidden="true" x-text="themeIcon">🌙</span>
-            <span class="theme-toggle-text" x-text="themeShortLabel">{{t .Messages "theme.name.dark"}}</span>
+            aria-label="{{t .Messages "theme.switch_to_dark"}}"
+            title="{{t .Messages "theme.switch_to_dark"}}">
+            <span class="theme-toggle-icon" data-theme-toggle-icon aria-hidden="true">🌙</span>
+            <span class="theme-toggle-text" data-theme-toggle-text>{{t .Messages "theme.name.dark"}}</span>
           </button>
 
           {{if and .CurrentUser (not .HideNavigation)}}
-          <button type="button" class="menu-toggle sm:hidden" @click="toggleMobileMenu()">{{t .Messages "nav.menu"}}</button>
+          <button
+            type="button"
+            class="menu-toggle sm:hidden"
+            data-mobile-menu-toggle
+            aria-expanded="false"
+            aria-controls="mobile-menu">{{t .Messages "nav.menu"}}</button>
           {{end}}
         </div>
       </div>
@@ -108,7 +90,7 @@
           </form>
         </nav>
 
-        <nav x-show="mobileMenu" x-transition class="mt-2 space-y-2 sm:hidden">
+        <nav id="mobile-menu" data-mobile-menu hidden class="mt-2 space-y-2 sm:hidden">
           <p class="journal-muted px-3 pt-1 text-xs">{{t .Messages "nav.current_user"}}: <span data-current-user-identity>{{userIdentity .CurrentUser}}</span></p>
           <a href="/dashboard" class="nav-link block {{if isActiveRoute .CurrentPath "/dashboard"}}nav-link-active{{else if isActiveRoute .CurrentPath "/"}}nav-link-active{{end}}">{{t .Messages "nav.dashboard"}}</a>
           <a href="/calendar" class="nav-link block {{if isActiveRoute .CurrentPath "/calendar"}}nav-link-active{{end}}">{{t .Messages "nav.calendar"}}</a>
@@ -124,10 +106,8 @@
     </header>
 
     <section
-      x-data="pwaInstallBanner()"
-      x-cloak
-      x-show="visible"
-      x-transition
+      data-pwa-install-banner
+      hidden
       class="container-main mobile-install-banner sm:hidden"
       aria-live="polite">
       <div class="mobile-install-shell reveal">
@@ -137,16 +117,16 @@
             <img src="/static/brand/ovumcy-icon.svg" width="40" height="40" alt="" class="mobile-install-icon" aria-hidden="true">
             <div class="space-y-1">
               <h2 class="mobile-install-title">{{t .Messages "pwa.install.title"}}</h2>
-              <p class="mobile-install-text" x-show="mode === 'prompt'">{{t .Messages "pwa.install.prompt_text"}}</p>
-              <p class="mobile-install-text" x-show="mode === 'ios'">{{t .Messages "pwa.install.ios_text"}}</p>
-              <p class="mobile-install-text" x-show="mode === 'menu'">{{t .Messages "pwa.install.menu_text"}}</p>
+              <p class="mobile-install-text" data-pwa-install-copy="prompt" hidden>{{t .Messages "pwa.install.prompt_text"}}</p>
+              <p class="mobile-install-text" data-pwa-install-copy="ios" hidden>{{t .Messages "pwa.install.ios_text"}}</p>
+              <p class="mobile-install-text" data-pwa-install-copy="menu" hidden>{{t .Messages "pwa.install.menu_text"}}</p>
             </div>
           </div>
         </div>
 
         <div class="mobile-install-actions">
-          <button type="button" class="btn-primary" x-show="mode === 'prompt'" :disabled="busy" @click="install()">{{t .Messages "pwa.install.action.install"}}</button>
-          <button type="button" class="btn-secondary" @click="dismiss()">{{t .Messages "pwa.install.action.later"}}</button>
+          <button type="button" class="btn-primary" data-pwa-install-action="install" hidden>{{t .Messages "pwa.install.action.install"}}</button>
+          <button type="button" class="btn-secondary" data-pwa-install-action="dismiss">{{t .Messages "pwa.install.action.later"}}</button>
         </div>
       </div>
     </section>
@@ -226,7 +206,7 @@
     name="flow"
     value="{{.Value}}"
     class="choice-input"
-    {{if .DisableWhenNotPeriod}}:disabled="!isPeriod"{{end}}
+    {{if .DisableWhenNotPeriod}}data-disable-without-period="true"{{if not .CurrentIsPeriod}} disabled{{end}}{{end}}
     {{if eq .SelectedFlow .Value}}checked{{end}}>
   <span class="{{if .Compact}}radio-tile radio-tile-sm{{else}}radio-tile{{end}}">
     <span class="radio-icon">{{.Icon}}</span>
@@ -250,8 +230,8 @@
     name="symptom_ids"
     value="{{.Symptom.ID}}"
     class="choice-input"
-    {{if .DisableWhenNotPeriod}}:disabled="!isPeriod"{{end}}
-    {{if .IncludePreviewHooks}}data-symptom-label="{{$label}}" @change="syncSymptoms"{{end}}
+    {{if .DisableWhenNotPeriod}}data-disable-without-period="true"{{if not .CurrentIsPeriod}} disabled{{end}}{{end}}
+    {{if .IncludePreviewHooks}}data-symptom-label="{{$label}}"{{end}}
     {{if hasSymptom .SelectedSymptomID .Symptom.ID}}checked{{end}}>
   <span class="{{if .Compact}}check-chip check-chip-sm{{else}}check-chip{{end}}">
     <span class="symptom-icon">{{.Symptom.Icon}}</span>

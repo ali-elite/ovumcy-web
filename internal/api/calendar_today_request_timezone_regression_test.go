@@ -43,9 +43,9 @@ func TestCalendarPageUsesRequestTimezoneForTodaySelectionAndBadge(t *testing.T) 
 	}
 	rendered := string(renderedBytes)
 
-	expectedSelected := fmt.Sprintf(`selectedDate: "%s"`, expectedToday)
+	expectedSelected := fmt.Sprintf(`data-selected-date="%s"`, expectedToday)
 	if !strings.Contains(rendered, expectedSelected) {
-		t.Fatalf("expected selectedDate %q in calendar page", expectedSelected)
+		t.Fatalf("expected selected-date dataset %q in calendar page", expectedSelected)
 	}
 
 	todayBadgePattern := regexp.MustCompile(fmt.Sprintf(`(?s)data-day="%s".*?calendar-today-pill`, regexp.QuoteMeta(expectedToday)))

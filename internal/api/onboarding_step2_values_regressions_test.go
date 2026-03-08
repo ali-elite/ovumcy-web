@@ -41,10 +41,10 @@ func TestOnboardingPageRendersPersistedStep2Values(t *testing.T) {
 		t.Fatalf("read body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, `<span x-text="cycleLength">31</span>`) {
+	if !strings.Contains(rendered, `<span data-onboarding-cycle-length-value>31</span>`) {
 		t.Fatalf("expected cycle label fallback text to include persisted value")
 	}
-	if !strings.Contains(rendered, `<span x-text="periodLength">7</span>`) {
+	if !strings.Contains(rendered, `<span data-onboarding-period-length-value>7</span>`) {
 		t.Fatalf("expected period label fallback text to include persisted value")
 	}
 

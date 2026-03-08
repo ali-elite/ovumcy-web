@@ -44,11 +44,7 @@
     </article>
   </div>
 
-  <div
-    class="grid gap-6"
-    x-data='dashboardTodayEditor({
-      isPeriod: {{if .TodayEntry.IsPeriod}}true{{else}}false{{end}}
-    })'>
+  <div class="grid gap-6" data-dashboard-editor>
     <section class="journal-card p-5 sm:p-6">
       <div class="mb-5 flex items-center justify-between gap-3">
         <div>
@@ -62,22 +58,22 @@
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
         <label class="period-toggle">
-          <input type="checkbox" name="is_period" value="true" x-model="isPeriod" {{if .TodayEntry.IsPeriod}}checked{{end}}>
+          <input type="checkbox" name="is_period" value="true" data-period-toggle {{if .TodayEntry.IsPeriod}}checked{{end}}>
           <span>🩸 {{t .Messages "dashboard.period_day"}}</span>
         </label>
 
-        <fieldset class="space-y-3" x-cloak x-show="isPeriod">
+        <fieldset class="space-y-3" data-period-fields {{if not .TodayEntry.IsPeriod}}hidden{{end}}>
           <legend class="field-label">{{t .Messages "dashboard.flow"}}</legend>
-          {{template "period_flow_options" (dict "Messages" .Messages "SelectedFlow" .TodayEntry.Flow "Compact" false "DisableWhenNotPeriod" true)}}
+          {{template "period_flow_options" (dict "Messages" .Messages "SelectedFlow" .TodayEntry.Flow "Compact" false "DisableWhenNotPeriod" true "CurrentIsPeriod" .TodayEntry.IsPeriod)}}
         </fieldset>
 
         <fieldset class="space-y-3">
           <legend class="field-label">{{t .Messages "dashboard.symptoms"}}</legend>
-          {{template "symptom_options" (dict "Messages" .Messages "Symptoms" .Symptoms "SelectedSymptomID" .SelectedSymptomID "Lang" .Lang "Compact" false "IncludePreviewHooks" true "DisableWhenNotPeriod" true)}}
+          {{template "symptom_options" (dict "Messages" .Messages "Symptoms" .Symptoms "SelectedSymptomID" .SelectedSymptomID "Lang" .Lang "Compact" false "IncludePreviewHooks" true "DisableWhenNotPeriod" true "CurrentIsPeriod" .TodayEntry.IsPeriod)}}
         </fieldset>
 
         <label class="field-label" for="today-notes">{{t .Messages "dashboard.notes"}}</label>
-        <textarea id="today-notes" name="notes" rows="4" maxlength="2000" class="textarea-field" x-model="notesPreview">{{.TodayEntry.Notes}}</textarea>
+        <textarea id="today-notes" name="notes" rows="4" maxlength="2000" class="textarea-field" data-dashboard-notes>{{.TodayEntry.Notes}}</textarea>
 
         <div class="flex flex-wrap items-center gap-3">
           <button type="submit" class="btn-primary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{t .Messages "dashboard.save_today"}}</button>
@@ -103,13 +99,12 @@
 
     <section
       class="journal-card p-5 sm:p-6"
-      x-cloak
-      x-show="isPeriod || hasActiveSymptoms() || hasNotesPreview()"
-      x-transition.opacity.duration.220ms>
-      <h2 class="journal-subtitle" x-show="isPeriod" x-transition.opacity.duration.220ms>{{t .Messages "dashboard.cycle_snapshot"}}</h2>
-      <h2 class="journal-subtitle" x-show="!isPeriod" x-transition.opacity.duration.220ms>{{t .Messages "dashboard.symptoms_notes"}}</h2>
+      data-dashboard-preview
+      {{if and (not .TodayEntry.IsPeriod) (eq (len .SelectedSymptomID) 0) (eq .TodayEntry.Notes "")}}hidden{{end}}>
+      <h2 class="journal-subtitle" data-dashboard-preview-heading="period" {{if not .TodayEntry.IsPeriod}}hidden{{end}}>{{t .Messages "dashboard.cycle_snapshot"}}</h2>
+      <h2 class="journal-subtitle" data-dashboard-preview-heading="other" {{if .TodayEntry.IsPeriod}}hidden{{end}}>{{t .Messages "dashboard.symptoms_notes"}}</h2>
 
-      <dl class="mt-4 space-y-3 text-sm" x-show="isPeriod" x-transition.opacity.duration.220ms>
+      <dl class="mt-4 space-y-3 text-sm" data-dashboard-period-summary {{if not .TodayEntry.IsPeriod}}hidden{{end}}>
         <div class="stat-row"><dt>{{t .Messages "dashboard.average_cycle"}}</dt><dd>{{if gt .Stats.AverageCycleLength 0.0}}{{formatFloat .Stats.AverageCycleLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</dd></div>
         <div class="stat-row"><dt>{{t .Messages "dashboard.median_cycle"}}</dt><dd>{{if gt .Stats.MedianCycleLength 0}}{{.Stats.MedianCycleLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</dd></div>
         <div class="stat-row"><dt>{{t .Messages "dashboard.average_period"}}</dt><dd>{{if gt .Stats.AveragePeriodLength 0.0}}{{formatFloat .Stats.AveragePeriodLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</dd></div>
@@ -117,21 +112,23 @@
         <div class="stat-row"><dt>{{t .Messages "dashboard.fertile_window"}}</dt><dd>{{if .Stats.FertilityWindowStart.IsZero}}{{.NoDataLabel}}{{else}}{{formatLocalizedDate .Lang .Stats.FertilityWindowStart "short"}} - {{formatLocalizedDate .Lang .Stats.FertilityWindowEnd "short"}}{{end}}</dd></div>
       </dl>
 
-      <div class="mt-4 space-y-4 text-sm" x-show="!isPeriod" x-transition.opacity.duration.220ms>
+      <div class="mt-4 space-y-4 text-sm" data-dashboard-other-summary {{if .TodayEntry.IsPeriod}}hidden{{end}}>
         <div>
           <p class="journal-muted">{{t .Messages "dashboard.symptoms"}}</p>
-          <ul class="mt-2 space-y-1" x-show="hasActiveSymptoms()">
-            <template x-for="(symptom, index) in activeSymptoms" :key="index">
-              <li x-text="symptom"></li>
-            </template>
+          <ul class="mt-2 space-y-1" data-dashboard-symptom-list {{if eq (len .SelectedSymptomID) 0}}hidden{{end}}>
+            {{range .Symptoms}}
+            {{if hasSymptom $.SelectedSymptomID .ID}}
+            <li>{{symptomLabel $.Messages .Name}}</li>
+            {{end}}
+            {{end}}
           </ul>
-          <p class="mt-2" x-show="!hasActiveSymptoms()">{{.NoDataLabel}}</p>
+          <p class="mt-2" data-dashboard-symptom-empty {{if gt (len .SelectedSymptomID) 0}}hidden{{end}}>{{.NoDataLabel}}</p>
         </div>
 
         <div>
           <p class="journal-muted">{{t .Messages "dashboard.notes"}}</p>
-          <p class="mt-2 whitespace-pre-wrap break-words" x-show="hasNotesPreview()" x-text="notesPreview"></p>
-          <p class="mt-2" x-show="!hasNotesPreview()">{{.NoDataLabel}}</p>
+          <p class="mt-2 whitespace-pre-wrap break-words" data-dashboard-notes-value {{if eq .TodayEntry.Notes ""}}hidden{{end}}>{{.TodayEntry.Notes}}</p>
+          <p class="mt-2" data-dashboard-notes-empty {{if ne .TodayEntry.Notes ""}}hidden{{end}}>{{.NoDataLabel}}</p>
         </div>
       </div>
     </section>

@@ -94,9 +94,7 @@
 
     canvas.width = Math.floor(size.width * dpr);
     canvas.height = Math.floor(size.height * dpr);
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-    canvas.style.display = "block";
+    canvas.className = "chart-canvas";
     container.appendChild(canvas);
 
     context.scale(dpr, dpr);

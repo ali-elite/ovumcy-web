@@ -36,7 +36,7 @@ func TestOnboardingPagePreservesStepQueryInLanguageLinks(t *testing.T) {
 	if !strings.Contains(rendered, `next=%2Fonboarding%3Fstep%3D2`) {
 		t.Fatalf("expected language links to preserve current onboarding step query")
 	}
-	if !strings.Contains(rendered, `initialStep: 2`) {
-		t.Fatalf("expected onboarding alpine config to receive step from query")
+	if !strings.Contains(rendered, `data-initial-step="2"`) {
+		t.Fatalf("expected onboarding dataset to receive step from query")
 	}
 }

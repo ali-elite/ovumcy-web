@@ -96,7 +96,6 @@
   function applyTheme(theme) {
     var resolved = resolveTheme(theme);
     document.documentElement.setAttribute("data-theme", resolved);
-    document.documentElement.style.colorScheme = resolved;
     updateThemeColorMeta(resolved);
     window.__ovumcyTheme = resolved;
     return resolved;

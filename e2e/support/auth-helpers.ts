@@ -94,7 +94,7 @@ export async function completeOnboardingIfPresent(page: Page): Promise<void> {
   const isStepOneVisible = await startDateInput.isVisible().catch(() => false);
 
   if (!isStepOneVisible) {
-    const beginButton = page.locator('div[x-show="step === 0"] button[type="button"].btn-primary');
+    const beginButton = page.locator('[data-onboarding-action="begin"]');
     if (await beginButton.isVisible().catch(() => false)) {
       await beginButton.click();
     }

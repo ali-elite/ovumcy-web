@@ -36,7 +36,7 @@ writeFileSync("./web/static/js/settings-export.js", settingsExportBundle, "utf8"
 
 const buildTargets = [
   ["./node_modules/htmx.org/dist/htmx.min.js", "./web/static/js/htmx.min.js"],
-  ["./node_modules/alpinejs/dist/cdn.min.js", "./web/static/js/alpine.min.js"]
+  ["./web/src/js/theme-bootstrap.js", "./web/static/js/theme-bootstrap.js"]
 ];
 
 for (const [source, destination] of buildTargets) {

@@ -32,8 +32,8 @@ func TestCalendarPageKeepsSelectedDayFromQueryAndBootstrapsEditor(t *testing.T) 
 		t.Fatalf("read calendar body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, `selectedDate: "2026-02-17"`) {
-		t.Fatalf("expected selected day in alpine state from day query")
+	if !strings.Contains(rendered, `data-selected-date="2026-02-17"`) {
+		t.Fatalf("expected selected day dataset from day query")
 	}
 	if !strings.Contains(rendered, `hx-get="/calendar/day/2026-02-17"`) || !strings.Contains(rendered, `hx-trigger="load"`) {
 		t.Fatalf("expected day editor bootstrap request for selected day")

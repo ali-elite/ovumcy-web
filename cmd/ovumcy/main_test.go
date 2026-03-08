@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -313,6 +314,27 @@ func TestSecurityHeadersMiddlewareSetsHeadersOnAPIResponses(t *testing.T) {
 	assertDefaultSecurityHeaders(t, response)
 }
 
+func TestStaticManifestUsesWebManifestContentType(t *testing.T) {
+	registerStaticContentTypes()
+
+	app := fiber.New()
+	app.Static("/static", filepath.Join("..", "..", "web", "static"))
+
+	request := httptest.NewRequest(http.MethodGet, "/static/manifest.webmanifest", nil)
+	response, err := app.Test(request, -1)
+	if err != nil {
+		t.Fatalf("manifest request failed: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.StatusCode)
+	}
+	if contentType := response.Header.Get("Content-Type"); !strings.Contains(contentType, "application/manifest+json") {
+		t.Fatalf("expected web manifest content type, got %q", contentType)
+	}
+}
+
 func assertDefaultSecurityHeaders(t *testing.T, response *http.Response) {
 	t.Helper()
 
@@ -327,6 +349,9 @@ func assertDefaultSecurityHeaders(t *testing.T, response *http.Response) {
 	}
 	if value := response.Header.Get(headerXFrameOptions); value != xFrameOptionsDeny {
 		t.Fatalf("expected %s=%q, got %q", headerXFrameOptions, xFrameOptionsDeny, value)
+	}
+	if value := response.Header.Get(headerContentSecurityPolicy); value != contentSecurityPolicyDefault {
+		t.Fatalf("expected %s=%q, got %q", headerContentSecurityPolicy, contentSecurityPolicyDefault, value)
 	}
 	if value := response.Header.Get("Access-Control-Allow-Origin"); value != "" {
 		t.Fatalf("did not expect Access-Control-Allow-Origin by default, got %q", value)

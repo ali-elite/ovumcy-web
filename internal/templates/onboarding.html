@@ -1,34 +1,30 @@
 {{define "content"}}
 <section
   class="mx-auto max-w-4xl"
-  x-data='onboardingFlow({
-    minDate: "{{.MinDate}}",
-    maxDate: "{{.MaxDate}}",
-    lastPeriodStart: "{{.LastPeriodStart}}",
-    initialStep: {{.OnboardingStep}},
-    cycleLength: {{.CycleLength}},
-    periodLength: {{.PeriodLength}},
-    autoPeriodFill: {{if .AutoPeriodFill}}true{{else}}false{{end}},
-    periodExceedsCycleMessage: "{{t .Messages "onboarding.step2.error_incompatible"}}",
-    lang: "{{.Lang}}"
-  })'
->
+  data-onboarding-flow
+  data-min-date="{{.MinDate}}"
+  data-max-date="{{.MaxDate}}"
+  data-last-period-start="{{.LastPeriodStart}}"
+  data-initial-step="{{.OnboardingStep}}"
+  data-cycle-length="{{.CycleLength}}"
+  data-period-length="{{.PeriodLength}}"
+  data-auto-period-fill="{{if .AutoPeriodFill}}true{{else}}false{{end}}"
+  data-period-exceeds-cycle-message="{{t .Messages "onboarding.step2.error_incompatible"}}"
+  data-lang="{{.Lang}}">
   <div class="journal-card journal-hero p-6 sm:p-8">
-    <div class="space-y-3" x-show="step > 0" x-transition>
-      <p class="journal-kicker" x-show="step === 1">{{t .Messages "onboarding.progress.step1"}}</p>
-      <p class="journal-kicker" x-show="step === 2">{{t .Messages "onboarding.progress.step2"}}</p>
-      <p class="journal-kicker" x-show="step === 3">{{t .Messages "onboarding.progress.step3"}}</p>
+    <div class="space-y-3" data-onboarding-progress {{if eq .OnboardingStep 0}}hidden{{end}}>
+      <p class="journal-kicker" data-onboarding-progress-kicker="1" {{if ne .OnboardingStep 1}}hidden{{end}}>{{t .Messages "onboarding.progress.step1"}}</p>
+      <p class="journal-kicker" data-onboarding-progress-kicker="2" {{if ne .OnboardingStep 2}}hidden{{end}}>{{t .Messages "onboarding.progress.step2"}}</p>
+      <p class="journal-kicker" data-onboarding-progress-kicker="3" {{if ne .OnboardingStep 3}}hidden{{end}}>{{t .Messages "onboarding.progress.step3"}}</p>
 
       <div class="journal-panel space-y-2">
         <div class="h-2 overflow-hidden rounded-full bg-[rgba(232,196,168,0.35)]">
-          <div
-            class="h-full rounded-full transition-all duration-300"
-            :style="`width: ${(step / 3) * 100}%; background: linear-gradient(135deg, #D4A574, #E8C4A8);`"></div>
+          <div class="onboarding-progress-fill" data-onboarding-progress-bar data-step="{{.OnboardingStep}}"></div>
         </div>
       </div>
     </div>
 
-    <div x-show="step === 0" x-transition class="mt-2 space-y-5">
+    <div data-onboarding-panel="0" class="mt-2 space-y-5" {{if ne .OnboardingStep 0}}hidden{{end}}>
       <p class="journal-kicker">{{t .Messages "onboarding.welcome.kicker"}}</p>
       <h1 class="journal-title">{{t .Messages "onboarding.welcome.title"}}</h1>
       <p class="journal-muted">{{t .Messages "onboarding.welcome.subtitle"}}</p>
@@ -37,10 +33,10 @@
         <p class="journal-muted text-sm">{{t .Messages "onboarding.welcome.details"}}</p>
       </div>
 
-      <button type="button" class="btn-primary" @click="begin()">{{t .Messages "onboarding.button.begin"}}</button>
+      <button type="button" class="btn-primary" data-onboarding-action="begin">{{t .Messages "onboarding.button.begin"}}</button>
     </div>
 
-    <div x-show="step === 1" x-transition class="mt-6 space-y-4">
+    <div data-onboarding-panel="1" class="mt-6 space-y-4" {{if ne .OnboardingStep 1}}hidden{{end}}>
       <h1 class="journal-title">{{t .Messages "onboarding.step1.title"}}</h1>
       <p class="journal-muted">{{t .Messages "onboarding.step1.subtitle"}}</p>
 
@@ -48,7 +44,7 @@
         hx-post="/onboarding/step1"
         hx-target="#onboarding-step1-status"
         hx-swap="innerHTML"
-        x-on:htmx:after-request="onStepOneSaved($event)"
+        data-onboarding-form-step="1"
         class="space-y-4">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
@@ -61,46 +57,36 @@
           class="input-field"
           lang="{{.Lang}}"
           placeholder="{{t .Messages "onboarding.step1.date_placeholder"}}"
-          x-model="selectedDate"
-          @change="onStartDateChanged"
+          value="{{.LastPeriodStart}}"
+          data-onboarding-start-date
           min="{{.MinDate}}"
           max="{{.MaxDate}}">
 
-        <div class="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4 lg:grid-cols-6">
-          <template x-for="day in dayOptions" :key="day.value">
-            <button
-              type="button"
-              class="check-chip check-chip-sm justify-center"
-              :class="{ 'choice-chip-active': selectedDate === day.value }"
-              @click="setStartDate(day.value)"
-              x-text="day.label"></button>
-          </template>
-        </div>
+        <div class="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4 lg:grid-cols-6" data-onboarding-day-options></div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <button type="button" class="btn-secondary" @click="goToStep(0)">{{t .Messages "onboarding.button.back"}}</button>
+          <button type="button" class="btn-secondary" data-onboarding-go-step="0">{{t .Messages "onboarding.button.back"}}</button>
           <button type="submit" class="btn-primary">{{t .Messages "onboarding.button.next"}}</button>
         </div>
         <div id="onboarding-step1-status" class="save-status text-sm"></div>
       </form>
     </div>
 
-    <div x-show="step === 2" x-transition class="mt-6 space-y-4">
+    <div data-onboarding-panel="2" class="mt-6 space-y-4" {{if ne .OnboardingStep 2}}hidden{{end}}>
       <h1 class="journal-title">{{t .Messages "onboarding.step2.title"}}</h1>
 
       <form
         hx-post="/onboarding/step2"
         hx-target="#onboarding-step2-status"
         hx-swap="innerHTML"
-        x-on:submit="if (!validateStepTwoBeforeSubmit($event)) { $event.preventDefault() }"
-        x-on:htmx:after-request="onStepTwoSaved($event)"
+        data-onboarding-form-step="2"
         class="space-y-6">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
         <div class="space-y-2">
           <div class="flex items-center justify-between gap-2">
             <label class="field-label" for="cycle-length">{{t .Messages "onboarding.step2.cycle_length"}}</label>
-            <span class="journal-muted text-sm"><span x-text="cycleLength">{{.CycleLength}}</span> {{t .Messages "common.days_short"}}</span>
+            <span class="journal-muted text-sm"><span data-onboarding-cycle-length-value>{{.CycleLength}}</span> {{t .Messages "common.days_short"}}</span>
           </div>
           <input
             id="cycle-length"
@@ -109,15 +95,14 @@
             max="90"
             name="cycle_length"
             value="{{.CycleLength}}"
-            x-model.number="cycleLength"
-            @input="onCycleLengthChanged()"
+            data-onboarding-cycle-length
             class="w-full range-field">
         </div>
 
         <div class="space-y-2">
           <div class="flex items-center justify-between gap-2">
             <label class="field-label" for="period-length">{{t .Messages "onboarding.step2.period_length"}}</label>
-            <span class="journal-muted text-sm"><span x-text="periodLength">{{.PeriodLength}}</span> {{t .Messages "common.days_short"}}</span>
+            <span class="journal-muted text-sm"><span data-onboarding-period-length-value>{{.PeriodLength}}</span> {{t .Messages "common.days_short"}}</span>
           </div>
           <input
             id="period-length"
@@ -126,46 +111,44 @@
             max="14"
             name="period_length"
             value="{{.PeriodLength}}"
-            x-model.number="periodLength"
-            @input="onPeriodLengthChanged()"
+            data-onboarding-period-length
             class="w-full range-field">
         </div>
 
         <div class="space-y-1">
-          <p class="status-error text-sm" x-cloak x-show="(cycleLength - periodLength) < 8">{{t .Messages "onboarding.step2.error_incompatible"}}</p>
-          <p class="warning-amber text-sm" x-cloak x-show="(cycleLength - periodLength) >= 8 && (cycleLength - periodLength) < 15">{{t .Messages "onboarding.step2.warning_approximate"}}</p>
-          <p class="journal-muted text-sm" x-cloak x-show="(cycleLength - periodLength) >= 15 && periodLength > 8">{{t .Messages "onboarding.step2.info_period_long"}}</p>
-          <p class="journal-muted text-sm" x-cloak x-show="(cycleLength - periodLength) >= 15 && periodLength <= 8 && cycleLength < 24">{{t .Messages "onboarding.step2.info_cycle_short"}}</p>
+          <p class="status-error text-sm" data-onboarding-step2-message="error" hidden>{{t .Messages "onboarding.step2.error_incompatible"}}</p>
+          <p class="warning-amber text-sm" data-onboarding-step2-message="warning" hidden>{{t .Messages "onboarding.step2.warning_approximate"}}</p>
+          <p class="journal-muted text-sm" data-onboarding-step2-message="period-long" hidden>{{t .Messages "onboarding.step2.info_period_long"}}</p>
+          <p class="journal-muted text-sm" data-onboarding-step2-message="cycle-short" hidden>{{t .Messages "onboarding.step2.info_cycle_short"}}</p>
         </div>
 
         <div class="space-y-2">
           <label class="period-toggle">
-            <input type="checkbox" name="auto_period_fill" value="true" x-model="autoPeriodFill" {{if .AutoPeriodFill}}checked{{end}}>
+            <input type="checkbox" name="auto_period_fill" value="true" data-onboarding-auto-period-fill {{if .AutoPeriodFill}}checked{{end}}>
             <span>🩸 {{t .Messages "onboarding.step2.auto_period_fill"}}</span>
           </label>
           <p class="journal-muted text-sm">{{t .Messages "onboarding.step2.auto_period_fill_hint"}}</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <button type="button" class="btn-secondary" @click="goToStep(1)">{{t .Messages "onboarding.button.back"}}</button>
+          <button type="button" class="btn-secondary" data-onboarding-go-step="1">{{t .Messages "onboarding.button.back"}}</button>
           <button
             type="submit"
             class="btn-primary"
-            :class="{ 'btn--disabled': (cycleLength - periodLength) < 8 }"
-            :disabled="(cycleLength - periodLength) < 8">{{t .Messages "onboarding.button.next"}}</button>
+            data-onboarding-step2-submit>{{t .Messages "onboarding.button.next"}}</button>
         </div>
         <div id="onboarding-step2-status" class="save-status text-sm"></div>
       </form>
     </div>
 
-    <div x-show="step === 3" x-transition class="mt-6 space-y-4">
+    <div data-onboarding-panel="3" class="mt-6 space-y-4" {{if ne .OnboardingStep 3}}hidden{{end}}>
       <h1 class="journal-title">{{t .Messages "onboarding.step3.title"}}</h1>
       <p class="journal-muted">{{t .Messages "onboarding.step3.message"}}</p>
 
-      <form hx-post="/onboarding/complete" hx-target="#onboarding-step3-status" hx-swap="innerHTML">
+      <form hx-post="/onboarding/complete" hx-target="#onboarding-step3-status" hx-swap="innerHTML" data-onboarding-form-step="3">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <div class="flex flex-wrap items-center gap-3">
-          <button type="button" class="btn-secondary" @click="goToStep(2)">{{t .Messages "onboarding.button.back"}}</button>
+          <button type="button" class="btn-secondary" data-onboarding-go-step="2">{{t .Messages "onboarding.button.back"}}</button>
           <button type="submit" class="btn-primary">{{t .Messages "onboarding.button.start"}}</button>
         </div>
         <div id="onboarding-step3-status" class="save-status mt-3 text-sm"></div>

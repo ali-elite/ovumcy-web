@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-03-08
+
+### Changed
+- Frontend runtime was prepared for strict CSP by removing Alpine and inline script dependencies from shared templates and client-side flows.
+- Default HTTP responses now include a first-party Content-Security-Policy, and HTMX is configured in CSP-safe mode.
+- Browser and API regressions were updated to use stable data hooks instead of Alpine-specific selectors and inline state.
+- The web app manifest is now served with the correct `application/manifest+json` content type.
+
 ## [0.3.1] - 2026-03-07
 
 ### Changed
@@ -90,7 +98,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/terraincognita07/ovumcy/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/terraincognita07/ovumcy/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/terraincognita07/ovumcy/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/terraincognita07/ovumcy/compare/v0.2.0...v0.2.5
