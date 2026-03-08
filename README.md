@@ -207,7 +207,6 @@ For bugs and feature requests, open a GitHub issue:
 ## Releases
 
 - Latest tagged release: `v0.3.2`.
-- This README tracks the current `main` branch.
 - Publish release notes via GitHub Releases and keep [CHANGELOG.md](CHANGELOG.md) updated.
 
 ## Roadmap
