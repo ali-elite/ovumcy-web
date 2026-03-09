@@ -98,6 +98,16 @@ No. Ovumcy provides estimates and logs based on recorded data. It is not a medic
 - English, Russian, and Spanish localization.
 - Self-hosted deployment with Docker or a single Go binary.
 
+## Supported Languages
+
+| Language | Code | UI support | `DEFAULT_LANGUAGE` |
+| --- | --- | --- | --- |
+| English | `en` | Full first-party UI localization | Supported |
+| Russian | `ru` | Full first-party UI localization | Supported |
+| Spanish | `es` | Full first-party UI localization | Supported |
+
+These are the currently supported first-party UI languages. Operators can set `DEFAULT_LANGUAGE` to any of the codes above, and users can switch language from the UI without changing deployment defaults.
+
 ## Privacy and Security
 
 - No analytics or ad trackers.
