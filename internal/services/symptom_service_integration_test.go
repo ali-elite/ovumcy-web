@@ -6,6 +6,7 @@ import (
 
 	"github.com/terraincognita07/ovumcy/internal/db"
 	"github.com/terraincognita07/ovumcy/internal/models"
+	"gorm.io/gorm"
 )
 
 func TestSymptomServiceFetchSymptomsBackfillsMissingBuiltinSymptoms(t *testing.T) {
@@ -52,25 +53,8 @@ func TestSymptomServiceFetchSymptomsBackfillsMissingBuiltinSymptoms(t *testing.T
 func TestSymptomServiceArchiveKeepsHistoryAndHidesFromPicker(t *testing.T) {
 	_, database := newDayServiceIntegration(t)
 	user := createDayServiceTestUser(t, database, "symptoms-archive@example.com")
-
-	customSymptom := models.SymptomType{
-		UserID: user.ID,
-		Name:   "Joint stiffness",
-		Icon:   "J",
-		Color:  "#334455",
-	}
-	if err := database.Create(&customSymptom).Error; err != nil {
-		t.Fatalf("create custom symptom: %v", err)
-	}
-
-	logEntry := models.DailyLog{
-		UserID:     user.ID,
-		Date:       time.Date(2026, time.March, 7, 0, 0, 0, 0, time.UTC),
-		SymptomIDs: []uint{customSymptom.ID},
-	}
-	if err := database.Create(&logEntry).Error; err != nil {
-		t.Fatalf("create daily log: %v", err)
-	}
+	customSymptom := createSymptomServiceTestCustomSymptom(t, database, user.ID, "Joint stiffness", "J", "#334455")
+	logEntry := createSymptomServiceTestLogEntry(t, database, user.ID, time.Date(2026, time.March, 7, 0, 0, 0, 0, time.UTC), customSymptom.ID)
 
 	repositories := db.NewRepositories(database)
 	service := NewSymptomService(repositories.Symptoms)
@@ -83,48 +67,97 @@ func TestSymptomServiceArchiveKeepsHistoryAndHidesFromPicker(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FetchSymptoms returned error: %v", err)
 	}
-	foundArchived := false
-	for _, symptom := range allSymptoms {
-		if symptom.ID == customSymptom.ID {
-			foundArchived = true
-			if symptom.IsActive() {
-				t.Fatalf("expected archived symptom to become inactive")
-			}
-		}
-	}
-	if !foundArchived {
-		t.Fatalf("expected archived custom symptom to remain queryable")
-	}
+	assertSymptomServiceArchivedSymptomPresent(t, allSymptoms, customSymptom.ID)
 
 	pickerSymptoms, err := service.FetchPickerSymptoms(user.ID, nil)
 	if err != nil {
 		t.Fatalf("FetchPickerSymptoms returned error: %v", err)
 	}
-	for _, symptom := range pickerSymptoms {
-		if symptom.ID == customSymptom.ID {
-			t.Fatalf("did not expect archived custom symptom in empty picker")
-		}
-	}
+	assertSymptomServicePickerOmitsSymptom(t, pickerSymptoms, customSymptom.ID)
 
 	selectedPickerSymptoms, err := service.FetchPickerSymptoms(user.ID, []uint{customSymptom.ID})
 	if err != nil {
 		t.Fatalf("FetchPickerSymptoms(selected) returned error: %v", err)
 	}
-	foundSelectedArchived := false
-	for _, symptom := range selectedPickerSymptoms {
-		if symptom.ID == customSymptom.ID {
-			foundSelectedArchived = true
-		}
+	assertSymptomServicePickerIncludesSymptom(t, selectedPickerSymptoms, customSymptom.ID)
+	assertSymptomServiceLogHistoryPreserved(t, database, logEntry.ID, customSymptom.ID)
+}
+
+func createSymptomServiceTestCustomSymptom(t *testing.T, database *gorm.DB, userID uint, name string, icon string, color string) models.SymptomType {
+	t.Helper()
+
+	customSymptom := models.SymptomType{
+		UserID: userID,
+		Name:   name,
+		Icon:   icon,
+		Color:  color,
 	}
-	if !foundSelectedArchived {
-		t.Fatalf("expected selected archived symptom to remain available for existing logs")
+	if err := database.Create(&customSymptom).Error; err != nil {
+		t.Fatalf("create custom symptom: %v", err)
+	}
+	return customSymptom
+}
+
+func createSymptomServiceTestLogEntry(t *testing.T, database *gorm.DB, userID uint, date time.Time, symptomID uint) models.DailyLog {
+	t.Helper()
+
+	logEntry := models.DailyLog{
+		UserID:     userID,
+		Date:       date,
+		SymptomIDs: []uint{symptomID},
+	}
+	if err := database.Create(&logEntry).Error; err != nil {
+		t.Fatalf("create daily log: %v", err)
+	}
+	return logEntry
+}
+
+func assertSymptomServiceArchivedSymptomPresent(t *testing.T, symptoms []models.SymptomType, symptomID uint) {
+	t.Helper()
+
+	for _, symptom := range symptoms {
+		if symptom.ID != symptomID {
+			continue
+		}
+		if symptom.IsActive() {
+			t.Fatalf("expected archived symptom to become inactive")
+		}
+		return
 	}
 
+	t.Fatalf("expected archived custom symptom to remain queryable")
+}
+
+func assertSymptomServicePickerOmitsSymptom(t *testing.T, symptoms []models.SymptomType, symptomID uint) {
+	t.Helper()
+
+	for _, symptom := range symptoms {
+		if symptom.ID == symptomID {
+			t.Fatalf("did not expect archived custom symptom in empty picker")
+		}
+	}
+}
+
+func assertSymptomServicePickerIncludesSymptom(t *testing.T, symptoms []models.SymptomType, symptomID uint) {
+	t.Helper()
+
+	for _, symptom := range symptoms {
+		if symptom.ID == symptomID {
+			return
+		}
+	}
+
+	t.Fatalf("expected selected archived symptom to remain available for existing logs")
+}
+
+func assertSymptomServiceLogHistoryPreserved(t *testing.T, database *gorm.DB, logID uint, symptomID uint) {
+	t.Helper()
+
 	updatedLog := models.DailyLog{}
-	if err := database.First(&updatedLog, logEntry.ID).Error; err != nil {
+	if err := database.First(&updatedLog, logID).Error; err != nil {
 		t.Fatalf("load daily log after archive: %v", err)
 	}
-	if len(updatedLog.SymptomIDs) != 1 || updatedLog.SymptomIDs[0] != customSymptom.ID {
+	if len(updatedLog.SymptomIDs) != 1 || updatedLog.SymptomIDs[0] != symptomID {
 		t.Fatalf("expected archived symptom to remain in history, got %#v", updatedLog.SymptomIDs)
 	}
 }
