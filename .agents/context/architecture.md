@@ -21,12 +21,14 @@
   - `DayService`, `SymptomService`, cycle-related services, and `ViewerService` own day log normalization, symptom rules, cycle calculations, and owner/partner viewer behavior.
   - Hiding a custom symptom archives it from new-entry pickers but must preserve past daily logs, exports, and stats. Existing entries may still render archived selected symptoms so historical records remain editable and understandable.
   - Custom symptom names are short labels capped at 40 characters. Longer context belongs in day notes, not in symptom labels.
+  - The owner-facing custom symptom settings UI uses only name and icon. Color remains a stored compatibility field and must default on create and be preserved on update when omitted by HTML flows.
 - Stats, dashboard, calendar:
   - `StatsService`, `DashboardViewService`, and `CalendarViewService` own stats aggregation, reliability flags, predictions, and calendar day state.
 - Settings and notifications:
   - `SettingsService`, `NotificationService`, and `SettingsViewService` own profile/cycle/password/danger operations, settings status classification, and settings view composition.
   - Settings notifications for HTML pages are flash/session-only; query parameters (`status`, `success`, `error`) are not valid notification sources.
   - Settings symptom mutations should preserve row-local HTMX success and error feedback so owners do not have to rely on top-of-page banners after editing, hiding, or restoring a custom symptom.
+  - "Clear all data" removes owner custom symptoms together with daily logs and cycle settings, but preserves built-in symptom definitions.
 - Export:
   - `ExportService` owns export range validation, export data composition (logs + symptoms), flow normalization, and JSON/CSV export entries.
 - Onboarding and setup:

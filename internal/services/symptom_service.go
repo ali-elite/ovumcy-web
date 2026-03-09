@@ -57,7 +57,7 @@ func NewSymptomService(symptoms SymptomRepository, reservedBuiltinNames ...strin
 }
 
 func (service *SymptomService) CreateSymptomForUser(userID uint, name string, icon string, color string) (models.SymptomType, error) {
-	normalized, err := service.normalizeCustomSymptomInput(userID, 0, name, icon, color)
+	normalized, err := service.normalizeCustomSymptomInput(userID, 0, name, icon, color, defaultSymptomColor)
 	if err != nil {
 		if isSymptomValidationError(err) {
 			return models.SymptomType{}, err
@@ -80,7 +80,7 @@ func (service *SymptomService) UpdateSymptomForUser(userID uint, symptomID uint,
 		return models.SymptomType{}, ErrBuiltinSymptomEditForbidden
 	}
 
-	normalized, err := service.normalizeCustomSymptomInput(userID, symptom.ID, name, icon, color)
+	normalized, err := service.normalizeCustomSymptomInput(userID, symptom.ID, name, icon, color, symptom.Color)
 	if err != nil {
 		if isSymptomValidationError(err) {
 			return models.SymptomType{}, err
@@ -299,12 +299,12 @@ func (service *SymptomService) ValidateSymptomIDs(userID uint, ids []uint) ([]ui
 	return filtered, nil
 }
 
-func (service *SymptomService) normalizeCustomSymptomInput(userID uint, excludeID uint, name string, icon string, color string) (models.SymptomType, error) {
+func (service *SymptomService) normalizeCustomSymptomInput(userID uint, excludeID uint, name string, icon string, color string, fallbackColor string) (models.SymptomType, error) {
 	normalizedName, err := normalizeSymptomNameInput(name)
 	if err != nil {
 		return models.SymptomType{}, err
 	}
-	normalizedColor, err := normalizeSymptomColorInput(color)
+	normalizedColor, err := resolveSymptomColorInput(color, fallbackColor)
 	if err != nil {
 		return models.SymptomType{}, err
 	}

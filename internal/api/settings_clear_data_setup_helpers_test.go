@@ -10,11 +10,10 @@ import (
 )
 
 type clearDataScenario struct {
-	app           *fiber.App
-	database      *gorm.DB
-	user          models.User
-	authCookie    string
-	customSymptom models.SymptomType
+	app        *fiber.App
+	database   *gorm.DB
+	user       models.User
+	authCookie string
 }
 
 func setupClearDataScenario(t *testing.T) clearDataScenario {
@@ -68,10 +67,9 @@ func setupClearDataScenario(t *testing.T) clearDataScenario {
 	}
 
 	return clearDataScenario{
-		app:           app,
-		database:      database,
-		user:          user,
-		authCookie:    authCookie,
-		customSymptom: customSymptom,
+		app:        app,
+		database:   database,
+		user:       user,
+		authCookie: authCookie,
 	}
 }

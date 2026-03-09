@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-09
+
+### Added
+- Owner-managed custom symptom lifecycle with create, rename, hide, and restore flows that preserve historical logs, exports, and stats.
+- Focused backend and browser regressions for owner-only symptom routes, archived-symptom behavior, request-local onboarding/settings dates, and simplified settings symptom controls.
+
+### Changed
+- Settings and onboarding now keep request-local cycle dates stable through the raw `ovumcy_tz` IANA cookie contract plus an onboarding `client_timezone` fallback.
+- Custom symptom validation now blocks duplicate, built-in, markup-like, and over-limit names with row-local HTMX feedback instead of silent failures.
+- Settings custom symptom controls were simplified to name-and-icon management; color remains a stored compatibility field with default-on-create and preserve-on-update behavior.
+- Danger-zone clear-data flow now removes owner custom symptoms together with daily logs and cycle settings while preserving built-in symptom definitions.
+- Settings, dashboard, and calendar symptom UI was tightened to reduce overflow, hide empty custom-symptom groups, and keep compact chips readable.
+
 ## [0.3.2] - 2026-03-08
 
 ### Changed
@@ -98,7 +111,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/terraincognita07/ovumcy/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/terraincognita07/ovumcy/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/terraincognita07/ovumcy/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/terraincognita07/ovumcy/compare/v0.2.5...v0.3.0

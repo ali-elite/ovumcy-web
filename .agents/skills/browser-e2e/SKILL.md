@@ -42,6 +42,7 @@ Help the user validate ovumcy behavior in a real browser by:
        - performs the steps from the scenario (navigation, input, clicks),
        - asserts expected UI behavior via stable selectors or data attributes.
    - For frontend CSP refactors, prefer stable `data-*` hooks over framework-specific attributes when generating or updating selectors. Treat failures caused only by removed `x-*` markup as test-maintenance work first, not product regressions.
+   - For settings UI simplifications, include one assertion that the removed control is no longer rendered so browser coverage catches stale templates or stale asset bundles after the refactor.
    - propose the exact test file(s) and test names.
    - For each new or updated test:
      - show the diff (or full snippet) and ask the user to approve it before writing.

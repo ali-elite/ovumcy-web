@@ -69,9 +69,7 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 		data["SymptomErrorMessage"] = ""
 		data["SymptomDraftName"] = ""
 		data["SymptomDraftIcon"] = defaultSymptomDraftIcon("")
-		data["SymptomDraftColor"] = defaultSymptomDraftColor("")
 		data["SymptomIconOptions"] = buildSettingsSymptomIconOptions("")
-		data["SymptomColorOptions"] = buildSettingsSymptomColorOptions("")
 	}
 
 	return data, nil

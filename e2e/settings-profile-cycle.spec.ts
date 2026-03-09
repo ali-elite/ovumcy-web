@@ -71,16 +71,31 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
   expect(hasOverflow).toBe(false);
 }
 
+async function assertChildrenStayWithin(container: Locator, children: Locator): Promise<void> {
+  const tolerance = 2;
+  const containerBox = await container.boundingBox();
+  expect(containerBox).not.toBeNull();
+
+  const count = await children.count();
+  for (let index = 0; index < count; index += 1) {
+    const childBox = await children.nth(index).boundingBox();
+    expect(childBox).not.toBeNull();
+    expect(childBox!.x).toBeGreaterThanOrEqual(containerBox!.x - tolerance);
+    expect(childBox!.x + childBox!.width).toBeLessThanOrEqual(containerBox!.x + containerBox!.width + tolerance);
+    expect(childBox!.y).toBeGreaterThanOrEqual(containerBox!.y - tolerance);
+    expect(childBox!.y + childBox!.height).toBeLessThanOrEqual(containerBox!.y + containerBox!.height + tolerance);
+  }
+}
+
 async function selectSymptomIcon(root: Locator, icon: string): Promise<void> {
   const control = root.locator('[data-icon-control]');
   await control.locator(`[data-icon-option="${icon}"]`).click();
   await expect(control.locator('[data-icon-value]')).toHaveValue(icon);
 }
 
-async function selectSymptomColor(root: Locator, color: string): Promise<void> {
-  const control = root.locator('[data-color-control]');
-  await control.locator(`[data-color-preset="${color}"]`).click();
-  await expect(control.locator('[data-color-value]')).toHaveValue(color);
+async function assertSelectedSymptomChipHasNoTrailingMarker(chip: Locator): Promise<void> {
+  const afterContent = await chip.evaluate((node) => window.getComputedStyle(node, '::after').content);
+  expect(['none', 'normal', ''].includes(afterContent.replace(/"/g, ''))).toBe(true);
 }
 
 async function registerOwnerAndOpenSettings(page: Page, prefix: string) {
@@ -266,10 +281,9 @@ test.describe('Settings: profile and cycle', () => {
     await expect(symptomSection).toBeVisible();
 
     const createForm = symptomSection.locator('[data-symptom-create-form]');
+    await expect(createForm.locator('[data-color-control]')).toHaveCount(0);
     await createForm.locator('#settings-new-symptom-name').fill('Joint stiffness');
     await selectSymptomIcon(createForm, '✨');
-    await selectSymptomColor(createForm, '#64748B');
-    await expect(createForm.locator('#settings-new-symptom-color')).toHaveValue('#64748B');
     await createForm.locator('button[type="submit"]').click();
 
     await expect(symptomSection.locator('.status-ok')).toBeVisible();
@@ -320,7 +334,6 @@ test.describe('Settings: profile and cycle', () => {
 
     await createForm.locator('#settings-new-symptom-name').fill('Joint support');
     await selectSymptomIcon(createForm, '🔥');
-    await selectSymptomColor(createForm, '#14B8A6');
     await createForm.locator('button[type="submit"]').click();
     await expect(symptomSection.locator('.status-ok')).toBeVisible();
 
@@ -341,7 +354,6 @@ test.describe('Settings: profile and cycle', () => {
     );
     await archivedRow.locator('input[name="name"]').fill('Joint support');
     await selectSymptomIcon(archivedRow.locator('[data-symptom-edit-form]'), '⚡');
-    await selectSymptomColor(archivedRow.locator('[data-symptom-edit-form]'), '#38BDF8');
     await archivedRow.locator('[data-symptom-edit-form] button[type="submit"]').click();
     await expect(archivedRow.locator('[data-symptom-row-error]')).toContainText(
       'That symptom name already exists in your list.'
@@ -350,7 +362,6 @@ test.describe('Settings: profile and cycle', () => {
 
     await archivedRow.locator('input[name="name"]').fill('Joint ease');
     await selectSymptomIcon(archivedRow.locator('[data-symptom-edit-form]'), '💧');
-    await selectSymptomColor(archivedRow.locator('[data-symptom-edit-form]'), '#38BDF8');
     await archivedRow.locator('[data-symptom-edit-form] button[type="submit"]').click();
 
     const renamedArchivedRow = page.locator(
@@ -375,8 +386,8 @@ test.describe('Settings: profile and cycle', () => {
   });
 
   test('custom symptom validation blocks duplicate, built-in, invalid markup, and long names without layout overflow', async ({
-    page,
-  }) => {
+      page,
+    }) => {
     await registerOwnerAndOpenSettings(page, 'settings-custom-symptom-validation');
 
     const symptomSection = page.locator('#settings-symptoms-section');
@@ -384,8 +395,6 @@ test.describe('Settings: profile and cycle', () => {
 
     await createForm.locator('#settings-new-symptom-name').fill('Joint stiffness');
     await selectSymptomIcon(createForm, '✨');
-    await selectSymptomColor(createForm, '#8B5CF6');
-    await expect(createForm.locator('#settings-new-symptom-color')).toHaveValue('#8B5CF6');
     await createForm.locator('button[type="submit"]').click();
     await expect(symptomSection.locator('.status-ok')).toBeVisible();
     await expect(
@@ -394,7 +403,6 @@ test.describe('Settings: profile and cycle', () => {
 
     await createForm.locator('#settings-new-symptom-name').fill(' joint STIFFNESS ');
     await selectSymptomIcon(createForm, '🔥');
-    await selectSymptomColor(createForm, '#D4A574');
     await createForm.locator('button[type="submit"]').click();
     await expect(symptomSection.locator('.status-error')).toContainText('That symptom name already exists in your list.');
     await expect(
@@ -417,11 +425,11 @@ test.describe('Settings: profile and cycle', () => {
     await expect(symptomSection.locator('.status-error')).toContainText(
       'Use 40 characters or fewer. For longer details, use notes.'
     );
+    await expect(createForm.locator('#settings-new-symptom-name')).toHaveValue('');
 
     const longButAllowedName = 'Long symptom after evening workout';
     await createForm.locator('#settings-new-symptom-name').fill(longButAllowedName);
     await selectSymptomIcon(createForm, '⚡');
-    await selectSymptomColor(createForm, '#64748B');
     await createForm.locator('button[type="submit"]').click();
     await expect(symptomSection.locator('.status-ok')).toBeVisible();
     await expect(
@@ -430,17 +438,52 @@ test.describe('Settings: profile and cycle', () => {
 
     await assertNoHorizontalOverflow(page);
 
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await page.locator('input[name="is_period"]').check();
-    await expect(
-      page.locator(`input[name="symptom_ids"][data-symptom-name="${longButAllowedName}"]`)
-    ).toBeVisible();
-    await assertNoHorizontalOverflow(page);
+      await page.goto('/dashboard');
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await page.locator('input[name="is_period"]').check();
+      await expect(
+        page.locator(`input[name="symptom_ids"][data-symptom-name="${longButAllowedName}"]`)
+      ).toBeVisible();
+      await page.locator(`input[name="symptom_ids"][data-symptom-name="${longButAllowedName}"]`).check({
+        force: true,
+      });
+      await assertSelectedSymptomChipHasNoTrailingMarker(
+        page.locator(
+          `label.choice-option:has(input[name="symptom_ids"][data-symptom-name="${longButAllowedName}"]:checked) .check-chip`
+        )
+      );
+      await assertNoHorizontalOverflow(page);
 
     await page.goto('/calendar');
     await expect(page).toHaveURL(/\/calendar(?:\?.*)?$/);
     await expect(page.locator('#calendar-grid-panel')).toBeVisible();
     await assertNoHorizontalOverflow(page);
+
+    await page.goto('/settings');
+    const activeRow = page.locator(
+      `[data-custom-symptom-row][data-symptom-name="${longButAllowedName}"][data-symptom-state="active"]`
+    );
+    await activeRow.locator('input[name="name"]').fill('12345678901234567890123456789012345678901');
+    await activeRow.locator('[data-symptom-edit-form] button[type="submit"]').click();
+    await expect(activeRow.locator('[data-symptom-row-error]')).toContainText(
+      'Use 40 characters or fewer. For longer details, use notes.'
+    );
+    await expect(activeRow.locator('input[name="name"]')).toHaveValue(longButAllowedName);
+  });
+
+  test('empty custom symptom groups stay hidden until they have rows', async ({ page }) => {
+    await registerOwnerAndOpenSettings(page, 'settings-custom-symptom-empty-groups');
+
+    const symptomSection = page.locator('#settings-symptoms-section');
+    await expect(symptomSection.getByText('Active custom symptoms')).toHaveCount(0);
+    await expect(symptomSection.getByText('Hidden custom symptoms')).toHaveCount(0);
+
+    const createForm = symptomSection.locator('[data-symptom-create-form]');
+    await createForm.locator('#settings-new-symptom-name').fill('Joint stiffness');
+    await selectSymptomIcon(createForm, '✨');
+    await createForm.locator('button[type="submit"]').click();
+
+    await expect(symptomSection.getByText('Active custom symptoms')).toBeVisible();
+    await expect(symptomSection.getByText('Hidden custom symptoms')).toHaveCount(0);
   });
 });

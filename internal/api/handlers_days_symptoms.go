@@ -68,11 +68,15 @@ func (handler *Handler) UpdateSymptom(c *fiber.Ctx) error {
 
 	symptom, err := handler.symptomService.UpdateSymptomForUser(user.ID, id, payload.Name, payload.Icon, payload.Color)
 	if err != nil {
+		useDraftValues := true
+		if spec := mapSymptomUpdateError(err); spec.Key == "symptom name is too long" {
+			useDraftValues = false
+		}
 		return handler.respondSymptomMutationError(c, user, mapSymptomUpdateError(err), settingsSymptomSectionState{
 			Row: settingsSymptomRowState{
 				SymptomID:      id,
 				Draft:          payload,
-				UseDraftValues: true,
+				UseDraftValues: useDraftValues,
 			},
 		})
 	}

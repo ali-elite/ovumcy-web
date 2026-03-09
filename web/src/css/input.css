@@ -826,13 +826,17 @@
   }
 
   .check-chip-sm {
-    min-height: 2.35rem;
-    font-size: 0.8rem;
+    min-height: 2.3rem;
+    font-size: 0.78rem;
   }
 
   .check-chip-sm .symptom-label {
-    font-size: 0.84rem;
-    line-height: 1.18;
+    font-size: 0.75rem;
+    line-height: 1.1;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .symptom-groups {
@@ -880,11 +884,23 @@
   .symptom-grid .check-chip {
     height: 100%;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     line-height: 1.2;
     min-height: 2.65rem;
     padding: 0.62rem 0.7rem;
     min-width: 0;
+  }
+
+  .symptom-grid-compact .check-chip {
+    min-height: 2.18rem;
+    padding: 0.4rem 0.52rem;
+    gap: 0.36rem;
+  }
+
+  .symptom-grid-compact .symptom-icon {
+    width: 1rem;
+    flex-basis: 1rem;
+    font-size: 0.92rem;
   }
 
   .symptom-icon {
@@ -908,8 +924,8 @@
     word-spacing: normal;
     line-height: 1.25;
     white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    overflow-wrap: break-word;
+    word-break: normal;
     hyphens: none;
   }
 
@@ -930,8 +946,7 @@
   .settings-symptom-card-header,
   .symptom-icon-control,
   .symptom-icon-options,
-  .symptom-icon-option,
-  .symptom-color-control {
+  .symptom-icon-option {
     min-width: 0;
   }
 
@@ -1026,77 +1041,6 @@
 
   .symptom-icon-option-custom {
     border-style: dashed;
-  }
-
-  .symptom-color-control {
-    display: grid;
-    gap: 0.45rem;
-  }
-
-  .symptom-color-presets {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1.5rem));
-    gap: 0.38rem;
-    align-content: start;
-  }
-
-  .symptom-color-preset {
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 999px;
-    border: 2px solid rgba(140, 106, 70, 0.16);
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.42);
-    transition:
-      transform 140ms ease,
-      box-shadow 140ms ease,
-      border-color 140ms ease;
-  }
-
-  .symptom-color-preset:hover,
-  .symptom-color-preset:focus-visible {
-    transform: translateY(-1px);
-    border-color: rgba(140, 106, 70, 0.45);
-    box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.18);
-  }
-
-  .symptom-color-preset[data-selected="true"] {
-    border-color: rgba(162, 83, 75, 0.72);
-    box-shadow:
-      0 0 0 2px rgba(212, 165, 116, 0.18),
-      0 6px 12px rgba(140, 106, 70, 0.16);
-    transform: translateY(-1px);
-  }
-
-  .symptom-color-preset-rose {
-    background: #e8799f;
-  }
-
-  .symptom-color-preset-gold {
-    background: #d4a574;
-  }
-
-  .symptom-color-preset-amber {
-    background: #f59e0b;
-  }
-
-  .symptom-color-preset-coral {
-    background: #fb7185;
-  }
-
-  .symptom-color-preset-violet {
-    background: #8b5cf6;
-  }
-
-  .symptom-color-preset-sky {
-    background: #38bdf8;
-  }
-
-  .symptom-color-preset-teal {
-    background: #14b8a6;
-  }
-
-  .symptom-color-preset-slate {
-    background: #64748b;
   }
 
   .stats-symptom-row {
@@ -1215,23 +1159,6 @@
       0 8px 18px rgba(186, 131, 80, 0.12);
   }
 
-  .choice-input:checked + .check-chip::after {
-    content: "✓";
-    margin-left: auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.2rem;
-    height: 1.2rem;
-    border-radius: 999px;
-    border: 1px solid rgba(162, 83, 75, 0.45);
-    background: rgba(255, 255, 255, 0.85);
-    color: #8f4a2f;
-    font-size: 0.8rem;
-    line-height: 1;
-    font-weight: 800;
-  }
-
   .choice-input:disabled + .radio-tile,
   .choice-input:disabled + .check-chip {
     opacity: 0.76;
@@ -1242,10 +1169,6 @@
     border-color: rgba(232, 196, 168, 0.8);
     background: rgba(255, 249, 240, 0.72);
     box-shadow: none;
-  }
-
-  .choice-input:disabled:checked + .check-chip::after {
-    content: none;
   }
 
   .choice-chip-active {
@@ -1870,11 +1793,6 @@
     color: var(--text-primary);
   }
 
-  :root[data-theme="dark"] .symptom-color-picker {
-    background: rgba(31, 24, 48, 0.82);
-    border-color: rgba(173, 130, 216, 0.32);
-  }
-
   :root[data-theme="dark"] .symptom-icon-option {
     border-color: rgba(127, 105, 160, 0.72);
     background: rgba(46, 38, 61, 0.84);
@@ -1892,18 +1810,6 @@
     background: rgba(76, 58, 103, 0.88);
   }
 
-  :root[data-theme="dark"] .symptom-color-preset {
-    border-color: rgba(235, 227, 255, 0.18);
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
-  }
-
-  :root[data-theme="dark"] .symptom-color-preset:hover,
-  :root[data-theme="dark"] .symptom-color-preset:focus-visible,
-  :root[data-theme="dark"] .symptom-color-preset[data-selected="true"] {
-    border-color: rgba(224, 177, 255, 0.55);
-    box-shadow: 0 0 0 2px rgba(173, 130, 216, 0.22);
-  }
-
   :root[data-theme="dark"] .choice-input:checked + .radio-tile,
   :root[data-theme="dark"] .choice-input:checked + .check-chip {
     border-color: rgba(222, 176, 117, 0.9);
@@ -1911,12 +1817,6 @@
     box-shadow:
       0 0 0 2px rgba(222, 176, 117, 0.2),
       0 8px 18px rgba(12, 8, 19, 0.3);
-  }
-
-  :root[data-theme="dark"] .choice-input:checked + .check-chip::after {
-    border-color: rgba(216, 170, 113, 0.62);
-    background: rgba(28, 23, 38, 0.82);
-    color: #f3d5ad;
   }
 
   :root[data-theme="dark"] .calendar-cell {

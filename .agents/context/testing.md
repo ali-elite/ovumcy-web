@@ -12,6 +12,7 @@
 - CI-gating e2e runs use serial Playwright execution for stateful flows to avoid SQLite write contention.
 - Playwright selectors should prefer stable `data-*` hooks over framework-specific attributes such as `x-show` or serialized inline state. When strict CSP refactors remove inline framework markup, update browser helpers in the same change.
 - When a form intentionally omits HTML `maxlength` to preserve server-side validation UX, add a browser test that submits an over-limit value and asserts the localized error message.
+- When an owner settings form intentionally removes an optional field from HTML, keep a browser scenario that proves the simplified form still works and that the removed control is absent from the rendered UI.
 
 ## Test Isolation and Failure Triage
 

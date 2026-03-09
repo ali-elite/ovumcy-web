@@ -30,9 +30,7 @@ func (handler *Handler) buildSettingsSymptomsSectionData(c *fiber.Ctx, user *mod
 		"SymptomErrorMessage":    errorLocalizer(state.ErrorMessage),
 		"SymptomDraftName":       sanitizeDraftName(state.Draft.Name),
 		"SymptomDraftIcon":       defaultSymptomDraftIcon(state.Draft.Icon),
-		"SymptomDraftColor":      defaultSymptomDraftColor(state.Draft.Color),
 		"SymptomIconOptions":     buildSettingsSymptomIconOptions(state.Draft.Icon),
-		"SymptomColorOptions":    buildSettingsSymptomColorOptions(state.Draft.Color),
 	}, nil
 }
 
@@ -42,6 +40,9 @@ func (handler *Handler) respondSymptomMutationError(c *fiber.Ctx, user *models.U
 			state.Row.ErrorMessage = spec.Key
 		} else {
 			state.ErrorMessage = spec.Key
+			if spec.Key == "symptom name is too long" {
+				state.Draft.Name = ""
+			}
 		}
 		data, err := handler.buildSettingsSymptomsSectionData(c, user, state)
 		if err != nil {
@@ -120,12 +121,4 @@ func defaultSymptomDraftIcon(raw string) string {
 		return "✨"
 	}
 	return icon
-}
-
-func defaultSymptomDraftColor(raw string) string {
-	color := strings.TrimSpace(raw)
-	if color == "" {
-		return "#E8799F"
-	}
-	return color
 }

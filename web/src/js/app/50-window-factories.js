@@ -366,14 +366,6 @@
     }
   }
 
-  function normalizeHexColor(value) {
-    var normalized = String(value || "").trim().toUpperCase();
-    if (!/^#[0-9A-F]{6}$/.test(normalized)) {
-      return "";
-    }
-    return normalized;
-  }
-
   function syncIconOptionButtons(root, activeIcon) {
     if (!root || !root.querySelectorAll) {
       return;
@@ -429,65 +421,6 @@
       }
 
       syncIconControl(root);
-    }
-  }
-
-  function syncColorPresetButtons(root, activeColor) {
-    if (!root || !root.querySelectorAll) {
-      return;
-    }
-
-    var normalized = normalizeHexColor(activeColor);
-    var buttons = root.querySelectorAll("[data-color-preset]");
-    for (var index = 0; index < buttons.length; index++) {
-      var button = buttons[index];
-      var selected = normalizeHexColor(button.getAttribute("data-color-preset")) === normalized;
-      button.setAttribute("aria-pressed", selected ? "true" : "false");
-      button.setAttribute("data-selected", selected ? "true" : "false");
-    }
-  }
-
-  function syncColorControl(root, nextValue) {
-    if (!root || !root.querySelector) {
-      return;
-    }
-
-    var valueInput = root.querySelector("[data-color-value]");
-    var normalized = normalizeHexColor(nextValue);
-
-    if (!normalized && valueInput) {
-      normalized = normalizeHexColor(valueInput.value);
-    }
-    if (!normalized) {
-      normalized = "#E8799F";
-    }
-
-    if (valueInput) {
-      valueInput.value = normalized;
-    }
-
-    syncColorPresetButtons(root, normalized);
-  }
-
-  function bindColorControls() {
-    var roots = document.querySelectorAll("[data-color-control]");
-    for (var index = 0; index < roots.length; index++) {
-      var root = roots[index];
-      if (root.dataset.colorControlBound !== "1") {
-        root.dataset.colorControlBound = "1";
-
-        root.addEventListener("click", function (event) {
-          var button = closestFromEvent(event, "[data-color-preset]");
-          if (!button || !this.contains(button)) {
-            return;
-          }
-
-          event.preventDefault();
-          syncColorControl(this, button.getAttribute("data-color-preset"));
-        });
-      }
-
-      syncColorControl(root);
     }
   }
 
@@ -954,7 +887,6 @@
     bindPWAInstallBanner();
     bindSettingsCycleForms();
     bindIconControls();
-    bindColorControls();
     bindDashboardEditors();
     bindDayEditorForms();
     bindCalendarViews();

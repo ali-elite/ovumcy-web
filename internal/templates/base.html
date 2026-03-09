@@ -17,10 +17,10 @@
   <meta name="apple-mobile-web-app-title" content="Ovumcy">
   <script src="/static/js/theme-bootstrap.js?v=20260308-1"></script>
   <script src="/static/js/timezone-bootstrap.js?v=20260309-1"></script>
-  <link rel="stylesheet" href="/static/css/tailwind.css?v=20260304-1">
+  <link rel="stylesheet" href="/static/css/tailwind.css?v=20260309-4">
   <script defer src="/static/js/htmx.min.js?v=20260221-2"></script>
   <script defer src="/static/js/chart-lite.js?v=20260221-2"></script>
-  <script defer src="/static/js/app.js?v=20260308-1"></script>
+  <script defer src="/static/js/app.js?v=20260309-4"></script>
 </head>
 <body
   data-confirm-cancel="{{t .Messages "confirm.no"}}"
@@ -237,7 +237,7 @@
     {{if .DisableWhenNotPeriod}}data-disable-without-period="true"{{if not .CurrentIsPeriod}} disabled{{end}}{{end}}
     {{if .IncludePreviewHooks}}data-symptom-label="{{$label}}"{{end}}
     {{if hasSymptom .SelectedSymptomID .Symptom.ID}}checked{{end}}>
-  <span class="{{if .Compact}}check-chip check-chip-sm{{else}}check-chip{{end}}">
+  <span class="{{if .Compact}}check-chip check-chip-sm{{else}}check-chip{{end}}" title="{{$label}}">
     <span class="symptom-icon">{{.Symptom.Icon}}</span>
     <span class="symptom-label{{if and .Compact (eq .Lang "en")}} symptom-label-nowrap{{end}}">{{$label}}</span>
     {{if not .Symptom.IsActive}}
@@ -363,25 +363,6 @@
   </div>
 </div>
 {{end}}
-{{define "symptom_color_control"}}
-<div class="settings-symptom-field settings-symptom-color-field">
-  <label class="field-label" id="{{.LabelID}}">{{t .Messages "settings.symptoms.color"}}</label>
-  <div class="symptom-color-control" data-color-control>
-    <input id="{{.FieldID}}" type="hidden" name="color" value="{{.Color}}" data-color-value>
-    <div class="symptom-color-presets" role="group" aria-labelledby="{{.LabelID}}">
-      {{range .Options}}
-      <button
-        type="button"
-        class="symptom-color-preset {{.ClassName}}"
-        data-color-preset="{{.Value}}"
-        data-selected="{{if .Selected}}true{{else}}false{{end}}"
-        aria-pressed="{{if .Selected}}true{{else}}false{{end}}"
-        aria-label="{{.Value}}"></button>
-      {{end}}
-    </div>
-  </div>
-</div>
-{{end}}
 {{define "settings_custom_symptom_card"}}
 <div
   class="journal-panel settings-symptom-card space-y-4"
@@ -427,12 +408,6 @@
         "Icon" .FormIcon
         "Options" .IconOptions)}}
 
-      {{template "symptom_color_control" (dict
-        "Messages" $.Messages
-        "FieldID" (printf "settings-symptom-color-%d" .Symptom.ID)
-        "LabelID" (printf "settings-symptom-color-label-%d" .Symptom.ID)
-        "Color" .FormColor
-        "Options" .ColorOptions)}}
     </div>
 
     {{if .ErrorMessage}}
@@ -478,7 +453,6 @@
 <section id="settings-symptoms-section" class="journal-card p-5 sm:p-6 space-y-5" data-settings-symptoms>
   <div>
     <h2 class="journal-subtitle">🧩 {{t .Messages "settings.symptoms.title"}}</h2>
-    <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.symptoms.subtitle"}}</p>
   </div>
 
   <form
@@ -511,12 +485,6 @@
         "Icon" .SymptomDraftIcon
         "Options" .SymptomIconOptions)}}
 
-      {{template "symptom_color_control" (dict
-        "Messages" .Messages
-        "FieldID" "settings-new-symptom-color"
-        "LabelID" "settings-new-symptom-color-label"
-        "Color" .SymptomDraftColor
-        "Options" .SymptomColorOptions)}}
     </div>
 
     {{if .SymptomErrorMessage}}
@@ -532,12 +500,9 @@
   </form>
 
   <div class="space-y-4">
+    {{if .HasCustomSymptoms}}
     <div class="space-y-3">
-      <div>
-        <h3 class="field-label">{{t .Messages "settings.symptoms.active_heading"}}</h3>
-        <p class="journal-muted text-sm">{{t .Messages "settings.symptoms.active_hint"}}</p>
-      </div>
-      {{if .HasCustomSymptoms}}
+      <h3 class="field-label">{{t .Messages "settings.symptoms.active_heading"}}</h3>
       <div class="space-y-3">
         {{range .ActiveCustomSymptoms}}
         {{template "settings_custom_symptom_card" (dict
@@ -546,25 +511,18 @@
           "Symptom" .Symptom
           "FormName" .FormName
           "FormIcon" .FormIcon
-          "FormColor" .FormColor
           "IconOptions" .IconOptions
-          "ColorOptions" .ColorOptions
           "ErrorMessage" .ErrorMessage
           "SuccessMessage" .SuccessMessage
           "Heading" (t $.Messages "settings.symptoms.active_item"))}}
         {{end}}
       </div>
-      {{else}}
-      <p class="journal-muted text-sm">{{t .Messages "settings.symptoms.empty"}}</p>
-      {{end}}
     </div>
+    {{end}}
 
+    {{if .HasArchivedSymptoms}}
     <div class="space-y-3">
-      <div>
-        <h3 class="field-label">{{t .Messages "settings.symptoms.archived_heading"}}</h3>
-        <p class="journal-muted text-sm">{{t .Messages "settings.symptoms.archived_hint"}}</p>
-      </div>
-      {{if .HasArchivedSymptoms}}
+      <h3 class="field-label">{{t .Messages "settings.symptoms.archived_heading"}}</h3>
       <div class="space-y-3">
         {{range .ArchivedCustomSymptoms}}
         {{template "settings_custom_symptom_card" (dict
@@ -573,20 +531,14 @@
           "Symptom" .Symptom
           "FormName" .FormName
           "FormIcon" .FormIcon
-          "FormColor" .FormColor
           "IconOptions" .IconOptions
-          "ColorOptions" .ColorOptions
           "ErrorMessage" .ErrorMessage
           "SuccessMessage" .SuccessMessage
           "Heading" (t $.Messages "settings.symptoms.archived_item"))}}
         {{end}}
       </div>
-      {{else}}
-      <p class="journal-muted text-sm">{{t .Messages "settings.symptoms.archived_empty"}}</p>
-      {{end}}
     </div>
+    {{end}}
   </div>
-
-  <p class="journal-muted text-xs">{{t .Messages "settings.symptoms.builtin_hint"}}</p>
 </section>
 {{end}}

@@ -59,6 +59,17 @@ async function saveTodayEntry(page: Page, note: string): Promise<void> {
   await expect(page.locator('#save-status .status-ok')).toBeVisible();
 }
 
+async function createCustomSymptom(page: Page, name: string): Promise<void> {
+  const section = page.locator('#settings-symptoms-section');
+  const form = section.locator('[data-symptom-create-form]');
+
+  await form.locator('#settings-new-symptom-name').fill(name);
+  await form.locator('[data-icon-option]').first().click();
+  await form.locator('button[type="submit"]').click();
+
+  await expect(section.locator(`[data-custom-symptom-row][data-symptom-name="${name}"]`)).toBeVisible();
+}
+
 test.describe('Settings: password, export, clear data, delete account', () => {
   test('change password success rotates credentials: old password rejected, new password works', async ({
     page,
@@ -192,6 +203,12 @@ test.describe('Settings: password, export, clear data, delete account', () => {
 
     await page.goto('/settings');
     await expect(page).toHaveURL(/\/settings$/);
+    await createCustomSymptom(page, 'Reset me');
+    const symptomSection = page.locator('#settings-symptoms-section');
+    await expect(symptomSection).not.toContainText('Shown in new entries.');
+    await expect(symptomSection).not.toContainText('No custom symptoms yet.');
+    await expect(symptomSection).not.toContainText('Kept in history and export.');
+    await expect(symptomSection).not.toContainText('Built-in symptoms always stay available.');
 
     await page.locator('form[action="/api/settings/clear-data"] button[type="submit"]').click();
     await expect(page.locator('#confirm-modal')).toBeVisible();
@@ -214,6 +231,7 @@ test.describe('Settings: password, export, clear data, delete account', () => {
 
     await page.goto('/settings');
     await expect(page.locator('[data-export-summary-total]')).toContainText('0');
+    await expect(page.locator('#settings-symptoms-section [data-custom-symptom-row]')).toHaveCount(0);
   });
 
   test('delete account requires valid password and removes account on success', async ({ page }) => {

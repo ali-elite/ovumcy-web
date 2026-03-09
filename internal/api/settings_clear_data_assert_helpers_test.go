@@ -22,8 +22,8 @@ func assertClearDataPostconditions(t *testing.T, database *gorm.DB, user models.
 	if err := database.Model(&models.SymptomType{}).Where("user_id = ? AND is_builtin = ?", user.ID, false).Count(&customCount).Error; err != nil {
 		t.Fatalf("count custom symptoms: %v", err)
 	}
-	if customCount != 1 {
-		t.Fatalf("expected custom symptoms to stay unchanged, got %d", customCount)
+	if customCount != 0 {
+		t.Fatalf("expected custom symptoms to be deleted, got %d", customCount)
 	}
 
 	var builtinCount int64

@@ -137,6 +137,9 @@ func (repo *UserRepository) ClearAllDataAndResetSettings(userID uint) error {
 		if err := tx.Where("user_id = ?", userID).Delete(&models.DailyLog{}).Error; err != nil {
 			return err
 		}
+		if err := tx.Where("user_id = ? AND is_builtin = ?", userID, false).Delete(&models.SymptomType{}).Error; err != nil {
+			return err
+		}
 		return tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]any{
 			"cycle_length":      models.DefaultCycleLength,
 			"period_length":     models.DefaultPeriodLength,

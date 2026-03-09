@@ -12,19 +12,11 @@ type settingsSymptomIconOption struct {
 	IsCustom bool
 }
 
-type settingsSymptomColorOption struct {
-	Value     string
-	ClassName string
-	Selected  bool
-}
-
 type settingsSymptomRowView struct {
 	Symptom        models.SymptomType
 	FormName       string
 	FormIcon       string
-	FormColor      string
 	IconOptions    []settingsSymptomIconOption
-	ColorOptions   []settingsSymptomColorOption
 	ErrorMessage   string
 	SuccessMessage string
 }
@@ -44,22 +36,6 @@ type settingsSymptomSectionState struct {
 	Row           settingsSymptomRowState
 }
 
-type symptomColorPresetConfig struct {
-	Value     string
-	ClassName string
-}
-
-var settingsSymptomColorPresets = []symptomColorPresetConfig{
-	{Value: "#E8799F", ClassName: "symptom-color-preset-rose"},
-	{Value: "#D4A574", ClassName: "symptom-color-preset-gold"},
-	{Value: "#F59E0B", ClassName: "symptom-color-preset-amber"},
-	{Value: "#FB7185", ClassName: "symptom-color-preset-coral"},
-	{Value: "#8B5CF6", ClassName: "symptom-color-preset-violet"},
-	{Value: "#38BDF8", ClassName: "symptom-color-preset-sky"},
-	{Value: "#14B8A6", ClassName: "symptom-color-preset-teal"},
-	{Value: "#64748B", ClassName: "symptom-color-preset-slate"},
-}
-
 var settingsSymptomIconCatalog = []string{
 	"✨",
 	"🔥",
@@ -77,20 +53,16 @@ func buildSettingsSymptomRows(symptoms []models.SymptomType, rowState settingsSy
 		useDraft := rowState.SymptomID != 0 && rowState.SymptomID == symptom.ID && rowState.UseDraftValues
 		formName := symptom.Name
 		formIcon := symptom.Icon
-		formColor := symptom.Color
 		if useDraft {
 			formName = sanitizeDraftName(rowState.Draft.Name)
 			formIcon = defaultSymptomDraftIcon(rowState.Draft.Icon)
-			formColor = defaultSymptomDraftColor(rowState.Draft.Color)
 		}
 
 		row := settingsSymptomRowView{
-			Symptom:      symptom,
-			FormName:     formName,
-			FormIcon:     formIcon,
-			FormColor:    formColor,
-			IconOptions:  buildSettingsSymptomIconOptions(formIcon),
-			ColorOptions: buildSettingsSymptomColorOptions(formColor),
+			Symptom:     symptom,
+			FormName:    formName,
+			FormIcon:    formIcon,
+			IconOptions: buildSettingsSymptomIconOptions(formIcon),
 		}
 
 		if rowState.SymptomID == symptom.ID {
@@ -118,19 +90,6 @@ func buildSettingsSymptomIconOptions(current string) []settingsSymptomIconOption
 		options = append(options, settingsSymptomIconOption{
 			Value:    value,
 			Selected: value == selected,
-		})
-	}
-	return options
-}
-
-func buildSettingsSymptomColorOptions(current string) []settingsSymptomColorOption {
-	selected := defaultSymptomDraftColor(current)
-	options := make([]settingsSymptomColorOption, 0, len(settingsSymptomColorPresets))
-	for _, preset := range settingsSymptomColorPresets {
-		options = append(options, settingsSymptomColorOption{
-			Value:     preset.Value,
-			ClassName: preset.ClassName,
-			Selected:  strings.EqualFold(preset.Value, selected),
 		})
 	}
 	return options

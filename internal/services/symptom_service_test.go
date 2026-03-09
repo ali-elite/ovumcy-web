@@ -97,7 +97,7 @@ func TestCreateSymptomForUserAppliesDefaultsAndTrim(t *testing.T) {
 	repo := &stubSymptomRepo{}
 	service := NewSymptomService(repo)
 
-	symptom, err := service.CreateSymptomForUser(10, "  Custom  ", " ", " #A1B2C3 ")
+	symptom, err := service.CreateSymptomForUser(10, "  Custom  ", " ", "")
 	if err != nil {
 		t.Fatalf("CreateSymptomForUser() unexpected error: %v", err)
 	}
@@ -110,8 +110,8 @@ func TestCreateSymptomForUserAppliesDefaultsAndTrim(t *testing.T) {
 	if symptom.Icon != defaultSymptomIcon {
 		t.Fatalf("expected default icon %q, got %q", defaultSymptomIcon, symptom.Icon)
 	}
-	if symptom.Color != "#A1B2C3" {
-		t.Fatalf("expected trimmed color #A1B2C3, got %q", symptom.Color)
+	if symptom.Color != defaultSymptomColor {
+		t.Fatalf("expected default color %q, got %q", defaultSymptomColor, symptom.Color)
 	}
 	if !symptom.IsActive() {
 		t.Fatalf("expected new custom symptom to be active")
@@ -227,7 +227,7 @@ func TestUpdateSymptomForUserPersistsTrimmedValues(t *testing.T) {
 	}
 	service := NewSymptomService(repo)
 
-	symptom, err := service.UpdateSymptomForUser(10, 7, "  Updated  ", " ", " #A1B2C3 ")
+	symptom, err := service.UpdateSymptomForUser(10, 7, "  Updated  ", " ", "")
 	if err != nil {
 		t.Fatalf("UpdateSymptomForUser() unexpected error: %v", err)
 	}
@@ -237,8 +237,8 @@ func TestUpdateSymptomForUserPersistsTrimmedValues(t *testing.T) {
 	if symptom.Icon != defaultSymptomIcon {
 		t.Fatalf("expected default icon on blank update, got %q", symptom.Icon)
 	}
-	if symptom.Color != "#A1B2C3" {
-		t.Fatalf("expected updated color, got %q", symptom.Color)
+	if symptom.Color != "#111111" {
+		t.Fatalf("expected existing color to be preserved, got %q", symptom.Color)
 	}
 	if len(repo.updated) != 1 || repo.updated[0].ID != 7 {
 		t.Fatalf("expected one update for symptom 7, got %#v", repo.updated)

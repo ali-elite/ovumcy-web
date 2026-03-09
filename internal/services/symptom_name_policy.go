@@ -10,6 +10,7 @@ import (
 const (
 	maxSymptomNameLength = 40
 	defaultSymptomIcon   = "✨"
+	defaultSymptomColor  = "#E8799F"
 )
 
 var (
@@ -49,10 +50,24 @@ func normalizeSymptomIconInput(raw string) string {
 
 func normalizeSymptomColorInput(raw string) (string, error) {
 	color := strings.TrimSpace(strings.ToUpper(strings.ToValidUTF8(raw, "")))
+	if color == "" {
+		return "", ErrInvalidSymptomColor
+	}
 	if !hexSymptomColorPattern.MatchString(color) {
 		return "", ErrInvalidSymptomColor
 	}
 	return color, nil
+}
+
+func resolveSymptomColorInput(raw string, fallback string) (string, error) {
+	color := strings.TrimSpace(strings.ToUpper(strings.ToValidUTF8(raw, "")))
+	if color == "" {
+		color = strings.TrimSpace(strings.ToUpper(strings.ToValidUTF8(fallback, "")))
+	}
+	if color == "" {
+		color = defaultSymptomColor
+	}
+	return normalizeSymptomColorInput(color)
 }
 
 func containsInvalidSymptomNameRune(value string) bool {
