@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	maxSymptomNameLength = 80
+	maxSymptomNameLength = 40
 	defaultSymptomIcon   = "✨"
 )
 
@@ -18,11 +18,14 @@ var (
 
 func normalizeSymptomNameInput(raw string) (string, error) {
 	name := normalizeSymptomSpacing(raw)
-	if name == "" || utf8.RuneCountInString(name) > maxSymptomNameLength {
-		return "", ErrInvalidSymptomName
+	if name == "" {
+		return "", ErrSymptomNameRequired
+	}
+	if utf8.RuneCountInString(name) > maxSymptomNameLength {
+		return "", ErrSymptomNameTooLong
 	}
 	if containsInvalidSymptomNameRune(name) {
-		return "", ErrInvalidSymptomName
+		return "", ErrSymptomNameInvalidCharacters
 	}
 	return name, nil
 }

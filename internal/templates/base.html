@@ -342,58 +342,56 @@
   {{end}}
 </div>
 {{end}}
+{{define "symptom_icon_control"}}
+<div class="settings-symptom-field settings-symptom-icon-field">
+  <label class="field-label" id="{{.LabelID}}">{{t .Messages "settings.symptoms.icon"}}</label>
+  <div class="symptom-icon-control" data-icon-control>
+    <input id="{{.FieldID}}" type="hidden" name="icon" value="{{.Icon}}" data-icon-value>
+    <div class="symptom-icon-options" role="group" aria-labelledby="{{.LabelID}}">
+      {{range .Options}}
+      <button
+        type="button"
+        class="symptom-icon-option{{if .IsCustom}} symptom-icon-option-custom{{end}}"
+        data-icon-option="{{.Value}}"
+        data-selected="{{if .Selected}}true{{else}}false{{end}}"
+        aria-pressed="{{if .Selected}}true{{else}}false{{end}}"
+        aria-label="{{.Value}}">
+        <span aria-hidden="true">{{.Value}}</span>
+      </button>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}
 {{define "symptom_color_control"}}
 <div class="settings-symptom-field settings-symptom-color-field">
-  <label class="field-label" for="{{.FieldID}}">{{t .Messages "settings.symptoms.color"}}</label>
+  <label class="field-label" id="{{.LabelID}}">{{t .Messages "settings.symptoms.color"}}</label>
   <div class="symptom-color-control" data-color-control>
-    <div class="symptom-color-row">
-      <input
-        id="{{.FieldID}}"
-        type="text"
-        name="color"
-        value="{{.Color}}"
-        maxlength="7"
-        inputmode="text"
-        autocapitalize="characters"
-        spellcheck="false"
-        pattern="#[0-9A-Fa-f]{6}"
-        placeholder="#E8799F"
-        class="input-field input-field-compact symptom-color-value"
-        data-color-value
-        autocomplete="off">
-      <input
-        id="{{.PickerID}}"
-        type="color"
-        value="{{.Color}}"
-        class="symptom-color-picker"
-        data-color-picker
-        aria-label="{{t .Messages "settings.symptoms.color_picker"}}">
+    <input id="{{.FieldID}}" type="hidden" name="color" value="{{.Color}}" data-color-value>
+    <div class="symptom-color-presets" role="group" aria-labelledby="{{.LabelID}}">
+      {{range .Options}}
+      <button
+        type="button"
+        class="symptom-color-preset {{.ClassName}}"
+        data-color-preset="{{.Value}}"
+        data-selected="{{if .Selected}}true{{else}}false{{end}}"
+        aria-pressed="{{if .Selected}}true{{else}}false{{end}}"
+        aria-label="{{.Value}}"></button>
+      {{end}}
     </div>
-    <div class="symptom-color-presets" role="group" aria-label="{{t .Messages "settings.symptoms.color_presets"}}">
-      <button type="button" class="symptom-color-preset symptom-color-preset-rose" data-color-preset="#E8799F" aria-label="#E8799F"></button>
-      <button type="button" class="symptom-color-preset symptom-color-preset-gold" data-color-preset="#D4A574" aria-label="#D4A574"></button>
-      <button type="button" class="symptom-color-preset symptom-color-preset-amber" data-color-preset="#F59E0B" aria-label="#F59E0B"></button>
-      <button type="button" class="symptom-color-preset symptom-color-preset-coral" data-color-preset="#FB7185" aria-label="#FB7185"></button>
-      <button type="button" class="symptom-color-preset symptom-color-preset-violet" data-color-preset="#8B5CF6" aria-label="#8B5CF6"></button>
-      <button type="button" class="symptom-color-preset symptom-color-preset-sky" data-color-preset="#38BDF8" aria-label="#38BDF8"></button>
-      <button type="button" class="symptom-color-preset symptom-color-preset-teal" data-color-preset="#14B8A6" aria-label="#14B8A6"></button>
-      <button type="button" class="symptom-color-preset symptom-color-preset-slate" data-color-preset="#64748B" aria-label="#64748B"></button>
-    </div>
-    <p class="journal-muted text-xs">{{t .Messages "settings.symptoms.color_hint"}}</p>
   </div>
 </div>
 {{end}}
 {{define "settings_custom_symptom_card"}}
 <div
-  class="journal-panel space-y-4"
+  class="journal-panel settings-symptom-card space-y-4"
   data-custom-symptom-row
   data-symptom-id="{{.Symptom.ID}}"
   data-symptom-name="{{.Symptom.Name}}"
   data-symptom-state="{{if .Symptom.IsActive}}active{{else}}archived{{end}}">
-  <div class="flex flex-wrap items-center justify-between gap-2">
+  <div class="settings-symptom-card-header">
     <div>
       <p class="field-label">{{.Heading}}</p>
-      <p class="journal-muted text-sm">{{.Description}}</p>
     </div>
     {{if not .Symptom.IsActive}}
     <span class="warning-amber text-xs">{{t .Messages "settings.symptoms.archived_badge"}}</span>
@@ -417,33 +415,35 @@
           id="settings-symptom-name-{{.Symptom.ID}}"
           type="text"
           name="name"
-          value="{{.Symptom.Name}}"
-          maxlength="80"
+          value="{{.FormName}}"
           class="input-field"
           autocomplete="off">
       </div>
 
-      <div class="settings-symptom-field settings-symptom-icon-field">
-        <label class="field-label" for="settings-symptom-icon-{{.Symptom.ID}}">{{t .Messages "settings.symptoms.icon"}}</label>
-        <input
-          id="settings-symptom-icon-{{.Symptom.ID}}"
-          type="text"
-          name="icon"
-          value="{{.Symptom.Icon}}"
-          maxlength="8"
-          class="input-field settings-symptom-icon-input"
-          autocomplete="off">
-      </div>
+      {{template "symptom_icon_control" (dict
+        "Messages" $.Messages
+        "LabelID" (printf "settings-symptom-icon-label-%d" .Symptom.ID)
+        "FieldID" (printf "settings-symptom-icon-%d" .Symptom.ID)
+        "Icon" .FormIcon
+        "Options" .IconOptions)}}
 
       {{template "symptom_color_control" (dict
         "Messages" $.Messages
         "FieldID" (printf "settings-symptom-color-%d" .Symptom.ID)
-        "PickerID" (printf "settings-symptom-color-picker-%d" .Symptom.ID)
-        "Color" .Symptom.Color)}}
+        "LabelID" (printf "settings-symptom-color-label-%d" .Symptom.ID)
+        "Color" .FormColor
+        "Options" .ColorOptions)}}
+    </div>
 
-      <div class="settings-symptom-action">
-        <button type="submit" class="btn-secondary">{{t .Messages "settings.symptoms.save"}}</button>
-      </div>
+    {{if .ErrorMessage}}
+    <div class="status-error flex items-center gap-2" data-symptom-row-error><span aria-hidden="true">⚠️</span><span>{{.ErrorMessage}}</span></div>
+    {{end}}
+    {{if .SuccessMessage}}
+    <div class="status-ok flex items-center gap-2" data-symptom-row-success><span aria-hidden="true">✅</span><span>{{.SuccessMessage}}</span></div>
+    {{end}}
+
+    <div class="settings-symptom-action-stack">
+      <button type="submit" class="btn-secondary">{{t .Messages "settings.symptoms.save"}}</button>
     </div>
   </form>
 
@@ -481,13 +481,6 @@
     <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.symptoms.subtitle"}}</p>
   </div>
 
-  {{if .SymptomStatusMessage}}
-  <div class="status-ok flex items-center gap-2"><span aria-hidden="true">✅</span><span>{{.SymptomStatusMessage}}</span></div>
-  {{end}}
-  {{if .SymptomErrorMessage}}
-  <div class="status-error flex items-center gap-2"><span aria-hidden="true">⚠️</span><span>{{.SymptomErrorMessage}}</span></div>
-  {{end}}
-
   <form
     action="/api/symptoms"
     method="post"
@@ -506,33 +499,35 @@
           type="text"
           name="name"
           value="{{.SymptomDraftName}}"
-          maxlength="80"
           placeholder="{{t .Messages "settings.symptoms.name_placeholder"}}"
           class="input-field"
           autocomplete="off">
       </div>
 
-      <div class="settings-symptom-field settings-symptom-icon-field">
-        <label class="field-label" for="settings-new-symptom-icon">{{t .Messages "settings.symptoms.icon"}}</label>
-        <input
-          id="settings-new-symptom-icon"
-          type="text"
-          name="icon"
-          value="{{.SymptomDraftIcon}}"
-          maxlength="8"
-          class="input-field settings-symptom-icon-input"
-          autocomplete="off">
-      </div>
+      {{template "symptom_icon_control" (dict
+        "Messages" .Messages
+        "LabelID" "settings-new-symptom-icon-label"
+        "FieldID" "settings-new-symptom-icon"
+        "Icon" .SymptomDraftIcon
+        "Options" .SymptomIconOptions)}}
 
       {{template "symptom_color_control" (dict
         "Messages" .Messages
         "FieldID" "settings-new-symptom-color"
-        "PickerID" "settings-new-symptom-color-picker"
-        "Color" .SymptomDraftColor)}}
+        "LabelID" "settings-new-symptom-color-label"
+        "Color" .SymptomDraftColor
+        "Options" .SymptomColorOptions)}}
+    </div>
 
-      <div class="settings-symptom-action">
-        <button type="submit" class="btn-primary">{{t .Messages "settings.symptoms.add"}}</button>
-      </div>
+    {{if .SymptomErrorMessage}}
+    <div class="status-error flex items-center gap-2"><span aria-hidden="true">⚠️</span><span>{{.SymptomErrorMessage}}</span></div>
+    {{end}}
+    {{if .SymptomStatusMessage}}
+    <div class="status-ok flex items-center gap-2"><span aria-hidden="true">✅</span><span>{{.SymptomStatusMessage}}</span></div>
+    {{end}}
+
+    <div class="settings-symptom-action-stack">
+      <button type="submit" class="btn-primary">{{t .Messages "settings.symptoms.add"}}</button>
     </div>
   </form>
 
@@ -548,9 +543,15 @@
         {{template "settings_custom_symptom_card" (dict
           "Messages" $.Messages
           "CSRFToken" $.CSRFToken
-          "Symptom" .
-          "Heading" (t $.Messages "settings.symptoms.active_item")
-          "Description" (t $.Messages "settings.symptoms.active_item_hint"))}}
+          "Symptom" .Symptom
+          "FormName" .FormName
+          "FormIcon" .FormIcon
+          "FormColor" .FormColor
+          "IconOptions" .IconOptions
+          "ColorOptions" .ColorOptions
+          "ErrorMessage" .ErrorMessage
+          "SuccessMessage" .SuccessMessage
+          "Heading" (t $.Messages "settings.symptoms.active_item"))}}
         {{end}}
       </div>
       {{else}}
@@ -569,9 +570,15 @@
         {{template "settings_custom_symptom_card" (dict
           "Messages" $.Messages
           "CSRFToken" $.CSRFToken
-          "Symptom" .
-          "Heading" (t $.Messages "settings.symptoms.archived_item")
-          "Description" (t $.Messages "settings.symptoms.archived_item_hint"))}}
+          "Symptom" .Symptom
+          "FormName" .FormName
+          "FormIcon" .FormIcon
+          "FormColor" .FormColor
+          "IconOptions" .IconOptions
+          "ColorOptions" .ColorOptions
+          "ErrorMessage" .ErrorMessage
+          "SuccessMessage" .SuccessMessage
+          "Heading" (t $.Messages "settings.symptoms.archived_item"))}}
         {{end}}
       </div>
       {{else}}

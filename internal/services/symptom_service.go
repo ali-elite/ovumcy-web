@@ -12,17 +12,19 @@ import (
 var ErrInvalidSymptomID = errors.New("invalid symptom id")
 
 var (
-	ErrInvalidSymptomName          = errors.New("invalid symptom name")
-	ErrInvalidSymptomColor         = errors.New("invalid symptom color")
-	ErrSymptomNameAlreadyExists    = errors.New("symptom name already exists")
-	ErrSymptomNotFound             = errors.New("symptom not found")
-	ErrBuiltinSymptomEditForbidden = errors.New("built-in symptom cannot be edited")
-	ErrBuiltinSymptomHideForbidden = errors.New("built-in symptom cannot be hidden")
-	ErrBuiltinSymptomShowForbidden = errors.New("built-in symptom cannot be restored")
-	ErrCreateSymptomFailed         = errors.New("create symptom failed")
-	ErrUpdateSymptomFailed         = errors.New("update symptom failed")
-	ErrArchiveSymptomFailed        = errors.New("archive symptom failed")
-	ErrRestoreSymptomFailed        = errors.New("restore symptom failed")
+	ErrSymptomNameRequired          = errors.New("symptom name is required")
+	ErrSymptomNameTooLong           = errors.New("symptom name is too long")
+	ErrSymptomNameInvalidCharacters = errors.New("symptom name contains invalid characters")
+	ErrInvalidSymptomColor          = errors.New("invalid symptom color")
+	ErrSymptomNameAlreadyExists     = errors.New("symptom name already exists")
+	ErrSymptomNotFound              = errors.New("symptom not found")
+	ErrBuiltinSymptomEditForbidden  = errors.New("built-in symptom cannot be edited")
+	ErrBuiltinSymptomHideForbidden  = errors.New("built-in symptom cannot be hidden")
+	ErrBuiltinSymptomShowForbidden  = errors.New("built-in symptom cannot be restored")
+	ErrCreateSymptomFailed          = errors.New("create symptom failed")
+	ErrUpdateSymptomFailed          = errors.New("update symptom failed")
+	ErrArchiveSymptomFailed         = errors.New("archive symptom failed")
+	ErrRestoreSymptomFailed         = errors.New("restore symptom failed")
 )
 
 type SymptomRepository interface {
@@ -141,7 +143,9 @@ func (service *SymptomService) RestoreSymptomForUser(userID uint, symptomID uint
 }
 
 func isSymptomValidationError(err error) bool {
-	return errors.Is(err, ErrInvalidSymptomName) ||
+	return errors.Is(err, ErrSymptomNameRequired) ||
+		errors.Is(err, ErrSymptomNameTooLong) ||
+		errors.Is(err, ErrSymptomNameInvalidCharacters) ||
 		errors.Is(err, ErrInvalidSymptomColor) ||
 		errors.Is(err, ErrSymptomNameAlreadyExists) ||
 		errors.Is(err, ErrBuiltinSymptomEditForbidden)

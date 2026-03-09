@@ -169,8 +169,20 @@ func TestCreateSymptomForUserRejectsMarkupLikeName(t *testing.T) {
 	service := NewSymptomService(&stubSymptomRepo{})
 
 	_, err := service.CreateSymptomForUser(10, "<script>alert('xss')</script>", "A", "#123456")
-	if !errors.Is(err, ErrInvalidSymptomName) {
-		t.Fatalf("expected ErrInvalidSymptomName, got %v", err)
+	if !errors.Is(err, ErrSymptomNameInvalidCharacters) {
+		t.Fatalf("expected ErrSymptomNameInvalidCharacters, got %v", err)
+	}
+}
+
+func TestCreateSymptomForUserRejectsBlankAndTooLongNames(t *testing.T) {
+	service := NewSymptomService(&stubSymptomRepo{})
+
+	if _, err := service.CreateSymptomForUser(10, "   ", "A", "#123456"); !errors.Is(err, ErrSymptomNameRequired) {
+		t.Fatalf("expected ErrSymptomNameRequired, got %v", err)
+	}
+
+	if _, err := service.CreateSymptomForUser(10, "12345678901234567890123456789012345678901", "A", "#123456"); !errors.Is(err, ErrSymptomNameTooLong) {
+		t.Fatalf("expected ErrSymptomNameTooLong, got %v", err)
 	}
 }
 

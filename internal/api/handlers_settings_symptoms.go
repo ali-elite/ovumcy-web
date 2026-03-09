@@ -8,34 +8,41 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
-type settingsSymptomSectionState struct {
-	SuccessStatus string
-	ErrorMessage  string
-	Draft         symptomPayload
-}
-
 func (handler *Handler) buildSettingsSymptomsSectionData(c *fiber.Ctx, user *models.User, state settingsSymptomSectionState) (fiber.Map, error) {
 	viewData, err := handler.settingsViewService.BuildSettingsSymptomsViewData(user)
 	if err != nil {
 		return nil, err
 	}
 
+	statusLocalizer := func(source string) string {
+		return localizedSettingsSymptomStatus(c, source)
+	}
+	errorLocalizer := func(source string) string {
+		return localizedSettingsSymptomError(c, source)
+	}
+
 	return fiber.Map{
-		"ActiveCustomSymptoms":   viewData.ActiveCustomSymptoms,
-		"ArchivedCustomSymptoms": viewData.ArchivedCustomSymptoms,
+		"ActiveCustomSymptoms":   buildSettingsSymptomRows(viewData.ActiveCustomSymptoms, state.Row, statusLocalizer, errorLocalizer),
+		"ArchivedCustomSymptoms": buildSettingsSymptomRows(viewData.ArchivedCustomSymptoms, state.Row, statusLocalizer, errorLocalizer),
 		"HasCustomSymptoms":      viewData.HasCustomSymptoms,
 		"HasArchivedSymptoms":    viewData.HasArchivedSymptoms,
-		"SymptomStatusMessage":   localizedSettingsSymptomStatus(c, state.SuccessStatus),
-		"SymptomErrorMessage":    localizedSettingsSymptomError(c, state.ErrorMessage),
-		"SymptomDraftName":       strings.TrimSpace(state.Draft.Name),
+		"SymptomStatusMessage":   statusLocalizer(state.SuccessStatus),
+		"SymptomErrorMessage":    errorLocalizer(state.ErrorMessage),
+		"SymptomDraftName":       sanitizeDraftName(state.Draft.Name),
 		"SymptomDraftIcon":       defaultSymptomDraftIcon(state.Draft.Icon),
 		"SymptomDraftColor":      defaultSymptomDraftColor(state.Draft.Color),
+		"SymptomIconOptions":     buildSettingsSymptomIconOptions(state.Draft.Icon),
+		"SymptomColorOptions":    buildSettingsSymptomColorOptions(state.Draft.Color),
 	}, nil
 }
 
 func (handler *Handler) respondSymptomMutationError(c *fiber.Ctx, user *models.User, spec APIErrorSpec, state settingsSymptomSectionState) error {
 	if isHTMX(c) {
-		state.ErrorMessage = spec.Key
+		if state.Row.SymptomID != 0 {
+			state.Row.ErrorMessage = spec.Key
+		} else {
+			state.ErrorMessage = spec.Key
+		}
 		data, err := handler.buildSettingsSymptomsSectionData(c, user, state)
 		if err != nil {
 			return handler.respondMappedError(c, settingsLoadErrorSpec())
@@ -51,10 +58,16 @@ func (handler *Handler) respondSymptomMutationError(c *fiber.Ctx, user *models.U
 	return apiError(c, spec.Status, spec.Key)
 }
 
-func (handler *Handler) respondSymptomMutationSuccess(c *fiber.Ctx, user *models.User, statusCode int, successStatus string) error {
+func (handler *Handler) respondSymptomMutationSuccess(c *fiber.Ctx, user *models.User, statusCode int, successStatus string, state settingsSymptomSectionState) error {
 	if isHTMX(c) {
+		if state.Row.SymptomID != 0 {
+			state.Row.SuccessStatus = successStatus
+		} else {
+			state.SuccessStatus = successStatus
+		}
 		data, err := handler.buildSettingsSymptomsSectionData(c, user, settingsSymptomSectionState{
-			SuccessStatus: successStatus,
+			SuccessStatus: state.SuccessStatus,
+			Row:           state.Row,
 		})
 		if err != nil {
 			return handler.respondMappedError(c, settingsLoadErrorSpec())

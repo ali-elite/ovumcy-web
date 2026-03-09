@@ -30,8 +30,8 @@ func TestCreateSymptomRejectsInvalidName(t *testing.T) {
 	if response.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", response.StatusCode)
 	}
-	if got := readAPIError(t, response.Body); got != "invalid symptom name" {
-		t.Fatalf("expected invalid symptom name, got %q", got)
+	if got := readAPIError(t, response.Body); got != "symptom name is required" {
+		t.Fatalf("expected symptom name is required, got %q", got)
 	}
 }
 
@@ -136,8 +136,32 @@ func TestCreateSymptomRejectsMarkupLikeName(t *testing.T) {
 	if response.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", response.StatusCode)
 	}
-	if got := readAPIError(t, response.Body); got != "invalid symptom name" {
-		t.Fatalf("expected invalid symptom name, got %q", got)
+	if got := readAPIError(t, response.Body); got != "symptom name contains invalid characters" {
+		t.Fatalf("expected invalid character error, got %q", got)
+	}
+}
+
+func TestCreateSymptomRejectsTooLongName(t *testing.T) {
+	app, database := newOnboardingTestApp(t)
+	user := createOnboardingTestUser(t, database, "create-symptom-too-long@example.com", "StrongPass1", true)
+	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
+
+	request := httptest.NewRequest(http.MethodPost, "/api/symptoms", strings.NewReader(`{"name":"12345678901234567890123456789012345678901","icon":"x","color":"#123456"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("Cookie", authCookie)
+
+	response, err := app.Test(request, -1)
+	if err != nil {
+		t.Fatalf("create too-long symptom request failed: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", response.StatusCode)
+	}
+	if got := readAPIError(t, response.Body); got != "symptom name is too long" {
+		t.Fatalf("expected name-too-long error, got %q", got)
 	}
 }
 

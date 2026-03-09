@@ -200,7 +200,9 @@ type SymptomCreateErrorKind uint8
 
 const (
 	SymptomCreateErrorUnknown SymptomCreateErrorKind = iota
-	SymptomCreateErrorInvalidName
+	SymptomCreateErrorNameRequired
+	SymptomCreateErrorNameTooLong
+	SymptomCreateErrorNameInvalidCharacters
 	SymptomCreateErrorInvalidColor
 	SymptomCreateErrorDuplicateName
 	SymptomCreateErrorFailed
@@ -208,8 +210,12 @@ const (
 
 func ClassifySymptomCreateError(err error) SymptomCreateErrorKind {
 	switch {
-	case errors.Is(err, ErrInvalidSymptomName):
-		return SymptomCreateErrorInvalidName
+	case errors.Is(err, ErrSymptomNameRequired):
+		return SymptomCreateErrorNameRequired
+	case errors.Is(err, ErrSymptomNameTooLong):
+		return SymptomCreateErrorNameTooLong
+	case errors.Is(err, ErrSymptomNameInvalidCharacters):
+		return SymptomCreateErrorNameInvalidCharacters
 	case errors.Is(err, ErrInvalidSymptomColor):
 		return SymptomCreateErrorInvalidColor
 	case errors.Is(err, ErrSymptomNameAlreadyExists):
@@ -226,7 +232,9 @@ type SymptomUpdateErrorKind uint8
 const (
 	SymptomUpdateErrorUnknown SymptomUpdateErrorKind = iota
 	SymptomUpdateErrorNotFound
-	SymptomUpdateErrorInvalidName
+	SymptomUpdateErrorNameRequired
+	SymptomUpdateErrorNameTooLong
+	SymptomUpdateErrorNameInvalidCharacters
 	SymptomUpdateErrorInvalidColor
 	SymptomUpdateErrorDuplicateName
 	SymptomUpdateErrorBuiltinForbidden
@@ -237,8 +245,12 @@ func ClassifySymptomUpdateError(err error) SymptomUpdateErrorKind {
 	switch {
 	case errors.Is(err, ErrSymptomNotFound):
 		return SymptomUpdateErrorNotFound
-	case errors.Is(err, ErrInvalidSymptomName):
-		return SymptomUpdateErrorInvalidName
+	case errors.Is(err, ErrSymptomNameRequired):
+		return SymptomUpdateErrorNameRequired
+	case errors.Is(err, ErrSymptomNameTooLong):
+		return SymptomUpdateErrorNameTooLong
+	case errors.Is(err, ErrSymptomNameInvalidCharacters):
+		return SymptomUpdateErrorNameInvalidCharacters
 	case errors.Is(err, ErrInvalidSymptomColor):
 		return SymptomUpdateErrorInvalidColor
 	case errors.Is(err, ErrSymptomNameAlreadyExists):

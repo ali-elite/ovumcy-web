@@ -53,8 +53,16 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 	}
 
 	if viewData.HasOwnerSymptomsView {
-		data["ActiveCustomSymptoms"] = viewData.Symptoms.ActiveCustomSymptoms
-		data["ArchivedCustomSymptoms"] = viewData.Symptoms.ArchivedCustomSymptoms
+		data["ActiveCustomSymptoms"] = buildSettingsSymptomRows(viewData.Symptoms.ActiveCustomSymptoms, settingsSymptomRowState{}, func(source string) string {
+			return localizedSettingsSymptomStatus(c, source)
+		}, func(source string) string {
+			return localizedSettingsSymptomError(c, source)
+		})
+		data["ArchivedCustomSymptoms"] = buildSettingsSymptomRows(viewData.Symptoms.ArchivedCustomSymptoms, settingsSymptomRowState{}, func(source string) string {
+			return localizedSettingsSymptomStatus(c, source)
+		}, func(source string) string {
+			return localizedSettingsSymptomError(c, source)
+		})
 		data["HasCustomSymptoms"] = viewData.Symptoms.HasCustomSymptoms
 		data["HasArchivedSymptoms"] = viewData.Symptoms.HasArchivedSymptoms
 		data["SymptomStatusMessage"] = ""
@@ -62,6 +70,8 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 		data["SymptomDraftName"] = ""
 		data["SymptomDraftIcon"] = defaultSymptomDraftIcon("")
 		data["SymptomDraftColor"] = defaultSymptomDraftColor("")
+		data["SymptomIconOptions"] = buildSettingsSymptomIconOptions("")
+		data["SymptomColorOptions"] = buildSettingsSymptomColorOptions("")
 	}
 
 	return data, nil

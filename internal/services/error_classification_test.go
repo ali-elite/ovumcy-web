@@ -77,8 +77,14 @@ func TestClassifyRangeAndDayErrors(t *testing.T) {
 }
 
 func TestClassifySymptomAndSettingsErrors(t *testing.T) {
-	if got := ClassifySymptomCreateError(ErrInvalidSymptomName); got != SymptomCreateErrorInvalidName {
-		t.Fatalf("expected SymptomCreateErrorInvalidName, got %v", got)
+	if got := ClassifySymptomCreateError(ErrSymptomNameRequired); got != SymptomCreateErrorNameRequired {
+		t.Fatalf("expected SymptomCreateErrorNameRequired, got %v", got)
+	}
+	if got := ClassifySymptomCreateError(ErrSymptomNameTooLong); got != SymptomCreateErrorNameTooLong {
+		t.Fatalf("expected SymptomCreateErrorNameTooLong, got %v", got)
+	}
+	if got := ClassifySymptomCreateError(ErrSymptomNameInvalidCharacters); got != SymptomCreateErrorNameInvalidCharacters {
+		t.Fatalf("expected SymptomCreateErrorNameInvalidCharacters, got %v", got)
 	}
 	if got := ClassifySymptomCreateError(ErrSymptomNameAlreadyExists); got != SymptomCreateErrorDuplicateName {
 		t.Fatalf("expected SymptomCreateErrorDuplicateName, got %v", got)

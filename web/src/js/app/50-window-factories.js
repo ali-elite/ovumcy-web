@@ -374,6 +374,64 @@
     return normalized;
   }
 
+  function syncIconOptionButtons(root, activeIcon) {
+    if (!root || !root.querySelectorAll) {
+      return;
+    }
+
+    var normalized = String(activeIcon || "").trim();
+    var buttons = root.querySelectorAll("[data-icon-option]");
+    for (var index = 0; index < buttons.length; index++) {
+      var button = buttons[index];
+      var selected = String(button.getAttribute("data-icon-option") || "") === normalized;
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+      button.setAttribute("data-selected", selected ? "true" : "false");
+    }
+  }
+
+  function syncIconControl(root, nextValue) {
+    if (!root || !root.querySelector) {
+      return;
+    }
+
+    var valueInput = root.querySelector("[data-icon-value]");
+    var normalized = String(nextValue || "").trim();
+    if (!normalized && valueInput) {
+      normalized = String(valueInput.value || "").trim();
+    }
+    if (!normalized) {
+      normalized = "✨";
+    }
+
+    if (valueInput) {
+      valueInput.value = normalized;
+    }
+
+    syncIconOptionButtons(root, normalized);
+  }
+
+  function bindIconControls() {
+    var roots = document.querySelectorAll("[data-icon-control]");
+    for (var index = 0; index < roots.length; index++) {
+      var root = roots[index];
+      if (root.dataset.iconControlBound !== "1") {
+        root.dataset.iconControlBound = "1";
+
+        root.addEventListener("click", function (event) {
+          var button = closestFromEvent(event, "[data-icon-option]");
+          if (!button || !this.contains(button)) {
+            return;
+          }
+
+          event.preventDefault();
+          syncIconControl(this, button.getAttribute("data-icon-option"));
+        });
+      }
+
+      syncIconControl(root);
+    }
+  }
+
   function syncColorPresetButtons(root, activeColor) {
     if (!root || !root.querySelectorAll) {
       return;
@@ -395,14 +453,10 @@
     }
 
     var valueInput = root.querySelector("[data-color-value]");
-    var picker = root.querySelector("[data-color-picker]");
     var normalized = normalizeHexColor(nextValue);
 
     if (!normalized && valueInput) {
       normalized = normalizeHexColor(valueInput.value);
-    }
-    if (!normalized && picker) {
-      normalized = normalizeHexColor(picker.value);
     }
     if (!normalized) {
       normalized = "#E8799F";
@@ -410,9 +464,6 @@
 
     if (valueInput) {
       valueInput.value = normalized;
-    }
-    if (picker) {
-      picker.value = normalized;
     }
 
     syncColorPresetButtons(root, normalized);
@@ -433,37 +484,6 @@
 
           event.preventDefault();
           syncColorControl(this, button.getAttribute("data-color-preset"));
-        });
-
-        root.addEventListener("input", function (event) {
-          if (!event.target || !event.target.matches) {
-            return;
-          }
-
-          if (event.target.matches("[data-color-picker]")) {
-            syncColorControl(this, event.target.value);
-            return;
-          }
-
-          if (!event.target.matches("[data-color-value]")) {
-            return;
-          }
-
-          var normalized = normalizeHexColor(event.target.value);
-          event.target.value = String(event.target.value || "").toUpperCase();
-          syncColorPresetButtons(this, normalized);
-          if (normalized) {
-            syncColorControl(this, normalized);
-          }
-        });
-
-        root.addEventListener("change", function (event) {
-          if (!event.target || !event.target.matches) {
-            return;
-          }
-          if (event.target.matches("[data-color-value], [data-color-picker]")) {
-            syncColorControl(this, event.target.value);
-          }
         });
       }
 
@@ -933,6 +953,7 @@
     bindMobileMenu();
     bindPWAInstallBanner();
     bindSettingsCycleForms();
+    bindIconControls();
     bindColorControls();
     bindDashboardEditors();
     bindDayEditorForms();

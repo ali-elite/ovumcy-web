@@ -71,6 +71,18 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
   expect(hasOverflow).toBe(false);
 }
 
+async function selectSymptomIcon(root: Locator, icon: string): Promise<void> {
+  const control = root.locator('[data-icon-control]');
+  await control.locator(`[data-icon-option="${icon}"]`).click();
+  await expect(control.locator('[data-icon-value]')).toHaveValue(icon);
+}
+
+async function selectSymptomColor(root: Locator, color: string): Promise<void> {
+  const control = root.locator('[data-color-control]');
+  await control.locator(`[data-color-preset="${color}"]`).click();
+  await expect(control.locator('[data-color-value]')).toHaveValue(color);
+}
+
 async function registerOwnerAndOpenSettings(page: Page, prefix: string) {
   const creds = createCredentials(prefix);
 
@@ -255,8 +267,8 @@ test.describe('Settings: profile and cycle', () => {
 
     const createForm = symptomSection.locator('[data-symptom-create-form]');
     await createForm.locator('#settings-new-symptom-name').fill('Joint stiffness');
-    await createForm.locator('#settings-new-symptom-icon').fill('J');
-    await createForm.locator('[data-color-preset="#64748B"]').click();
+    await selectSymptomIcon(createForm, '✨');
+    await selectSymptomColor(createForm, '#64748B');
     await expect(createForm.locator('#settings-new-symptom-color')).toHaveValue('#64748B');
     await createForm.locator('button[type="submit"]').click();
 
@@ -288,11 +300,29 @@ test.describe('Settings: profile and cycle', () => {
     const activeRow = page.locator(
       '[data-custom-symptom-row][data-symptom-name="Joint stiffness"][data-symptom-state="active"]'
     );
+    const saveButtonBox = await activeRow.locator('[data-symptom-edit-form] button[type="submit"]').boundingBox();
+    const hideButtonBox = await activeRow.locator('form[action$="/archive"] button[type="submit"]').boundingBox();
+    expect(saveButtonBox).not.toBeNull();
+    expect(hideButtonBox).not.toBeNull();
+    expect(hideButtonBox!.y).toBeGreaterThan(saveButtonBox!.y + 4);
+
     await activeRow.locator('form[action$="/archive"] button[type="submit"]').click();
-    await expect(symptomSection.locator('.status-ok')).toBeVisible();
+    await expect(page.locator('#confirm-modal')).toBeVisible();
+    await page.locator('#confirm-modal-accept').click();
+    await expect(
+      symptomSection.locator(
+        '[data-custom-symptom-row][data-symptom-name="Joint stiffness"][data-symptom-state="archived"] [data-symptom-row-success]'
+      )
+    ).toBeVisible();
     await expect(
       symptomSection.locator('[data-custom-symptom-row][data-symptom-name="Joint stiffness"][data-symptom-state="archived"]')
     ).toBeVisible();
+
+    await createForm.locator('#settings-new-symptom-name').fill('Joint support');
+    await selectSymptomIcon(createForm, '🔥');
+    await selectSymptomColor(createForm, '#14B8A6');
+    await createForm.locator('button[type="submit"]').click();
+    await expect(symptomSection.locator('.status-ok')).toBeVisible();
 
     await page.goto('/dashboard');
     await expect(page.locator('input[name="symptom_ids"][data-symptom-name="Joint stiffness"]')).toBeVisible();
@@ -310,28 +340,41 @@ test.describe('Settings: profile and cycle', () => {
       '[data-custom-symptom-row][data-symptom-name="Joint stiffness"][data-symptom-state="archived"]'
     );
     await archivedRow.locator('input[name="name"]').fill('Joint support');
-    await archivedRow.locator('input[name="icon"]').fill('S');
-    await archivedRow.locator('input[name="color"]').fill('#556677');
+    await selectSymptomIcon(archivedRow.locator('[data-symptom-edit-form]'), '⚡');
+    await selectSymptomColor(archivedRow.locator('[data-symptom-edit-form]'), '#38BDF8');
     await archivedRow.locator('[data-symptom-edit-form] button[type="submit"]').click();
-    await expect(symptomSection.locator('.status-ok')).toBeVisible();
+    await expect(archivedRow.locator('[data-symptom-row-error]')).toContainText(
+      'That symptom name already exists in your list.'
+    );
+    await expect(archivedRow.locator('input[name="name"]')).toHaveValue('Joint support');
+
+    await archivedRow.locator('input[name="name"]').fill('Joint ease');
+    await selectSymptomIcon(archivedRow.locator('[data-symptom-edit-form]'), '💧');
+    await selectSymptomColor(archivedRow.locator('[data-symptom-edit-form]'), '#38BDF8');
+    await archivedRow.locator('[data-symptom-edit-form] button[type="submit"]').click();
 
     const renamedArchivedRow = page.locator(
-      '[data-custom-symptom-row][data-symptom-name="Joint support"][data-symptom-state="archived"]'
+      '[data-custom-symptom-row][data-symptom-name="Joint ease"][data-symptom-state="archived"]'
     );
     await expect(renamedArchivedRow).toBeVisible();
+    await expect(renamedArchivedRow.locator('[data-symptom-row-success]')).toBeVisible();
     await renamedArchivedRow.locator('form[action$="/restore"] button[type="submit"]').click();
-    await expect(symptomSection.locator('.status-ok')).toBeVisible();
+    await expect(
+      symptomSection.locator(
+        '[data-custom-symptom-row][data-symptom-name="Joint ease"][data-symptom-state="active"] [data-symptom-row-success]'
+      )
+    ).toBeVisible();
     await expect(
       symptomSection.locator('[data-custom-symptom-row][data-symptom-name="Joint support"][data-symptom-state="active"]')
     ).toBeVisible();
 
     await page.goto(`/calendar?month=${otherMonth}&day=${otherISO}`);
     await expect(
-      page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${otherISO}"] input[name="symptom_ids"][data-symptom-name="Joint support"]`)
+      page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${otherISO}"] input[name="symptom_ids"][data-symptom-name="Joint ease"]`)
     ).toBeVisible();
   });
 
-  test('custom symptom validation blocks duplicate, built-in, and markup names without layout overflow', async ({
+  test('custom symptom validation blocks duplicate, built-in, invalid markup, and long names without layout overflow', async ({
     page,
   }) => {
     await registerOwnerAndOpenSettings(page, 'settings-custom-symptom-validation');
@@ -340,8 +383,8 @@ test.describe('Settings: profile and cycle', () => {
     const createForm = symptomSection.locator('[data-symptom-create-form]');
 
     await createForm.locator('#settings-new-symptom-name').fill('Joint stiffness');
-    await createForm.locator('#settings-new-symptom-icon').fill('J');
-    await createForm.locator('[data-color-preset="#8B5CF6"]').click();
+    await selectSymptomIcon(createForm, '✨');
+    await selectSymptomColor(createForm, '#8B5CF6');
     await expect(createForm.locator('#settings-new-symptom-color')).toHaveValue('#8B5CF6');
     await createForm.locator('button[type="submit"]').click();
     await expect(symptomSection.locator('.status-ok')).toBeVisible();
@@ -350,30 +393,39 @@ test.describe('Settings: profile and cycle', () => {
     ).toBeVisible();
 
     await createForm.locator('#settings-new-symptom-name').fill(' joint STIFFNESS ');
-    await createForm.locator('#settings-new-symptom-icon').fill('K');
-    await createForm.locator('#settings-new-symptom-color').fill('#334455');
+    await selectSymptomIcon(createForm, '🔥');
+    await selectSymptomColor(createForm, '#D4A574');
     await createForm.locator('button[type="submit"]').click();
-    await expect(symptomSection.locator('.status-error')).toBeVisible();
+    await expect(symptomSection.locator('.status-error')).toContainText('That symptom name already exists in your list.');
     await expect(
       symptomSection.locator('[data-custom-symptom-row][data-symptom-name="Joint stiffness"]')
     ).toHaveCount(1);
 
     await createForm.locator('#settings-new-symptom-name').fill('Усталость');
     await createForm.locator('button[type="submit"]').click();
-    await expect(symptomSection.locator('.status-error')).toBeVisible();
+    await expect(symptomSection.locator('.status-error')).toContainText('That symptom name already exists in your list.');
 
     await createForm.locator('#settings-new-symptom-name').fill('<script>alert(1)</script>');
     await createForm.locator('button[type="submit"]').click();
-    await expect(symptomSection.locator('.status-error')).toBeVisible();
+    await expect(symptomSection.locator('.status-error')).toContainText(
+      'Use plain text only. Tags and angle brackets are not allowed.'
+    );
 
-    const longName = `${'А'.repeat(18)} ${'Головокружение'.repeat(2)} ${'Б'.repeat(18)}`;
-    await createForm.locator('#settings-new-symptom-name').fill(longName);
-    await createForm.locator('#settings-new-symptom-icon').fill('L');
-    await createForm.locator('#settings-new-symptom-color').fill('#556677');
+    const tooLongName = '12345678901234567890123456789012345678901';
+    await createForm.locator('#settings-new-symptom-name').fill(tooLongName);
+    await createForm.locator('button[type="submit"]').click();
+    await expect(symptomSection.locator('.status-error')).toContainText(
+      'Use 40 characters or fewer. For longer details, use notes.'
+    );
+
+    const longButAllowedName = 'Long symptom after evening workout';
+    await createForm.locator('#settings-new-symptom-name').fill(longButAllowedName);
+    await selectSymptomIcon(createForm, '⚡');
+    await selectSymptomColor(createForm, '#64748B');
     await createForm.locator('button[type="submit"]').click();
     await expect(symptomSection.locator('.status-ok')).toBeVisible();
     await expect(
-      symptomSection.locator(`[data-custom-symptom-row][data-symptom-name="${longName}"][data-symptom-state="active"]`)
+      symptomSection.locator(`[data-custom-symptom-row][data-symptom-name="${longButAllowedName}"][data-symptom-state="active"]`)
     ).toBeVisible();
 
     await assertNoHorizontalOverflow(page);
@@ -382,7 +434,7 @@ test.describe('Settings: profile and cycle', () => {
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.locator('input[name="is_period"]').check();
     await expect(
-      page.locator(`input[name="symptom_ids"][data-symptom-name="${longName}"]`)
+      page.locator(`input[name="symptom_ids"][data-symptom-name="${longButAllowedName}"]`)
     ).toBeVisible();
     await assertNoHorizontalOverflow(page);
 

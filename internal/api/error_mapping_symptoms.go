@@ -7,8 +7,12 @@ import (
 
 func mapSymptomCreateError(err error) APIErrorSpec {
 	switch services.ClassifySymptomCreateError(err) {
-	case services.SymptomCreateErrorInvalidName:
-		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom name")
+	case services.SymptomCreateErrorNameRequired:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name is required")
+	case services.SymptomCreateErrorNameTooLong:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name is too long")
+	case services.SymptomCreateErrorNameInvalidCharacters:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name contains invalid characters")
 	case services.SymptomCreateErrorInvalidColor:
 		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom color")
 	case services.SymptomCreateErrorDuplicateName:
@@ -24,8 +28,12 @@ func mapSymptomUpdateError(err error) APIErrorSpec {
 	switch services.ClassifySymptomUpdateError(err) {
 	case services.SymptomUpdateErrorNotFound:
 		return settingsFormErrorSpec(fiber.StatusNotFound, APIErrorCategoryNotFound, "symptom not found")
-	case services.SymptomUpdateErrorInvalidName:
-		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom name")
+	case services.SymptomUpdateErrorNameRequired:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name is required")
+	case services.SymptomUpdateErrorNameTooLong:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name is too long")
+	case services.SymptomUpdateErrorNameInvalidCharacters:
+		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name contains invalid characters")
 	case services.SymptomUpdateErrorInvalidColor:
 		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom color")
 	case services.SymptomUpdateErrorDuplicateName:

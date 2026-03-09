@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/models"
@@ -102,6 +103,74 @@ func TestSettingsSymptomsHTMXCreateArchiveRestoreRerendersSection(t *testing.T) 
 	renderedRestore := string(restoreBody)
 	if !strings.Contains(renderedRestore, `data-symptom-state="active"`) {
 		t.Fatalf("expected active custom symptom row after restore, got %q", renderedRestore)
+	}
+}
+
+func TestSettingsSymptomsHTMXUpdateDuplicateShowsRowLocalError(t *testing.T) {
+	app, database := newOnboardingTestAppWithCSRF(t)
+	user := createOnboardingTestUser(t, database, "settings-symptoms-htmx-duplicate@example.com", "StrongPass1", true)
+	authCookie := loginAndExtractAuthCookieWithCSRF(t, app, user.Email, "StrongPass1")
+	csrfCookie, csrfToken := loadSettingsCSRFContext(t, app, authCookie)
+
+	active := models.SymptomType{
+		UserID: user.ID,
+		Name:   "Joint stiffness",
+		Icon:   "✨",
+		Color:  "#334455",
+	}
+	if err := database.Create(&active).Error; err != nil {
+		t.Fatalf("create active symptom: %v", err)
+	}
+
+	archivedAt := time.Now().UTC()
+	archived := models.SymptomType{
+		UserID:     user.ID,
+		Name:       "Joint support",
+		Icon:       "🔥",
+		Color:      "#14B8A6",
+		ArchivedAt: &archivedAt,
+	}
+	if err := database.Create(&archived).Error; err != nil {
+		t.Fatalf("create archived symptom: %v", err)
+	}
+
+	updateForm := url.Values{
+		"csrf_token": {csrfToken},
+		"name":       {"Joint stiffness"},
+		"icon":       {"🔥"},
+		"color":      {"#14B8A6"},
+	}
+	updateRequest := httptest.NewRequest(http.MethodPost, "/api/symptoms/"+strconv.FormatUint(uint64(archived.ID), 10), strings.NewReader(updateForm.Encode()))
+	updateRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	updateRequest.Header.Set("HX-Request", "true")
+	updateRequest.Header.Set("Cookie", joinCookieHeader(authCookie, cookiePair(csrfCookie)))
+
+	updateResponse, err := app.Test(updateRequest, -1)
+	if err != nil {
+		t.Fatalf("update duplicate symptom htmx request failed: %v", err)
+	}
+	defer updateResponse.Body.Close()
+
+	if updateResponse.StatusCode != http.StatusOK {
+		t.Fatalf("expected htmx update status 200, got %d", updateResponse.StatusCode)
+	}
+	updateBody, err := io.ReadAll(updateResponse.Body)
+	if err != nil {
+		t.Fatalf("read htmx update body: %v", err)
+	}
+	renderedUpdate := string(updateBody)
+	if !strings.Contains(renderedUpdate, `data-symptom-id="`+strconv.FormatUint(uint64(archived.ID), 10)+`"`) {
+		t.Fatalf("expected archived symptom row to be present after duplicate update, got %q", renderedUpdate)
+	}
+	if !strings.Contains(renderedUpdate, `data-symptom-row-error`) {
+		t.Fatalf("expected row-local error block in htmx response, got %q", renderedUpdate)
+	}
+	if !strings.Contains(renderedUpdate, `That symptom name already exists in your list.`) {
+		t.Fatalf("expected localized duplicate-name error, got %q", renderedUpdate)
+	}
+	if !strings.Contains(renderedUpdate, `id="settings-symptom-name-`+strconv.FormatUint(uint64(archived.ID), 10)+`"`) ||
+		!strings.Contains(renderedUpdate, `value="Joint stiffness"`) {
+		t.Fatalf("expected duplicate draft name to remain in the archived row, got %q", renderedUpdate)
 	}
 }
 

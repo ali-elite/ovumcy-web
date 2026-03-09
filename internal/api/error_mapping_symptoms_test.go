@@ -15,9 +15,19 @@ func TestMapSymptomCreateError(t *testing.T) {
 		want APIErrorSpec
 	}{
 		{
-			name: "invalid name",
-			err:  services.ErrInvalidSymptomName,
-			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid symptom name"),
+			name: "name required",
+			err:  services.ErrSymptomNameRequired,
+			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name is required"),
+		},
+		{
+			name: "name too long",
+			err:  services.ErrSymptomNameTooLong,
+			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name is too long"),
+		},
+		{
+			name: "name invalid characters",
+			err:  services.ErrSymptomNameInvalidCharacters,
+			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name contains invalid characters"),
 		},
 		{
 			name: "invalid color",
@@ -61,6 +71,11 @@ func TestMapSymptomUpdateArchiveAndRestoreErrors(t *testing.T) {
 			name: "update builtin forbidden",
 			got:  mapSymptomUpdateError(services.ErrBuiltinSymptomEditForbidden),
 			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "built-in symptom cannot be edited"),
+		},
+		{
+			name: "update name too long",
+			got:  mapSymptomUpdateError(services.ErrSymptomNameTooLong),
+			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "symptom name is too long"),
 		},
 		{
 			name: "archive builtin forbidden",
