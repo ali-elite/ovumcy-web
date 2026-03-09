@@ -84,12 +84,7 @@ func TestTamperedSealedFlashCookieIsIgnoredAndCleared(t *testing.T) {
 		t.Fatal("expected flash cookie in login error response")
 	}
 
-	tamperedValue := flashCookie.Value
-	if strings.HasSuffix(tamperedValue, "A") {
-		tamperedValue = tamperedValue[:len(tamperedValue)-1] + "B"
-	} else {
-		tamperedValue = tamperedValue[:len(tamperedValue)-1] + "A"
-	}
+	tamperedValue := tamperSealedCookieValueForTest(t, flashCookie.Value)
 
 	pageRequest := httptest.NewRequest(http.MethodGet, "/login", nil)
 	pageRequest.Header.Set("Accept-Language", "en")
@@ -111,4 +106,25 @@ func TestTamperedSealedFlashCookieIsIgnoredAndCleared(t *testing.T) {
 	if clearedCookie.Value != "" {
 		t.Fatalf("expected cleared flash cookie, got %#v", clearedCookie)
 	}
+}
+
+func tamperSealedCookieValueForTest(t *testing.T, rawValue string) string {
+	t.Helper()
+
+	version, encodedPayload, found := strings.Cut(strings.TrimSpace(rawValue), ".")
+	if !found || version != secureCookieVersion || strings.TrimSpace(encodedPayload) == "" {
+		t.Fatalf("expected sealed cookie value with %q prefix, got %q", secureCookieVersion+".", rawValue)
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(encodedPayload)
+	if err != nil {
+		t.Fatalf("decode sealed cookie payload: %v", err)
+	}
+	if len(payload) == 0 {
+		t.Fatal("expected non-empty sealed cookie payload")
+	}
+
+	payload[len(payload)-1] ^= 0x01
+
+	return version + "." + base64.RawURLEncoding.EncodeToString(payload)
 }

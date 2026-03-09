@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func TestDashboardLogoutFormsRequireConfirmation(t *testing.T) {
@@ -83,9 +85,21 @@ func TestDashboardLanguageSwitchShowsVisibleENRUAndESLabels(t *testing.T) {
 	user := createOnboardingTestUser(t, database, "lang-switch-labels@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
+	assertDashboardLanguageSwitchState(t, mustRenderDashboard(t, app, authCookie, ""), "EN")
+	assertDashboardLanguageSwitchState(t, mustRenderDashboard(t, app, authCookie, "ru"), "RU")
+	assertDashboardLanguageSwitchState(t, mustRenderDashboard(t, app, authCookie, "es"), "ES")
+}
+
+func mustRenderDashboard(t *testing.T, app *fiber.App, authCookie string, languageCookie string) string {
+	t.Helper()
+
 	request := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
 	request.Header.Set("Accept-Language", "en")
-	request.Header.Set("Cookie", authCookie)
+	if strings.TrimSpace(languageCookie) == "" {
+		request.Header.Set("Cookie", authCookie)
+	} else {
+		request.Header.Set("Cookie", authCookie+"; ovumcy_lang="+languageCookie)
+	}
 
 	response, err := app.Test(request, -1)
 	if err != nil {
@@ -101,69 +115,28 @@ func TestDashboardLanguageSwitchShowsVisibleENRUAndESLabels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read dashboard body: %v", err)
 	}
-	rendered := string(body)
-	if !strings.Contains(rendered, ">RU</a>") {
-		t.Fatalf("expected RU language label in switcher")
-	}
-	if !strings.Contains(rendered, ">EN</a>") {
-		t.Fatalf("expected EN language label in switcher")
-	}
-	if !strings.Contains(rendered, ">ES</a>") {
-		t.Fatalf("expected ES language label in switcher")
-	}
-	if !strings.Contains(rendered, `aria-current="page">EN</a>`) {
-		t.Fatalf("expected active EN language link to expose aria-current marker")
+	return string(body)
+}
+
+func assertDashboardLanguageSwitchState(t *testing.T, rendered string, activeLabel string) {
+	t.Helper()
+
+	for _, label := range []string{"RU", "EN", "ES"} {
+		if !strings.Contains(rendered, ">"+label+"</a>") {
+			t.Fatalf("expected %s language label in switcher", label)
+		}
 	}
 
-	russianRequest := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
-	russianRequest.Header.Set("Accept-Language", "en")
-	russianRequest.Header.Set("Cookie", authCookie+"; ovumcy_lang=ru")
-
-	russianResponse, err := app.Test(russianRequest, -1)
-	if err != nil {
-		t.Fatalf("dashboard request with russian cookie failed: %v", err)
-	}
-	defer russianResponse.Body.Close()
-
-	if russianResponse.StatusCode != http.StatusOK {
-		t.Fatalf("expected status 200 for russian dashboard, got %d", russianResponse.StatusCode)
+	if !strings.Contains(rendered, `aria-current="page">`+activeLabel+`</a>`) {
+		t.Fatalf("expected active %s language link to expose aria-current marker", activeLabel)
 	}
 
-	russianBody, err := io.ReadAll(russianResponse.Body)
-	if err != nil {
-		t.Fatalf("read russian dashboard body: %v", err)
-	}
-	renderedRussian := string(russianBody)
-	if !strings.Contains(renderedRussian, `aria-current="page">RU</a>`) {
-		t.Fatalf("expected active RU language link to expose aria-current marker")
-	}
-	if strings.Contains(renderedRussian, `aria-current="page">EN</a>`) {
-		t.Fatalf("did not expect EN link to stay active when russian language cookie is set")
-	}
-
-	spanishRequest := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
-	spanishRequest.Header.Set("Accept-Language", "en")
-	spanishRequest.Header.Set("Cookie", authCookie+"; ovumcy_lang=es")
-
-	spanishResponse, err := app.Test(spanishRequest, -1)
-	if err != nil {
-		t.Fatalf("dashboard request with spanish cookie failed: %v", err)
-	}
-	defer spanishResponse.Body.Close()
-
-	if spanishResponse.StatusCode != http.StatusOK {
-		t.Fatalf("expected status 200 for spanish dashboard, got %d", spanishResponse.StatusCode)
-	}
-
-	spanishBody, err := io.ReadAll(spanishResponse.Body)
-	if err != nil {
-		t.Fatalf("read spanish dashboard body: %v", err)
-	}
-	renderedSpanish := string(spanishBody)
-	if !strings.Contains(renderedSpanish, `aria-current="page">ES</a>`) {
-		t.Fatalf("expected active ES language link to expose aria-current marker")
-	}
-	if strings.Contains(renderedSpanish, `aria-current="page">EN</a>`) {
-		t.Fatalf("did not expect EN link to stay active when spanish language cookie is set")
+	for _, label := range []string{"RU", "EN", "ES"} {
+		if label == activeLabel {
+			continue
+		}
+		if strings.Contains(rendered, `aria-current="page">`+label+`</a>`) {
+			t.Fatalf("did not expect %s link to stay active when %s is selected", label, activeLabel)
+		}
 	}
 }
