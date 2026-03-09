@@ -1,5 +1,5 @@
   function createContext(section) {
-    var locale = (document.documentElement.getAttribute("lang") || "").toLowerCase().indexOf("ru") === 0 ? "ru-RU" : "en-US";
+    var locale = browserLocaleFromLanguage(document.documentElement.getAttribute("lang") || "");
     var monthFormatter = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" });
     var weekdayFormatter = new Intl.DateTimeFormat(locale, { weekday: "short" });
     var monthNameFormatter = new Intl.DateTimeFormat(locale, { month: "long" });

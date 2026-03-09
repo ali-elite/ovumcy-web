@@ -40,20 +40,37 @@ func (handler *Handler) withTemplateDefaults(c *fiber.Ctx, data fiber.Map) fiber
 	}
 
 	messages := currentMessages(c)
-	if _, ok := data["Messages"]; !ok {
+	language := currentLanguage(c)
+	if language == "" {
+		language = handler.i18n.DefaultLanguage()
+	}
+	currentPath := currentPathWithQuery(c)
+	supportedLanguages := handler.i18n.SupportedLanguages()
+
+	if existingMessages, ok := data["Messages"].(map[string]string); ok && existingMessages != nil {
+		messages = existingMessages
+	} else {
 		data["Messages"] = messages
 	}
 
-	if _, ok := data["Lang"]; !ok {
-		language := currentLanguage(c)
-		if language == "" {
-			language = handler.i18n.DefaultLanguage()
-		}
+	if existingLanguage, ok := data["Lang"].(string); ok && strings.TrimSpace(existingLanguage) != "" {
+		language = existingLanguage
+	} else {
 		data["Lang"] = language
 	}
 
-	if _, ok := data["CurrentPath"]; !ok {
-		data["CurrentPath"] = currentPathWithQuery(c)
+	if existingPath, ok := data["CurrentPath"].(string); ok && strings.TrimSpace(existingPath) != "" {
+		currentPath = existingPath
+	} else {
+		data["CurrentPath"] = currentPath
+	}
+
+	if _, ok := data["SupportedLanguageCodes"]; !ok {
+		data["SupportedLanguageCodes"] = supportedLanguages
+	}
+
+	if _, ok := data["LanguageOptions"]; !ok {
+		data["LanguageOptions"] = buildLanguageSwitchOptions(messages, currentPath, language, supportedLanguages)
 	}
 
 	if _, ok := data["CSRFToken"]; !ok {

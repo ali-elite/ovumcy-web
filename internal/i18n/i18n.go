@@ -12,6 +12,7 @@ import (
 const (
 	LangRU = "ru"
 	LangEN = "en"
+	LangES = "es"
 )
 
 type Manager struct {
@@ -58,11 +59,11 @@ func NewManager(defaultLanguage string, localesDir string) (*Manager, error) {
 	if len(manager.supported) == 0 {
 		return nil, fmt.Errorf("no locales found in %s", localesDir)
 	}
-	if _, ok := manager.locales[LangRU]; !ok {
-		return nil, fmt.Errorf("required locale %q missing", LangRU)
-	}
-	if _, ok := manager.locales[LangEN]; !ok {
-		return nil, fmt.Errorf("required locale %q missing", LangEN)
+
+	for _, language := range []string{LangEN, LangES, LangRU} {
+		if _, ok := manager.locales[language]; !ok {
+			return nil, fmt.Errorf("required locale %q missing", language)
+		}
 	}
 
 	sort.Strings(manager.supported)

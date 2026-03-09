@@ -190,7 +190,7 @@
     return detected;
   }
 
-  function parseLanguage(raw) {
+  function normalizeLanguageCode(raw) {
     if (!raw) {
       return "";
     }
@@ -201,10 +201,41 @@
     if (normalized.indexOf("-") !== -1) {
       normalized = normalized.split("-")[0];
     }
-    if (normalized !== "en" && normalized !== "ru") {
+    return normalized;
+  }
+
+  function supportedLanguages() {
+    var root = document.documentElement;
+    var raw = root ? root.getAttribute("data-supported-languages") : "";
+    if (!raw) {
+      return ["en"];
+    }
+
+    try {
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.length) {
+        return ["en"];
+      }
+
+      var supported = [];
+      for (var index = 0; index < parsed.length; index++) {
+        var normalized = normalizeLanguageCode(parsed[index]);
+        if (normalized && supported.indexOf(normalized) === -1) {
+          supported.push(normalized);
+        }
+      }
+      return supported.length ? supported : ["en"];
+    } catch {
+      return ["en"];
+    }
+  }
+
+  function parseLanguage(raw) {
+    var normalized = normalizeLanguageCode(raw);
+    if (!normalized) {
       return "";
     }
-    return normalized;
+    return supportedLanguages().indexOf(normalized) === -1 ? "" : normalized;
   }
 
   function readCookie(name) {

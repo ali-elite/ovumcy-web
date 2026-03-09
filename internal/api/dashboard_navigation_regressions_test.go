@@ -78,7 +78,7 @@ func TestDashboardNavigationShowsCurrentUserIdentity(t *testing.T) {
 	}
 }
 
-func TestDashboardLanguageSwitchShowsVisibleRUAndENLabels(t *testing.T) {
+func TestDashboardLanguageSwitchShowsVisibleENRUAndESLabels(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "lang-switch-labels@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
@@ -108,6 +108,9 @@ func TestDashboardLanguageSwitchShowsVisibleRUAndENLabels(t *testing.T) {
 	if !strings.Contains(rendered, ">EN</a>") {
 		t.Fatalf("expected EN language label in switcher")
 	}
+	if !strings.Contains(rendered, ">ES</a>") {
+		t.Fatalf("expected ES language label in switcher")
+	}
 	if !strings.Contains(rendered, `aria-current="page">EN</a>`) {
 		t.Fatalf("expected active EN language link to expose aria-current marker")
 	}
@@ -136,5 +139,31 @@ func TestDashboardLanguageSwitchShowsVisibleRUAndENLabels(t *testing.T) {
 	}
 	if strings.Contains(renderedRussian, `aria-current="page">EN</a>`) {
 		t.Fatalf("did not expect EN link to stay active when russian language cookie is set")
+	}
+
+	spanishRequest := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+	spanishRequest.Header.Set("Accept-Language", "en")
+	spanishRequest.Header.Set("Cookie", authCookie+"; ovumcy_lang=es")
+
+	spanishResponse, err := app.Test(spanishRequest, -1)
+	if err != nil {
+		t.Fatalf("dashboard request with spanish cookie failed: %v", err)
+	}
+	defer spanishResponse.Body.Close()
+
+	if spanishResponse.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200 for spanish dashboard, got %d", spanishResponse.StatusCode)
+	}
+
+	spanishBody, err := io.ReadAll(spanishResponse.Body)
+	if err != nil {
+		t.Fatalf("read spanish dashboard body: %v", err)
+	}
+	renderedSpanish := string(spanishBody)
+	if !strings.Contains(renderedSpanish, `aria-current="page">ES</a>`) {
+		t.Fatalf("expected active ES language link to expose aria-current marker")
+	}
+	if strings.Contains(renderedSpanish, `aria-current="page">EN</a>`) {
+		t.Fatalf("did not expect EN link to stay active when spanish language cookie is set")
 	}
 }

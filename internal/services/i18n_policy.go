@@ -92,6 +92,17 @@ func LocalizedSymptomFrequencySummary(language string, count int, days int) stri
 			russianPluralForm(days, "день", "дня", "дней"),
 		)
 	}
+	if lang == "es" {
+		countWord := "veces"
+		if count == 1 {
+			countWord = "vez"
+		}
+		dayWord := "días"
+		if days == 1 {
+			dayWord = "día"
+		}
+		return fmt.Sprintf("%d %s (en %d %s)", count, countWord, days, dayWord)
+	}
 
 	countWord := "times"
 	if count == 1 {

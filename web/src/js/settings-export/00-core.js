@@ -168,6 +168,32 @@
     return headers;
   }
 
+  function normalizeLanguageCode(raw) {
+    if (!raw) {
+      return "";
+    }
+
+    var normalized = String(raw).trim().toLowerCase().replace(/_/g, "-");
+    if (!normalized) {
+      return "";
+    }
+    if (normalized.indexOf("-") !== -1) {
+      normalized = normalized.split("-")[0];
+    }
+    return normalized;
+  }
+
+  function browserLocaleFromLanguage(raw) {
+    var normalized = normalizeLanguageCode(raw);
+    if (normalized === "ru") {
+      return "ru-RU";
+    }
+    if (normalized === "es") {
+      return "es-ES";
+    }
+    return "en-US";
+  }
+
   function parseFilenameFromDisposition(disposition, fallbackName) {
     if (!disposition) {
       return fallbackName;

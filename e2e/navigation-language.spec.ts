@@ -51,7 +51,7 @@ test.describe('Navigation and language switch', () => {
     await expect(page).toHaveURL(/\/dashboard$/);
   });
 
-  test('language switch on login page toggles RU/EN and persists after reload', async ({ page }) => {
+  test('language switch on login page toggles EN/ES/RU and persists after reload', async ({ page }) => {
     await page.goto('/login');
     await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
 
@@ -64,6 +64,16 @@ test.describe('Navigation and language switch', () => {
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('h1.journal-title')).toContainText('Log in to your account');
+
+    await page.locator('.lang-switch a[href^="/lang/es"]').click();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+    await expect(page.locator('h1.journal-title')).toContainText('Inicia sesión en tu cuenta');
+    await expect(page.locator('.lang-switch a[aria-current="page"]')).toHaveText('ES');
+
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+    await expect(page.locator('h1.journal-title')).toContainText('Inicia sesión en tu cuenta');
 
     await page.locator('.lang-switch a[href^="/lang/ru"]').click();
     await expect(page).toHaveURL(/\/login$/);
@@ -89,6 +99,12 @@ test.describe('Navigation and language switch', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('h1.journal-title')).toContainText('Settings');
     await expect(page.getByRole('link', { name: 'Dashboard' }).first()).toBeVisible();
+
+    await page.locator('.lang-switch a[href^="/lang/es"]').click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+    await expect(page.locator('h1.journal-title')).toContainText('Configuración');
+    await expect(page.getByRole('link', { name: 'Panel' }).first()).toBeVisible();
 
     await page.locator('.lang-switch a[href^="/lang/ru"]').click();
     await expect(page).toHaveURL(/\/settings$/);

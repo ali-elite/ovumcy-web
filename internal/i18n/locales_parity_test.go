@@ -11,25 +11,38 @@ import (
 )
 
 func TestLocaleKeysParity(t *testing.T) {
-	en := mustLoadLocaleMessages(t, "en")
-	ru := mustLoadLocaleMessages(t, "ru")
-
-	missingInRU := missingKeys(en, ru)
-	missingInEN := missingKeys(ru, en)
-
-	if len(missingInRU) == 0 && len(missingInEN) == 0 {
-		return
+	locales := mustLoadAllLocaleMessages(t)
+	reference, ok := locales[LangEN]
+	if !ok {
+		t.Fatalf("reference locale %q is missing", LangEN)
 	}
 
-	if len(missingInRU) > 0 {
-		t.Errorf("keys missing in ru locale: %s", strings.Join(missingInRU, ", "))
+	languages := make([]string, 0, len(locales))
+	for language := range locales {
+		languages = append(languages, language)
 	}
-	if len(missingInEN) > 0 {
-		t.Errorf("keys missing in en locale: %s", strings.Join(missingInEN, ", "))
+	sort.Strings(languages)
+
+	for _, language := range languages {
+		if language == LangEN {
+			continue
+		}
+
+		missing := missingKeys(reference, locales[language])
+		extra := missingKeys(locales[language], reference)
+		if len(missing) == 0 && len(extra) == 0 {
+			continue
+		}
+		if len(missing) > 0 {
+			t.Errorf("keys missing in %s locale: %s", language, strings.Join(missing, ", "))
+		}
+		if len(extra) > 0 {
+			t.Errorf("unexpected keys in %s locale: %s", language, strings.Join(extra, ", "))
+		}
 	}
 }
 
-func mustLoadLocaleMessages(t *testing.T, language string) map[string]string {
+func mustLoadAllLocaleMessages(t *testing.T) map[string]map[string]string {
 	t.Helper()
 
 	_, thisFile, _, ok := runtime.Caller(0)
@@ -37,22 +50,39 @@ func mustLoadLocaleMessages(t *testing.T, language string) map[string]string {
 		t.Fatalf("resolve test file path: runtime.Caller failed")
 	}
 	localesDir := filepath.Join(filepath.Dir(thisFile), "locales")
-	localePath := filepath.Join(localesDir, language+".json")
-
-	content, err := os.ReadFile(localePath)
+	entries, err := os.ReadDir(localesDir)
 	if err != nil {
-		t.Fatalf("read locale %q: %v", language, err)
+		t.Fatalf("read locales dir: %v", err)
 	}
 
-	messages := map[string]string{}
-	if err := json.Unmarshal(content, &messages); err != nil {
-		t.Fatalf("parse locale %q: %v", language, err)
-	}
-	if len(messages) == 0 {
-		t.Fatalf("locale %q is empty", language)
+	locales := make(map[string]map[string]string)
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+		language := strings.TrimSuffix(strings.ToLower(entry.Name()), filepath.Ext(entry.Name()))
+		localePath := filepath.Join(localesDir, entry.Name())
+
+		content, err := os.ReadFile(localePath)
+		if err != nil {
+			t.Fatalf("read locale %q: %v", language, err)
+		}
+
+		messages := map[string]string{}
+		if err := json.Unmarshal(content, &messages); err != nil {
+			t.Fatalf("parse locale %q: %v", language, err)
+		}
+		if len(messages) == 0 {
+			t.Fatalf("locale %q is empty", language)
+		}
+		locales[language] = messages
 	}
 
-	return messages
+	if len(locales) == 0 {
+		t.Fatal("expected at least one locale")
+	}
+
+	return locales
 }
 
 func missingKeys(source map[string]string, target map[string]string) []string {

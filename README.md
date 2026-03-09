@@ -95,7 +95,7 @@ No. Ovumcy provides estimates and logs based on recorded data. It is not a medic
 - Calendar and statistics views for longer-term pattern spotting.
 - Mobile home-screen install support on the current `main` branch.
 - CSV and JSON export for backup, portability, and personal review.
-- Russian and English localization.
+- English, Russian, and Spanish localization.
 - Self-hosted deployment with Docker or a single Go binary.
 
 ## Privacy and Security
@@ -212,6 +212,7 @@ TRUSTED_PROXIES=127.0.0.1,::1
 Important notes:
 
 - Always set a strong `SECRET_KEY`.
+- `DEFAULT_LANGUAGE` supports `en`, `ru`, and `es`.
 - Set `COOKIE_SECURE=true` when serving over HTTPS.
 - Enable `TRUST_PROXY_ENABLED` only when running behind a trusted reverse proxy.
 - SQLite is the supported baseline default; Postgres is an advanced self-hosted path that requires `DATABASE_URL`.
