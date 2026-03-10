@@ -54,6 +54,12 @@ async function saveTodayEntry(page: Page, note: string): Promise<void> {
 
   await page.locator('input[name="is_period"]').check();
   await page.locator('input[name="flow"][value="medium"]').check({ force: true });
+  const disclosure = page.locator('details.note-disclosure');
+  const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
+  if (!isOpen) {
+    await disclosure.locator('summary').click();
+  }
+  await expect(page.locator('#today-notes')).toBeVisible();
   await page.locator('#today-notes').fill(note);
 
   await page.locator('button[data-save-button]').first().click();
@@ -125,6 +131,12 @@ test.describe('Settings: password, export, clear data, delete account', () => {
     page,
   }) => {
     const state = await registerOwnerAndOpenSettings(page, 'settings-recovery-regenerate');
+
+    const advancedSecurity = page.locator('details.security-advanced');
+    const isAdvancedOpen = await advancedSecurity.evaluate((element) => element.hasAttribute('open'));
+    if (!isAdvancedOpen) {
+      await advancedSecurity.locator('summary').click();
+    }
 
     await page
       .locator('form[action="/api/settings/regenerate-recovery-code"] button[type="submit"]')

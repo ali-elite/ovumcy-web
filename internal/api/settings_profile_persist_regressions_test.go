@@ -82,10 +82,10 @@ func TestProfileUpdatePersistsDisplayNameAndShowsItInNavigation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read dashboard body: %v", err)
 	}
-	if !strings.Contains(string(dashboardBody), `aria-label="Current user"`) {
-		t.Fatalf("expected current user identity chip after profile update")
+	if strings.Contains(string(dashboardBody), "profile-owner@example.com") {
+		t.Fatalf("did not expect email identity in navigation after profile update")
 	}
-	if !strings.Contains(string(dashboardBody), ">Maya</span>") {
-		t.Fatalf("expected display name in navigation after profile update")
+	if strings.Contains(string(dashboardBody), "profile-owner") {
+		t.Fatalf("did not expect local-part identity fallback in navigation after profile update")
 	}
 }

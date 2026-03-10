@@ -58,8 +58,8 @@ func TestBuildOnboardingViewStateUsesDefaultsForNilUser(t *testing.T) {
 	state := BuildOnboardingViewState(nil, "abc", now, location)
 	minDate, maxDate := OnboardingDateBounds(now, location)
 
-	if state.Step != 0 {
-		t.Fatalf("expected step 0, got %d", state.Step)
+	if state.Step != 1 {
+		t.Fatalf("expected step 1, got %d", state.Step)
 	}
 	if !state.MinDate.Equal(minDate) || !state.MaxDate.Equal(maxDate) {
 		t.Fatalf("expected bounds %s..%s, got %s..%s",

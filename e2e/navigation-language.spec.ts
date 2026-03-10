@@ -28,6 +28,10 @@ async function registerAndReachDashboard(
   return creds;
 }
 
+async function switchLanguageViaRoute(page: Page, code: string, next: string): Promise<void> {
+  await page.goto(`/lang/${code}?next=${encodeURIComponent(next)}`);
+}
+
 test.describe('Navigation and language switch', () => {
   test('unauthenticated user is redirected from protected routes to /login', async ({ page }) => {
     const protectedRoutes = ['/dashboard', '/calendar', '/stats', '/settings'];
@@ -51,35 +55,32 @@ test.describe('Navigation and language switch', () => {
     await expect(page).toHaveURL(/\/dashboard$/);
   });
 
-  test('language switch on login page toggles EN/ES/RU and persists after reload', async ({ page }) => {
+  test('language route on login page toggles EN/ES/RU and persists after reload', async ({ page }) => {
     await page.goto('/login');
     await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
 
-    await page.locator('.lang-switch a[href^="/lang/en"]').click();
+    await switchLanguageViaRoute(page, 'en', '/login');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('h1.journal-title')).toContainText('Log in to your account');
-    await expect(page.locator('.lang-switch a[aria-current="page"]')).toHaveText('EN');
 
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('h1.journal-title')).toContainText('Log in to your account');
 
-    await page.locator('.lang-switch a[href^="/lang/es"]').click();
+    await switchLanguageViaRoute(page, 'es', '/login');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
     await expect(page.locator('h1.journal-title')).toContainText('Inicia sesión en tu cuenta');
-    await expect(page.locator('.lang-switch a[aria-current="page"]')).toHaveText('ES');
 
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
     await expect(page.locator('h1.journal-title')).toContainText('Inicia sesión en tu cuenta');
 
-    await page.locator('.lang-switch a[href^="/lang/ru"]').click();
+    await switchLanguageViaRoute(page, 'ru', '/login');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
     await expect(page.locator('h1.journal-title')).toContainText('Войти в аккаунт');
-    await expect(page.locator('.lang-switch a[aria-current="page"]')).toHaveText('RU');
 
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
@@ -94,17 +95,19 @@ test.describe('Navigation and language switch', () => {
     await page.goto('/settings');
     await expect(page).toHaveURL(/\/settings$/);
 
+    await expect(page.locator('#settings-interface .lang-switch')).toBeVisible();
+
     await page.locator('.lang-switch a[href^="/lang/en"]').click();
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('h1.journal-title')).toContainText('Settings');
-    await expect(page.getByRole('link', { name: 'Dashboard' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Today' }).first()).toBeVisible();
 
     await page.locator('.lang-switch a[href^="/lang/es"]').click();
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
     await expect(page.locator('h1.journal-title')).toContainText('Configuración');
-    await expect(page.getByRole('link', { name: 'Panel' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Hoy' }).first()).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Día' })).toHaveCount(3);
     await expect(page.getByRole('textbox', { name: 'Mes' })).toHaveCount(3);
     await expect(page.getByRole('textbox', { name: 'Año' })).toHaveCount(3);
@@ -114,7 +117,7 @@ test.describe('Navigation and language switch', () => {
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
     await expect(page.locator('h1.journal-title')).toContainText('Настройки');
-    await expect(page.getByRole('link', { name: 'Панель' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Сегодня' }).first()).toBeVisible();
 
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');

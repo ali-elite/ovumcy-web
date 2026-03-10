@@ -64,8 +64,8 @@ func TestNotFoundPageForAuthenticatedUserUsesDashboardPrimaryAction(t *testing.T
 	if !strings.Contains(rendered, `href="/dashboard"`) {
 		t.Fatalf("expected dashboard primary action for authenticated not-found page")
 	}
-	if !strings.Contains(rendered, "not-found-owner") {
-		t.Fatalf("expected authenticated nav identity in not-found page layout")
+	if strings.Contains(rendered, "not-found-owner") {
+		t.Fatalf("did not expect authenticated identity in not-found page layout")
 	}
 }
 

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   completeOnboardingIfPresent,
   continueFromRecoveryCode,
@@ -57,6 +57,29 @@ async function registerOwnerOnCalendar(page: Page, prefix: string): Promise<void
   await expect(page).toHaveURL(/\/calendar(?:\?.*)?$/);
 }
 
+async function openCalendarDayEditor(page: Page, isoDate: string) {
+  const month = isoDate.slice(0, 7);
+  await page.goto(`/calendar?month=${month}&day=${isoDate}`);
+  await expect(page).toHaveURL(new RegExp(`/calendar\\?month=${month}&day=${isoDate}`));
+
+  const editButton = page.locator(`#day-editor button[hx-get="/calendar/day/${isoDate}?mode=edit"]`).first();
+  await expect(editButton).toBeVisible();
+  await editButton.click();
+
+  const form = page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${isoDate}"]`);
+  await expect(form).toBeVisible();
+  return form;
+}
+
+async function openCalendarNotes(form: Locator): Promise<void> {
+  const disclosure = form.locator('details.note-disclosure');
+  const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
+  if (!isOpen) {
+    await disclosure.locator('summary').click();
+  }
+  await expect(form.locator('#calendar-notes')).toBeVisible();
+}
+
 async function todayISOFromCalendar(page: Page): Promise<string> {
   const todayButton = page.locator('button[data-day]:has(.calendar-today-pill)').first();
   await expect(todayButton).toBeVisible();
@@ -97,7 +120,7 @@ test.describe('Calendar page', () => {
     await expect(page.locator('.legend-dot.legend-dot-period')).toHaveCount(1);
     await expect(page.locator('.legend-dot.legend-dot-predicted')).toHaveCount(1);
     await expect(page.locator('.legend-dot.legend-dot-fertile')).toHaveCount(1);
-    await expect(page.locator('.legend-item')).toContainText(['🌞']);
+    await expect(page.locator('.legend-item .calendar-ovulation-dot')).toHaveCount(1);
   });
 
   test('past day entry can be edited from calendar and persists after reload', async ({ page }) => {
@@ -107,21 +130,23 @@ test.describe('Calendar page', () => {
     const pastISO = shiftISODate(todayISO, -2);
     const pastMonth = pastISO.slice(0, 7);
 
-    await page.goto(`/calendar?month=${pastMonth}&day=${pastISO}`);
-    await expect(page).toHaveURL(new RegExp(`/calendar\\?month=${pastMonth}&day=${pastISO}`));
-
-    const dayEditorForm = page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${pastISO}"]`);
-    await expect(dayEditorForm).toBeVisible();
+    const dayEditorForm = await openCalendarDayEditor(page, pastISO);
 
     await dayEditorForm.locator('input[name="is_period"]').check();
     await dayEditorForm.locator('input[name="flow"][value="medium"]').check({ force: true });
 
     const noteText = `calendar-note-${Date.now()}`;
+    await openCalendarNotes(dayEditorForm);
     await dayEditorForm.locator('#calendar-notes').fill(noteText);
     await dayEditorForm.locator('button[data-save-button]').click();
 
     await page.goto(`/calendar?month=${pastMonth}&day=${pastISO}`);
     await expect(page).toHaveURL(new RegExp(`/calendar\\?month=${pastMonth}&day=${pastISO}`));
+    await expect(page.locator('#day-editor')).toContainText(noteText);
+
+    const editButton = page.locator(`#day-editor button[hx-get="/calendar/day/${pastISO}?mode=edit"]`).first();
+    await expect(editButton).toBeVisible();
+    await editButton.click();
     await expect(page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${pastISO}"] #calendar-notes`)).toHaveValue(noteText);
     await expect(page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${pastISO}"] input[name="is_period"]`)).toBeChecked();
   });
@@ -136,15 +161,14 @@ test.describe('Calendar page', () => {
     await page.goto(`/calendar?month=${futureMonth}&day=${futureISO}`);
     await expect(page).toHaveURL(new RegExp(`/calendar\\?month=${futureMonth}&day=${futureISO}`));
 
-    const dayEditorForm = page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${futureISO}"]`);
-    await expect(dayEditorForm).toBeVisible();
-
     const warningPanel = page.locator('#day-editor .journal-panel.text-sm').first();
     await expect(warningPanel).toBeVisible();
     await expect(warningPanel).not.toHaveText(/^$/);
+    await expect(page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${futureISO}"]`)).toHaveCount(0);
+    await expect(page.locator(`#day-editor button[hx-get="/calendar/day/${futureISO}?mode=edit"]`)).toBeVisible();
   });
 
-  test('language switch preserves selected month/day query and visible editor', async ({ page }) => {
+  test('language route preserves selected month/day query and visible panel', async ({ page }) => {
     await registerOwnerOnCalendar(page, 'calendar-lang-query');
 
     const todayISO = await todayISOFromCalendar(page);
@@ -152,15 +176,15 @@ test.describe('Calendar page', () => {
     const pastMonth = pastISO.slice(0, 7);
 
     await page.goto(`/calendar?month=${pastMonth}&day=${pastISO}`);
-    await expect(page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${pastISO}"]`)).toBeVisible();
+    await expect(page.locator(`#day-editor button[hx-get="/calendar/day/${pastISO}?mode=edit"]`)).toBeVisible();
 
-    await page.locator('.lang-switch a[href^="/lang/ru"]').click();
+    await page.goto(`/lang/ru?next=${encodeURIComponent(`/calendar?month=${pastMonth}&day=${pastISO}`)}`);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
 
     const currentURL = new URL(page.url());
     expect(currentURL.pathname).toBe('/calendar');
     expect(currentURL.searchParams.get('month')).toBe(pastMonth);
     expect(currentURL.searchParams.get('day')).toBe(pastISO);
-    await expect(page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${pastISO}"]`)).toBeVisible();
+    await expect(page.locator(`#day-editor button[hx-get="/calendar/day/${pastISO}?mode=edit"]`)).toBeVisible();
   });
 });

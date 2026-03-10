@@ -106,7 +106,7 @@ func TestUpsertDayAllowsPeriodWithoutExplicitFlow(t *testing.T) {
 	}
 }
 
-func TestUpsertDayClearsSymptomsWhenNotPeriod(t *testing.T) {
+func TestUpsertDayPreservesSymptomsWhenNotPeriod(t *testing.T) {
 	t.Parallel()
 
 	app, database := newOnboardingTestApp(t)
@@ -157,7 +157,7 @@ func TestUpsertDayClearsSymptomsWhenNotPeriod(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load stored log: %v", err)
 	}
-	if len(entry.SymptomIDs) != 0 {
-		t.Fatalf("expected symptoms to be cleared for non-period day, got %v", entry.SymptomIDs)
+	if len(entry.SymptomIDs) != 1 || entry.SymptomIDs[0] != symptom.ID {
+		t.Fatalf("expected symptoms to stay persisted for non-period day, got %v", entry.SymptomIDs)
 	}
 }

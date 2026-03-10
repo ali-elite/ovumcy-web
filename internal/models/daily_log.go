@@ -15,6 +15,7 @@ type DailyLog struct {
 	Date       time.Time `gorm:"type:date;not null;uniqueIndex:uidx_user_date"`
 	IsPeriod   bool      `gorm:"not null;default:false"`
 	Flow       string    `gorm:"not null;default:none"`
+	Mood       int       `gorm:"not null;default:0"`
 	SymptomIDs []uint    `gorm:"serializer:json"`
 	Notes      string
 	CreatedAt  time.Time

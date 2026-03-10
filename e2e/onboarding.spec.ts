@@ -38,15 +38,6 @@ async function ensureOnboardingStepOneVisible(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
 
   const stepOneDateInput = page.locator('#last-period-start');
-  const stepOneVisible = await dateFieldRoot(stepOneDateInput).isVisible().catch(() => false);
-
-  if (!stepOneVisible) {
-    const beginButton = page.locator('[data-onboarding-action="begin"]');
-    if (await beginButton.isVisible().catch(() => false)) {
-      await beginButton.click();
-    }
-  }
-
   await expect(dateFieldRoot(stepOneDateInput)).toBeVisible();
 }
 
@@ -73,11 +64,6 @@ async function submitStepOne(page: Page, dateISO: string): Promise<void> {
 
 async function submitStepTwo(page: Page): Promise<void> {
   await page.locator('form[hx-post="/onboarding/step2"] button[type="submit"]').click();
-  await expect(page.locator('form[hx-post="/onboarding/complete"]')).toBeVisible();
-}
-
-async function submitStepThree(page: Page): Promise<void> {
-  await page.locator('form[hx-post="/onboarding/complete"] button[type="submit"]').click();
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
@@ -88,7 +74,6 @@ test.describe('Onboarding flow', () => {
     const startDate = toISODate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000));
     await submitStepOne(page, startDate);
     await submitStepTwo(page);
-    await submitStepThree(page);
 
     await logoutViaAPI(page);
     await loginViaUI(page, creds);
@@ -178,10 +163,10 @@ test.describe('Onboarding flow', () => {
     await expect(autoFillCheckbox).not.toBeChecked();
 
     await submitStepTwo(page);
-    await expect(page.locator('form[hx-post="/onboarding/complete"]')).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard$/);
   });
 
-  test('step query is preserved by language switch and keeps step 2 visible', async ({ page }) => {
+  test('step query is preserved by the language route and keeps step 2 visible', async ({ page }) => {
     const creds = createCredentials('onboarding-step-query');
 
     await registerOwnerViaUI(page, creds);
@@ -194,7 +179,7 @@ test.describe('Onboarding flow', () => {
     await page.goto('/onboarding?step=2');
     await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
 
-    await page.locator('.lang-switch a[href^="/lang/ru"]').click();
+    await page.goto(`/lang/ru?next=${encodeURIComponent('/onboarding?step=2')}`);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
 
     const currentURL = new URL(page.url());
@@ -221,7 +206,6 @@ test.describe('Onboarding flow', () => {
     const stepTwoVisible = await page.locator('form[hx-post="/onboarding/step2"]').isVisible().catch(() => false);
     if (stepTwoVisible) {
       await submitStepTwo(page);
-      await submitStepThree(page);
       return;
     }
 
@@ -229,6 +213,5 @@ test.describe('Onboarding flow', () => {
     await fillDateField(page.locator('#last-period-start'), startDate);
     await submitStepOne(page, startDate);
     await submitStepTwo(page);
-    await submitStepThree(page);
   });
 });

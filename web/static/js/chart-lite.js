@@ -160,15 +160,17 @@
     context.stroke();
     context.restore();
 
-    context.fillStyle = color;
-    context.font = "10px Quicksand, Nunito, sans-serif";
-    context.textAlign = "right";
-    context.textBaseline = "bottom";
-    context.fillText(
-      baselineLabel + " " + formatDays(baseline, daySuffix),
-      padding.left + width - 8,
-      Math.max(padding.top + 12, baselineY - 6)
-    );
+    if (baselineLabel && baselineLabel.trim()) {
+      context.fillStyle = color;
+      context.font = "10px Quicksand, Nunito, sans-serif";
+      context.textAlign = "right";
+      context.textBaseline = "bottom";
+      context.fillText(
+        baselineLabel + " " + formatDays(baseline, daySuffix),
+        padding.left + width - 8,
+        Math.max(padding.top + 12, baselineY - 6)
+      );
+    }
   }
 
   function drawValueLine(context, values, xForIndex, yForValue, color) {
@@ -242,7 +244,10 @@
 
     var emptyText = container.getAttribute("data-empty-text") || "Not enough cycle data yet.";
     var daySuffix = container.getAttribute("data-days-suffix") || "d";
-    var baselineLabel = container.getAttribute("data-baseline-label") || "Baseline";
+    var baselineLabel = container.getAttribute("data-baseline-label");
+    if (baselineLabel === null) {
+      baselineLabel = "Baseline";
+    }
     var chartData = parseChartData(container);
 
     container.textContent = "";

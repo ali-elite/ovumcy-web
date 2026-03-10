@@ -31,8 +31,8 @@ func TestNormalizeDayEntryInputNormalizesNonPeriodDay(t *testing.T) {
 	if normalized.Flow != models.FlowNone {
 		t.Fatalf("expected flow %q, got %q", models.FlowNone, normalized.Flow)
 	}
-	if len(normalized.SymptomIDs) != 0 {
-		t.Fatalf("expected symptom IDs to be cleared, got %#v", normalized.SymptomIDs)
+	if len(normalized.SymptomIDs) != 2 || normalized.SymptomIDs[0] != 10 || normalized.SymptomIDs[1] != 11 {
+		t.Fatalf("expected symptom IDs to be preserved, got %#v", normalized.SymptomIDs)
 	}
 }
 

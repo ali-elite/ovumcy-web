@@ -11,22 +11,7 @@ func templateUserIdentity(user *models.User) string {
 	if user == nil {
 		return ""
 	}
-	if displayName := strings.TrimSpace(user.DisplayName); displayName != "" {
-		return displayName
-	}
-	email := strings.TrimSpace(user.Email)
-	if email == "" {
-		return "account"
-	}
-	atIndex := strings.Index(email, "@")
-	if atIndex <= 0 {
-		return email
-	}
-	localPart := strings.TrimSpace(email[:atIndex])
-	if localPart == "" {
-		return "account"
-	}
-	return localPart
+	return strings.TrimSpace(user.DisplayName)
 }
 
 func templateHasDisplayName(user *models.User) bool {

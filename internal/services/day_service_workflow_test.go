@@ -203,8 +203,8 @@ func TestUpsertDayEntryWithAutoFillNormalizesNonPeriodInput(t *testing.T) {
 	if entry.Flow != models.FlowNone {
 		t.Fatalf("expected non-period flow normalized to %q, got %q", models.FlowNone, entry.Flow)
 	}
-	if len(entry.SymptomIDs) != 0 {
-		t.Fatalf("expected non-period symptom IDs to be cleared, got %#v", entry.SymptomIDs)
+	if len(entry.SymptomIDs) != 2 || entry.SymptomIDs[0] != 5 || entry.SymptomIDs[1] != 6 {
+		t.Fatalf("expected non-period symptom IDs to be preserved, got %#v", entry.SymptomIDs)
 	}
 	if len(entry.Notes) != MaxDayNotesLength {
 		t.Fatalf("expected notes length %d, got %d", MaxDayNotesLength, len(entry.Notes))

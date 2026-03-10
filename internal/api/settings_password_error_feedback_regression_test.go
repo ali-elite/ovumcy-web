@@ -61,7 +61,7 @@ func TestSettingsChangePasswordInvalidCurrentPasswordShowsTopErrorBanner(t *test
 		t.Fatalf("expected localized invalid-current-password banner")
 	}
 
-	topBannerPattern := regexp.MustCompile(`(?s)<section class="space-y-6">.*?Current password is incorrect\..*?<section class="journal-card p-5 sm:p-6" id="settings-change-password">`)
+	topBannerPattern := regexp.MustCompile(`(?s)<section class="space-y-6">.*?Current password is incorrect\..*?<section class="journal-card p-5 sm:p-6 space-y-6" id="settings-account">`)
 	if !topBannerPattern.MatchString(rendered) {
 		t.Fatalf("expected invalid-current-password message in top settings banner area")
 	}

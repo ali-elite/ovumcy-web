@@ -166,14 +166,21 @@ func TestExportBuildCSVRowsBuildsExpectedColumns(t *testing.T) {
 	if columns[0] != "2026-02-18" || columns[1] != "Yes" || columns[2] != "Light" {
 		t.Fatalf("unexpected fixed csv columns: %#v", columns[:3])
 	}
-	if columns[3] != "Yes" {
-		t.Fatalf("expected cramps column Yes, got %q", columns[3])
+	indexByHeader := make(map[string]int, len(ExportCSVHeaders))
+	for index, header := range ExportCSVHeaders {
+		indexByHeader[header] = index
 	}
-	if columns[18] != "Custom Symptom" {
-		t.Fatalf("expected other symptom column, got %q", columns[18])
+	if columns[indexByHeader["Mood rating"]] != "" {
+		t.Fatalf("expected empty mood rating column, got %q", columns[indexByHeader["Mood rating"]])
 	}
-	if columns[19] != "note" {
-		t.Fatalf("expected notes column, got %q", columns[19])
+	if columns[indexByHeader["Cramps"]] != "Yes" {
+		t.Fatalf("expected cramps column Yes, got %q", columns[indexByHeader["Cramps"]])
+	}
+	if columns[indexByHeader["Other"]] != "Custom Symptom" {
+		t.Fatalf("expected other symptom column, got %q", columns[indexByHeader["Other"]])
+	}
+	if columns[indexByHeader["Notes"]] != "note" {
+		t.Fatalf("expected notes column, got %q", columns[indexByHeader["Notes"]])
 	}
 }
 

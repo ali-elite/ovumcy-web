@@ -178,15 +178,20 @@ func assertPostgresDailyLogsSchemaReconciled(t *testing.T, database *gorm.DB) {
 		t.Fatalf("create postgres daily-log user: %v", err)
 	}
 
+	if !database.Migrator().HasColumn("daily_logs", "mood") {
+		t.Fatal("expected postgres daily_logs.mood column to exist after migrations")
+	}
+
 	if err := database.Exec(
-		`INSERT INTO daily_logs (user_id, date, is_period, flow, symptom_ids, notes) VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO daily_logs (user_id, date, is_period, flow, mood, symptom_ids, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		user.ID,
 		"2026-01-11",
 		true,
 		"custom-flow",
+		4,
 		nil,
 		"postgres-schema-check",
 	).Error; err != nil {
-		t.Fatalf("expected postgres daily_logs schema to allow nullable symptom_ids and custom flow, got %v", err)
+		t.Fatalf("expected postgres daily_logs schema to allow nullable symptom_ids, custom flow, and mood, got %v", err)
 	}
 }

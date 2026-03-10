@@ -22,6 +22,7 @@ var (
 type DayEntryInput struct {
 	IsPeriod   bool
 	Flow       string
+	Mood       int
 	Notes      string
 	SymptomIDs []uint
 }
@@ -89,6 +90,7 @@ func (service *DayService) FetchLogByDate(userID uint, day time.Time, location *
 			UserID:     userID,
 			Date:       dayStart,
 			Flow:       models.FlowNone,
+			Mood:       0,
 			SymptomIDs: []uint{},
 		}, nil
 	}
@@ -121,6 +123,7 @@ func (service *DayService) UpsertDayEntry(userID uint, dayStart time.Time, paylo
 		wasPeriod = entry.IsPeriod
 		entry.IsPeriod = payload.IsPeriod
 		entry.Flow = payload.Flow
+		entry.Mood = payload.Mood
 		entry.SymptomIDs = payload.SymptomIDs
 		entry.Notes = payload.Notes
 		if err := service.logs.Save(&entry); err != nil {
@@ -134,6 +137,7 @@ func (service *DayService) UpsertDayEntry(userID uint, dayStart time.Time, paylo
 		Date:       dayStart,
 		IsPeriod:   payload.IsPeriod,
 		Flow:       payload.Flow,
+		Mood:       payload.Mood,
 		Notes:      payload.Notes,
 		SymptomIDs: payload.SymptomIDs,
 	}

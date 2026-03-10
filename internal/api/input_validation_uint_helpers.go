@@ -12,3 +12,7 @@ func parseRequestUint(raw string) (uint, error) {
 	}
 	return uint(parsed), nil
 }
+
+func parseRequestInt(raw string) (int, error) {
+	return strconv.Atoi(strings.TrimSpace(raw))
+}

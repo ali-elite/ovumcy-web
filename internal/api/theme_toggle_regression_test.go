@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestBaseTemplateIncludesThemeToggleControl(t *testing.T) {
+func TestBaseTemplateOmitsThemeToggleControl(t *testing.T) {
 	app, _ := newOnboardingTestApp(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/login", nil)
@@ -31,14 +31,11 @@ func TestBaseTemplateIncludesThemeToggleControl(t *testing.T) {
 	}
 	rendered := string(body)
 
-	if !strings.Contains(rendered, `class="theme-toggle"`) {
-		t.Fatalf("expected rendered page to include theme toggle control")
+	if strings.Contains(rendered, `class="theme-toggle"`) {
+		t.Fatalf("did not expect theme toggle control in base layout")
 	}
-	if !strings.Contains(rendered, `data-theme-toggle`) {
-		t.Fatalf("expected rendered page to include theme toggle mount point")
-	}
-	if !strings.Contains(rendered, ">Dark<") {
-		t.Fatalf("expected rendered page to include default visible dark-theme label")
+	if strings.Contains(rendered, `data-theme-toggle`) {
+		t.Fatalf("did not expect theme toggle mount point in base layout")
 	}
 }
 

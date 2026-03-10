@@ -48,8 +48,11 @@ func (handler *Handler) buildStatsPageData(user *models.User, language string, m
 		"TrendPointCount":      viewData.TrendPointCount,
 		"HasObservedCycleData": viewData.Flags.HasObservedCycleData,
 		"HasTrendData":         viewData.Flags.HasTrendData,
+		"HasInsights":          viewData.Flags.HasInsights,
 		"HasReliableTrend":     viewData.Flags.HasReliableTrend,
 		"CycleDataStale":       viewData.Flags.CycleDataStale,
+		"CompletedCycleCount":  viewData.Flags.CompletedCycleCount,
+		"InsightProgress":      viewData.Flags.InsightProgress,
 		"SymptomCounts":        viewData.SymptomCounts,
 		"IsOwner":              viewData.IsOwner,
 	}

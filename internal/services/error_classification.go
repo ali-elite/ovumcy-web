@@ -151,6 +151,7 @@ type DayUpsertErrorKind uint8
 const (
 	DayUpsertErrorUnknown DayUpsertErrorKind = iota
 	DayUpsertErrorInvalidFlow
+	DayUpsertErrorInvalidMood
 	DayUpsertErrorLoadFailed
 	DayUpsertErrorCreateFailed
 	DayUpsertErrorUpdateFailed
@@ -161,6 +162,8 @@ func ClassifyDayUpsertError(err error) DayUpsertErrorKind {
 	switch {
 	case errors.Is(err, ErrInvalidDayFlow):
 		return DayUpsertErrorInvalidFlow
+	case errors.Is(err, ErrInvalidDayMood):
+		return DayUpsertErrorInvalidMood
 	case errors.Is(err, ErrDayAutoFillLoadFailed),
 		errors.Is(err, ErrDayAutoFillCheckFailed),
 		errors.Is(err, ErrDayEntryLoadFailed):
@@ -509,6 +512,8 @@ const (
 	DashboardViewErrorUnknown DashboardViewErrorKind = iota
 	DashboardViewErrorLoadTodayLog
 	DashboardViewErrorLoadDayState
+	DashboardViewErrorLoadDayLog
+	DashboardViewErrorLoadLogs
 )
 
 func ClassifyDashboardViewError(err error) DashboardViewErrorKind {
@@ -517,6 +522,10 @@ func ClassifyDashboardViewError(err error) DashboardViewErrorKind {
 		return DashboardViewErrorLoadTodayLog
 	case errors.Is(err, ErrDashboardViewLoadDayState):
 		return DashboardViewErrorLoadDayState
+	case errors.Is(err, ErrDashboardViewLoadDayLog):
+		return DashboardViewErrorLoadDayLog
+	case errors.Is(err, ErrDashboardViewLoadLogs):
+		return DashboardViewErrorLoadLogs
 	default:
 		return DashboardViewErrorUnknown
 	}

@@ -12,10 +12,9 @@
   data-period-exceeds-cycle-message="{{t .Messages "onboarding.step2.error_incompatible"}}"
   data-lang="{{.Lang}}">
   <div class="journal-card journal-hero p-6 sm:p-8">
-    <div class="space-y-3" data-onboarding-progress {{if eq .OnboardingStep 0}}hidden{{end}}>
+    <div class="space-y-3" data-onboarding-progress>
       <p class="journal-kicker" data-onboarding-progress-kicker="1" {{if ne .OnboardingStep 1}}hidden{{end}}>{{t .Messages "onboarding.progress.step1"}}</p>
       <p class="journal-kicker" data-onboarding-progress-kicker="2" {{if ne .OnboardingStep 2}}hidden{{end}}>{{t .Messages "onboarding.progress.step2"}}</p>
-      <p class="journal-kicker" data-onboarding-progress-kicker="3" {{if ne .OnboardingStep 3}}hidden{{end}}>{{t .Messages "onboarding.progress.step3"}}</p>
 
       <div class="journal-panel space-y-2">
         <div class="h-2 overflow-hidden rounded-full bg-[rgba(232,196,168,0.35)]">
@@ -24,21 +23,10 @@
       </div>
     </div>
 
-    <div data-onboarding-panel="0" class="mt-2 space-y-5" {{if ne .OnboardingStep 0}}hidden{{end}}>
-      <p class="journal-kicker">{{t .Messages "onboarding.welcome.kicker"}}</p>
-      <h1 class="journal-title">{{t .Messages "onboarding.welcome.title"}}</h1>
-      <p class="journal-muted">{{t .Messages "onboarding.welcome.subtitle"}}</p>
-
-      <div class="journal-panel">
-        <p class="journal-muted text-sm">{{t .Messages "onboarding.welcome.details"}}</p>
-      </div>
-
-      <button type="button" class="btn-primary" data-onboarding-action="begin">{{t .Messages "onboarding.button.begin"}}</button>
-    </div>
-
     <div data-onboarding-panel="1" class="mt-6 space-y-4" {{if ne .OnboardingStep 1}}hidden{{end}}>
       <h1 class="journal-title">{{t .Messages "onboarding.step1.title"}}</h1>
       <p class="journal-muted">{{t .Messages "onboarding.step1.subtitle"}}</p>
+      <p class="journal-muted text-sm">{{t .Messages "onboarding.step1.privacy"}}</p>
 
       <form
         hx-post="/onboarding/step1"
@@ -65,10 +53,7 @@
 
         <div class="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4 lg:grid-cols-6" data-onboarding-day-options></div>
 
-        <div class="flex flex-wrap items-center gap-3">
-          <button type="button" class="btn-secondary" data-onboarding-go-step="0">{{t .Messages "onboarding.button.back"}}</button>
-          <button type="submit" class="btn-primary">{{t .Messages "onboarding.button.next"}}</button>
-        </div>
+        <button type="submit" class="btn-primary">{{t .Messages "onboarding.button.next"}}</button>
         <div id="onboarding-step1-status" class="save-status text-sm"></div>
       </form>
     </div>
@@ -137,24 +122,9 @@
           <button
             type="submit"
             class="btn-primary"
-            data-onboarding-step2-submit>{{t .Messages "onboarding.button.next"}}</button>
+            data-onboarding-step2-submit>{{t .Messages "onboarding.button.finish"}}</button>
         </div>
         <div id="onboarding-step2-status" class="save-status text-sm"></div>
-      </form>
-    </div>
-
-    <div data-onboarding-panel="3" class="mt-6 space-y-4" {{if ne .OnboardingStep 3}}hidden{{end}}>
-      <h1 class="journal-title">{{t .Messages "onboarding.step3.title"}}</h1>
-      <p class="journal-muted">{{t .Messages "onboarding.step3.message"}}</p>
-
-      <form hx-post="/onboarding/complete" hx-target="#onboarding-step3-status" hx-swap="innerHTML" data-onboarding-form-step="3">
-        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <input type="hidden" name="client_timezone" value="" data-onboarding-timezone-field>
-        <div class="flex flex-wrap items-center gap-3">
-          <button type="button" class="btn-secondary" data-onboarding-go-step="2">{{t .Messages "onboarding.button.back"}}</button>
-          <button type="submit" class="btn-primary">{{t .Messages "onboarding.button.start"}}</button>
-        </div>
-        <div id="onboarding-step3-status" class="save-status mt-3 text-sm"></div>
       </form>
     </div>
   </div>

@@ -21,13 +21,13 @@ type OnboardingViewState struct {
 func ResolveOnboardingStep(raw string) int {
 	step, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil {
-		return 0
+		return 1
 	}
-	if step < 0 {
-		return 0
+	if step < 1 {
+		return 1
 	}
-	if step > 3 {
-		return 3
+	if step > 2 {
+		return 2
 	}
 	return step
 }
@@ -49,8 +49,13 @@ func BuildOnboardingViewState(user *models.User, stepRaw string, now time.Time, 
 		}
 	}
 
+	step := ResolveOnboardingStep(stepRaw)
+	if strings.TrimSpace(stepRaw) == "" && lastPeriodStart != nil {
+		step = 2
+	}
+
 	return OnboardingViewState{
-		Step:            ResolveOnboardingStep(stepRaw),
+		Step:            step,
 		MinDate:         minDate,
 		MaxDate:         maxDate,
 		LastPeriodStart: lastPeriodStart,

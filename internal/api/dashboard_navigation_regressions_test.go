@@ -45,7 +45,7 @@ func TestDashboardLogoutFormsRequireConfirmation(t *testing.T) {
 	}
 }
 
-func TestDashboardNavigationShowsCurrentUserIdentity(t *testing.T) {
+func TestDashboardNavigationOmitsCurrentUserIdentity(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "identity-owner@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
@@ -69,25 +69,25 @@ func TestDashboardNavigationShowsCurrentUserIdentity(t *testing.T) {
 		t.Fatalf("read dashboard body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, `aria-label="Current user"`) {
-		t.Fatalf("expected current user label in navigation")
-	}
-	if !strings.Contains(rendered, "identity-owner") {
-		t.Fatalf("expected local-part identity in navigation when display name is empty")
+	if strings.Contains(rendered, "identity-owner") {
+		t.Fatalf("did not expect local-part identity in navigation")
 	}
 	if strings.Contains(rendered, "identity-owner@example.com") {
-		t.Fatalf("did not expect full email identity in navigation fallback")
+		t.Fatalf("did not expect email identity in navigation")
 	}
 }
 
-func TestDashboardLanguageSwitchShowsVisibleENRUAndESLabels(t *testing.T) {
+func TestDashboardHeaderOmitsLanguageSwitch(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "lang-switch-labels@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
-	assertDashboardLanguageSwitchState(t, mustRenderDashboard(t, app, authCookie, ""), "EN")
-	assertDashboardLanguageSwitchState(t, mustRenderDashboard(t, app, authCookie, "ru"), "RU")
-	assertDashboardLanguageSwitchState(t, mustRenderDashboard(t, app, authCookie, "es"), "ES")
+	rendered := mustRenderDashboard(t, app, authCookie, "ru")
+	for _, label := range []string{"RU", "EN", "ES"} {
+		if strings.Contains(rendered, ">"+label+"</a>") {
+			t.Fatalf("did not expect %s language shortcut in dashboard header", label)
+		}
+	}
 }
 
 func mustRenderDashboard(t *testing.T, app *fiber.App, authCookie string, languageCookie string) string {
@@ -116,27 +116,4 @@ func mustRenderDashboard(t *testing.T, app *fiber.App, authCookie string, langua
 		t.Fatalf("read dashboard body: %v", err)
 	}
 	return string(body)
-}
-
-func assertDashboardLanguageSwitchState(t *testing.T, rendered string, activeLabel string) {
-	t.Helper()
-
-	for _, label := range []string{"RU", "EN", "ES"} {
-		if !strings.Contains(rendered, ">"+label+"</a>") {
-			t.Fatalf("expected %s language label in switcher", label)
-		}
-	}
-
-	if !strings.Contains(rendered, `aria-current="page">`+activeLabel+`</a>`) {
-		t.Fatalf("expected active %s language link to expose aria-current marker", activeLabel)
-	}
-
-	for _, label := range []string{"RU", "EN", "ES"} {
-		if label == activeLabel {
-			continue
-		}
-		if strings.Contains(rendered, `aria-current="page">`+label+`</a>`) {
-			t.Fatalf("did not expect %s link to stay active when %s is selected", label, activeLabel)
-		}
-	}
 }

@@ -42,6 +42,13 @@ type SymptomService struct {
 	reservedNameKeys map[string]struct{}
 }
 
+var legacyEntryPickerHiddenSymptoms = map[string]struct{}{
+	"moodswings":  {},
+	"fatigue":     {},
+	"irritability": {},
+	"insomnia":    {},
+}
+
 type SymptomFrequency struct {
 	Name      string
 	Icon      string
@@ -252,10 +259,6 @@ func (service *SymptomService) FetchPickerSymptoms(userID uint, selectedIDs []ui
 		return nil, err
 	}
 
-	if len(selectedIDs) == 0 {
-		return filterActiveSymptoms(symptoms), nil
-	}
-
 	selected := make(map[uint]struct{}, len(selectedIDs))
 	for _, id := range selectedIDs {
 		selected[id] = struct{}{}
@@ -263,11 +266,15 @@ func (service *SymptomService) FetchPickerSymptoms(userID uint, selectedIDs []ui
 
 	filtered := make([]models.SymptomType, 0, len(symptoms))
 	for _, symptom := range symptoms {
+		_, isSelected := selected[symptom.ID]
+		if shouldHideSymptomFromEntryPicker(symptom) && !isSelected {
+			continue
+		}
 		if symptom.IsActive() {
 			filtered = append(filtered, symptom)
 			continue
 		}
-		if _, ok := selected[symptom.ID]; ok {
+		if isSelected {
 			filtered = append(filtered, symptom)
 		}
 	}
@@ -361,14 +368,12 @@ func builtinSymptomReservedNameKeys(extra []string) map[string]struct{} {
 	return keys
 }
 
-func filterActiveSymptoms(symptoms []models.SymptomType) []models.SymptomType {
-	filtered := make([]models.SymptomType, 0, len(symptoms))
-	for _, symptom := range symptoms {
-		if symptom.IsActive() {
-			filtered = append(filtered, symptom)
-		}
+func shouldHideSymptomFromEntryPicker(symptom models.SymptomType) bool {
+	if !symptom.IsBuiltin {
+		return false
 	}
-	return filtered
+	_, hidden := legacyEntryPickerHiddenSymptoms[normalizeSymptomNameKey(symptom.Name)]
+	return hidden
 }
 
 func BuiltinSymptomRecordsForUser(userID uint) []models.SymptomType {

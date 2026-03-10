@@ -41,63 +41,39 @@
           </span>
         </a>
 
+        {{if and .CurrentUser (not .HideNavigation)}}
         <div class="flex items-center gap-3">
-          <div class="lang-switch" role="group" aria-label="{{t .Messages "lang.switch"}}">
-            {{range .LanguageOptions}}
-            <a href="{{.Href}}" class="lang-link {{if .Active}}lang-link-active{{end}}" {{if .Active}}aria-current="page"{{end}}>{{.Label}}</a>
-            {{end}}
-          </div>
-          <button
-            type="button"
-            class="theme-toggle"
-            data-theme-toggle
-            aria-label="{{t .Messages "theme.switch_to_dark"}}"
-            title="{{t .Messages "theme.switch_to_dark"}}">
-            <span class="theme-toggle-icon" data-theme-toggle-icon aria-hidden="true">🌙</span>
-            <span class="theme-toggle-text" data-theme-toggle-text>{{t .Messages "theme.name.dark"}}</span>
-          </button>
-
-          {{if and .CurrentUser (not .HideNavigation)}}
           <button
             type="button"
             class="menu-toggle sm:hidden"
             data-mobile-menu-toggle
             aria-expanded="false"
             aria-controls="mobile-menu">{{t .Messages "nav.menu"}}</button>
-          {{end}}
         </div>
+        {{end}}
       </div>
 
       {{if and .CurrentUser (not .HideNavigation)}}
       <div class="container-main pb-4">
         <nav class="hidden items-center gap-2 sm:flex">
-          <a href="/dashboard" class="nav-link {{if isActiveRoute .CurrentPath "/dashboard"}}nav-link-active{{else if isActiveRoute .CurrentPath "/"}}nav-link-active{{end}}">{{t .Messages "nav.dashboard"}}</a>
+          <a href="/dashboard" class="nav-link {{if isActiveRoute .CurrentPath "/dashboard"}}nav-link-active{{else if isActiveRoute .CurrentPath "/"}}nav-link-active{{end}}">{{t .Messages "nav.today"}}</a>
           <a href="/calendar" class="nav-link {{if isActiveRoute .CurrentPath "/calendar"}}nav-link-active{{end}}">{{t .Messages "nav.calendar"}}</a>
-          <a href="/stats" class="nav-link {{if isActiveRoute .CurrentPath "/stats"}}nav-link-active{{end}}">{{t .Messages "nav.stats"}}</a>
-          <a href="/settings" class="nav-link {{if isActiveRoute .CurrentPath "/settings"}}nav-link-active{{end}}">{{t .Messages "nav.settings"}}</a>
+          <a href="/stats" class="nav-link {{if isActiveRoute .CurrentPath "/stats"}}nav-link-active{{end}}">{{t .Messages "nav.insights"}}</a>
+          <a href="/settings" class="nav-link nav-link-icon {{if isActiveRoute .CurrentPath "/settings"}}nav-link-active{{end}}" aria-label="{{t .Messages "nav.settings"}}" title="{{t .Messages "nav.settings"}}">
+            <span aria-hidden="true">⚙️</span>
+          </a>
 
-          <div class="nav-meta">
-            <span class="nav-user-label">{{t .Messages "nav.current_user"}}:</span>
-            <span
-              class="role-chip role-chip-identity nav-user-chip"
-              data-current-user-identity
-              aria-label="{{t .Messages "nav.current_user"}}"
-              title="{{userIdentity .CurrentUser}}">{{userIdentity .CurrentUser}}</span>
-          </div>
-          <span class="nav-divider" aria-hidden="true"></span>
-
-          <form action="/api/auth/logout" method="post" class="nav-logout-form" data-confirm="{{t .Messages "auth.confirm_logout"}}" data-confirm-accept="{{t .Messages "nav.logout"}}">
+          <form action="/api/auth/logout" method="post" class="nav-logout-form ml-auto" data-confirm="{{t .Messages "auth.confirm_logout"}}" data-confirm-accept="{{t .Messages "nav.logout"}}">
             <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
             <button type="submit" class="nav-link nav-link-logout">{{t .Messages "nav.logout"}}</button>
           </form>
         </nav>
 
         <nav id="mobile-menu" data-mobile-menu hidden class="mt-2 space-y-2 sm:hidden">
-          <p class="journal-muted px-3 pt-1 text-xs">{{t .Messages "nav.current_user"}}: <span data-current-user-identity>{{userIdentity .CurrentUser}}</span></p>
-          <a href="/dashboard" class="nav-link block {{if isActiveRoute .CurrentPath "/dashboard"}}nav-link-active{{else if isActiveRoute .CurrentPath "/"}}nav-link-active{{end}}">{{t .Messages "nav.dashboard"}}</a>
+          <a href="/dashboard" class="nav-link block {{if isActiveRoute .CurrentPath "/dashboard"}}nav-link-active{{else if isActiveRoute .CurrentPath "/"}}nav-link-active{{end}}">{{t .Messages "nav.today"}}</a>
           <a href="/calendar" class="nav-link block {{if isActiveRoute .CurrentPath "/calendar"}}nav-link-active{{end}}">{{t .Messages "nav.calendar"}}</a>
-          <a href="/stats" class="nav-link block {{if isActiveRoute .CurrentPath "/stats"}}nav-link-active{{end}}">{{t .Messages "nav.stats"}}</a>
-          <a href="/settings" class="nav-link block {{if isActiveRoute .CurrentPath "/settings"}}nav-link-active{{end}}">{{t .Messages "nav.settings"}}</a>
+          <a href="/stats" class="nav-link block {{if isActiveRoute .CurrentPath "/stats"}}nav-link-active{{end}}">{{t .Messages "nav.insights"}}</a>
+          <a href="/settings" class="nav-link nav-link-icon block {{if isActiveRoute .CurrentPath "/settings"}}nav-link-active{{end}}" aria-label="{{t .Messages "nav.settings"}}" title="{{t .Messages "nav.settings"}}"><span aria-hidden="true">⚙️</span></a>
           <form action="/api/auth/logout" method="post" data-confirm="{{t .Messages "auth.confirm_logout"}}" data-confirm-accept="{{t .Messages "nav.logout"}}">
             <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
             <button type="submit" class="nav-link nav-link-logout w-full text-left">{{t .Messages "nav.logout"}}</button>
@@ -139,10 +115,10 @@
 
     {{if and .CurrentUser (not .HideNavigation)}}
     <nav class="mobile-tabbar sm:hidden" aria-label="{{t .Messages "nav.menu"}}">
-      <a href="/dashboard" class="mobile-tabbar-link {{if isActiveRoute .CurrentPath "/dashboard"}}mobile-tabbar-link-active{{else if isActiveRoute .CurrentPath "/"}}mobile-tabbar-link-active{{end}}">{{t .Messages "nav.dashboard"}}</a>
+      <a href="/dashboard" class="mobile-tabbar-link {{if isActiveRoute .CurrentPath "/dashboard"}}mobile-tabbar-link-active{{else if isActiveRoute .CurrentPath "/"}}mobile-tabbar-link-active{{end}}">{{t .Messages "nav.today"}}</a>
       <a href="/calendar" class="mobile-tabbar-link {{if isActiveRoute .CurrentPath "/calendar"}}mobile-tabbar-link-active{{end}}">{{t .Messages "nav.calendar"}}</a>
-      <a href="/stats" class="mobile-tabbar-link {{if isActiveRoute .CurrentPath "/stats"}}mobile-tabbar-link-active{{end}}">{{t .Messages "nav.stats"}}</a>
-      <a href="/settings" class="mobile-tabbar-link {{if isActiveRoute .CurrentPath "/settings"}}mobile-tabbar-link-active{{end}}">{{t .Messages "nav.settings"}}</a>
+      <a href="/stats" class="mobile-tabbar-link {{if isActiveRoute .CurrentPath "/stats"}}mobile-tabbar-link-active{{end}}">{{t .Messages "nav.insights"}}</a>
+      <a href="/settings" class="mobile-tabbar-link mobile-tabbar-icon {{if isActiveRoute .CurrentPath "/settings"}}mobile-tabbar-link-active{{end}}" aria-label="{{t .Messages "nav.settings"}}" title="{{t .Messages "nav.settings"}}"><span aria-hidden="true">⚙️</span></a>
     </nav>
     {{end}}
 
@@ -291,8 +267,48 @@
 {{define "readonly_log_summary"}}
 <div class="journal-panel space-y-3 text-sm">
   <p><span class="journal-muted">{{t .Messages "dashboard.period_day"}}:</span> {{if .Log.IsPeriod}}{{t .Messages "common.yes"}}{{else}}{{t .Messages "common.no"}}{{end}}</p>
+  {{if .Log.IsPeriod}}
   <p><span class="journal-muted">{{t .Messages "dashboard.flow"}}:</span> {{flowLabel .Messages .Log.Flow}}</p>
+  {{end}}
+  <p><span class="journal-muted">{{t .Messages "dashboard.mood"}}:</span> {{if gt .Log.Mood 0}}{{moodEmoji .Log.Mood}} {{.Log.Mood}}/5{{else}}{{.NoDataLabel}}{{end}}</p>
+  <div>
+    <p class="journal-muted">{{t .Messages "dashboard.symptoms"}}</p>
+    <p class="mt-1">{{if gt (len .Log.SymptomIDs) 0}}{{t .Messages "dashboard.owner_only_details"}}{{else}}{{.NoDataLabel}}{{end}}</p>
+  </div>
+  <div>
+    <p class="journal-muted">{{t .Messages "dashboard.notes"}}</p>
+    <p class="mt-1 whitespace-pre-wrap break-words">{{if ne .Log.Notes ""}}{{.Log.Notes}}{{else}}{{.NoDataLabel}}{{end}}</p>
+  </div>
   <p class="journal-muted">{{t .Messages "dashboard.partner_readonly"}}</p>
+</div>
+{{end}}
+{{define "owner_log_summary"}}
+<div class="journal-panel space-y-4 text-sm">
+  <div class="grid gap-3 sm:grid-cols-2">
+    <p><span class="journal-muted">{{t .Messages "dashboard.period_day"}}:</span> {{if .Log.IsPeriod}}{{t .Messages "common.yes"}}{{else}}{{t .Messages "common.no"}}{{end}}</p>
+    <p><span class="journal-muted">{{t .Messages "dashboard.mood"}}:</span> {{if gt .Log.Mood 0}}{{moodEmoji .Log.Mood}} {{.Log.Mood}}/5{{else}}{{.NoDataLabel}}{{end}}</p>
+    <p><span class="journal-muted">{{t .Messages "dashboard.flow"}}:</span> {{if .Log.IsPeriod}}{{flowLabel .Messages .Log.Flow}}{{else}}{{.NoDataLabel}}{{end}}</p>
+  </div>
+
+  <div>
+    <p class="journal-muted">{{t .Messages "dashboard.symptoms"}}</p>
+    <ul class="mt-2 flex flex-wrap gap-2" {{if eq (len .Log.SymptomIDs) 0}}hidden{{end}}>
+      {{range .Symptoms}}
+      {{if hasSymptom $.SelectedSymptomID .ID}}
+      <li class="check-chip check-chip-static">
+        <span class="symptom-icon">{{.Icon}}</span>
+        <span class="symptom-label">{{symptomLabel $.Messages .Name}}</span>
+      </li>
+      {{end}}
+      {{end}}
+    </ul>
+    <p class="mt-2" {{if gt (len .Log.SymptomIDs) 0}}hidden{{end}}>{{.NoDataLabel}}</p>
+  </div>
+
+  <div>
+    <p class="journal-muted">{{t .Messages "dashboard.notes"}}</p>
+    <p class="mt-2 whitespace-pre-wrap break-words">{{if ne .Log.Notes ""}}{{.Log.Notes}}{{else}}{{.NoDataLabel}}{{end}}</p>
+  </div>
 </div>
 {{end}}
 {{define "period_flow_option"}}
@@ -304,18 +320,40 @@
     class="choice-input"
     {{if .DisableWhenNotPeriod}}data-disable-without-period="true"{{if not .CurrentIsPeriod}} disabled{{end}}{{end}}
     {{if eq .SelectedFlow .Value}}checked{{end}}>
-  <span class="{{if .Compact}}radio-tile radio-tile-sm{{else}}radio-tile{{end}}">
-    <span class="radio-icon">{{.Icon}}</span>
+  <span class="{{if .Compact}}radio-tile radio-tile-sm radio-tile-inline{{else}}radio-tile radio-tile-inline{{end}}">
+    <span class="radio-icon radio-icon-inline">{{if eq .Value "none"}}○{{else if eq .Value "light"}}◔{{else if eq .Value "medium"}}◑{{else}}◕{{end}}</span>
     <span>{{flowLabel .Messages .Value}}</span>
   </span>
 </label>
 {{end}}
 {{define "period_flow_options"}}
-<div class="{{if .Compact}}grid grid-cols-2 gap-2{{else}}grid grid-cols-2 gap-2 sm:grid-cols-4{{end}}">
-  {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "none" "Icon" "🌫️" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod)}}
-  {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "light" "Icon" "🌷" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod)}}
-  {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "medium" "Icon" "🌺" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod)}}
-  {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "heavy" "Icon" "🔥" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod)}}
+<div class="{{if .Compact}}flow-radio-row flow-radio-row-compact{{else}}flow-radio-row{{end}}">
+  {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "none" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod "CurrentIsPeriod" .CurrentIsPeriod)}}
+  {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "light" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod "CurrentIsPeriod" .CurrentIsPeriod)}}
+  {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "medium" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod "CurrentIsPeriod" .CurrentIsPeriod)}}
+  {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "heavy" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod "CurrentIsPeriod" .CurrentIsPeriod)}}
+</div>
+{{end}}
+{{define "mood_option"}}
+<label class="choice-option">
+  <input
+    type="radio"
+    name="mood"
+    value="{{.Value}}"
+    class="choice-input"
+    {{if eq .SelectedMood .Value}}checked{{end}}>
+  <span class="{{if .Compact}}mood-chip mood-chip-sm{{else}}mood-chip{{end}}" title="{{.Value}}/5">
+    <span class="mood-chip-emoji">{{moodEmoji .Value}}</span>
+  </span>
+</label>
+{{end}}
+{{define "mood_picker"}}
+<div class="{{if .Compact}}mood-row mood-row-compact{{else}}mood-row{{end}}">
+  {{template "mood_option" (dict "SelectedMood" .SelectedMood "Value" 1 "Compact" .Compact)}}
+  {{template "mood_option" (dict "SelectedMood" .SelectedMood "Value" 2 "Compact" .Compact)}}
+  {{template "mood_option" (dict "SelectedMood" .SelectedMood "Value" 3 "Compact" .Compact)}}
+  {{template "mood_option" (dict "SelectedMood" .SelectedMood "Value" 4 "Compact" .Compact)}}
+  {{template "mood_option" (dict "SelectedMood" .SelectedMood "Value" 5 "Compact" .Compact)}}
 </div>
 {{end}}
 {{define "symptom_option_item"}}
@@ -329,7 +367,6 @@
     data-symptom-id="{{.Symptom.ID}}"
     data-symptom-name="{{.Symptom.Name}}"
     data-symptom-active="{{if .Symptom.IsActive}}true{{else}}false{{end}}"
-    {{if .DisableWhenNotPeriod}}data-disable-without-period="true"{{if not .CurrentIsPeriod}} disabled{{end}}{{end}}
     {{if .IncludePreviewHooks}}data-symptom-label="{{$label}}"{{end}}
     {{if hasSymptom .SelectedSymptomID .Symptom.ID}}checked{{end}}>
   <span class="{{if .Compact}}check-chip check-chip-sm{{else}}check-chip{{end}}" title="{{$label}}">
@@ -341,99 +378,35 @@
   </span>
 </label>
 {{end}}
-{{define "symptom_group_panel"}}
-<section class="symptom-group-panel">
-  <p class="symptom-group-title">{{.Title}}</p>
+{{define "symptom_options"}}
+<div class="space-y-3">
   <div class="{{if .Compact}}symptom-grid symptom-grid-compact{{else}}symptom-grid{{end}}">
-    {{range .Symptoms}}
-    {{if eq (symptomGroup .Name) $.GroupKey}}
+    {{range .PrimarySymptoms}}
     {{template "symptom_option_item" (dict
       "Messages" $.Messages
       "Symptom" .
       "SelectedSymptomID" $.SelectedSymptomID
       "Lang" $.Lang
       "Compact" $.Compact
-      "IncludePreviewHooks" $.IncludePreviewHooks
-      "DisableWhenNotPeriod" $.DisableWhenNotPeriod)}}
-    {{end}}
+      "IncludePreviewHooks" $.IncludePreviewHooks)}}
     {{end}}
   </div>
-</section>
-{{end}}
-{{define "symptom_options"}}
-{{$hasPain := false}}
-{{$hasMood := false}}
-{{$hasDigestion := false}}
-{{$hasSkin := false}}
-{{$hasOther := false}}
-{{range .Symptoms}}
-{{$group := symptomGroup .Name}}
-{{if eq $group "pain"}}{{$hasPain = true}}{{end}}
-{{if eq $group "mood"}}{{$hasMood = true}}{{end}}
-{{if eq $group "digestion"}}{{$hasDigestion = true}}{{end}}
-{{if eq $group "skin"}}{{$hasSkin = true}}{{end}}
-{{if eq $group "other"}}{{$hasOther = true}}{{end}}
-{{end}}
-<div class="symptom-groups">
-  {{if $hasPain}}
-  {{template "symptom_group_panel" (dict
-    "Messages" .Messages
-    "Title" (t .Messages "symptoms.group.pain")
-    "GroupKey" "pain"
-    "Symptoms" .Symptoms
-    "SelectedSymptomID" .SelectedSymptomID
-    "Lang" .Lang
-    "Compact" .Compact
-    "IncludePreviewHooks" .IncludePreviewHooks
-    "DisableWhenNotPeriod" .DisableWhenNotPeriod)}}
-  {{end}}
-  {{if $hasMood}}
-  {{template "symptom_group_panel" (dict
-    "Messages" .Messages
-    "Title" (t .Messages "symptoms.group.mood")
-    "GroupKey" "mood"
-    "Symptoms" .Symptoms
-    "SelectedSymptomID" .SelectedSymptomID
-    "Lang" .Lang
-    "Compact" .Compact
-    "IncludePreviewHooks" .IncludePreviewHooks
-    "DisableWhenNotPeriod" .DisableWhenNotPeriod)}}
-  {{end}}
-  {{if $hasDigestion}}
-  {{template "symptom_group_panel" (dict
-    "Messages" .Messages
-    "Title" (t .Messages "symptoms.group.digestion")
-    "GroupKey" "digestion"
-    "Symptoms" .Symptoms
-    "SelectedSymptomID" .SelectedSymptomID
-    "Lang" .Lang
-    "Compact" .Compact
-    "IncludePreviewHooks" .IncludePreviewHooks
-    "DisableWhenNotPeriod" .DisableWhenNotPeriod)}}
-  {{end}}
-  {{if $hasSkin}}
-  {{template "symptom_group_panel" (dict
-    "Messages" .Messages
-    "Title" (t .Messages "symptoms.group.skin")
-    "GroupKey" "skin"
-    "Symptoms" .Symptoms
-    "SelectedSymptomID" .SelectedSymptomID
-    "Lang" .Lang
-    "Compact" .Compact
-    "IncludePreviewHooks" .IncludePreviewHooks
-    "DisableWhenNotPeriod" .DisableWhenNotPeriod)}}
-  {{end}}
-  {{if $hasOther}}
-  {{template "symptom_group_panel" (dict
-    "Messages" .Messages
-    "Title" (t .Messages "symptoms.group.other")
-    "GroupKey" "other"
-    "Symptoms" .Symptoms
-    "SelectedSymptomID" .SelectedSymptomID
-    "Lang" .Lang
-    "Compact" .Compact
-    "IncludePreviewHooks" .IncludePreviewHooks
-    "DisableWhenNotPeriod" .DisableWhenNotPeriod)}}
+
+  {{if .HasExtraSymptoms}}
+  <details class="symptom-more-details">
+    <summary class="symptom-more-summary">{{t .Messages "dashboard.more_symptoms"}}</summary>
+    <div class="mt-3 {{if .Compact}}symptom-grid symptom-grid-compact{{else}}symptom-grid{{end}}">
+      {{range .ExtraSymptoms}}
+      {{template "symptom_option_item" (dict
+        "Messages" $.Messages
+        "Symptom" .
+        "SelectedSymptomID" $.SelectedSymptomID
+        "Lang" $.Lang
+        "Compact" $.Compact
+        "IncludePreviewHooks" $.IncludePreviewHooks)}}
+      {{end}}
+    </div>
+  </details>
   {{end}}
 </div>
 {{end}}

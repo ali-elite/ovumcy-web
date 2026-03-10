@@ -19,6 +19,8 @@ func mapDashboardViewError(err error) APIErrorSpec {
 	switch services.ClassifyDashboardViewError(err) {
 	case services.DashboardViewErrorLoadTodayLog:
 		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load today log")
+	case services.DashboardViewErrorLoadLogs:
+		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load symptom history")
 	default:
 		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load logs")
 	}
@@ -28,6 +30,10 @@ func mapDayEditorViewError(err error) APIErrorSpec {
 	switch services.ClassifyDashboardViewError(err) {
 	case services.DashboardViewErrorLoadDayState:
 		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load day state")
+	case services.DashboardViewErrorLoadDayLog:
+		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load day log")
+	case services.DashboardViewErrorLoadLogs:
+		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load symptom history")
 	default:
 		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load day")
 	}

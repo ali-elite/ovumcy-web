@@ -83,6 +83,19 @@ async function assertSelectedSymptomChipHasNoTrailingMarker(chip: Locator): Prom
   expect(['none', 'normal', ''].includes(afterContent.replace(/"/g, ''))).toBe(true);
 }
 
+async function ensureSymptomInputVisible(root: Locator, symptomName: string): Promise<Locator> {
+  const input = root.locator(`input[name="symptom_ids"][data-symptom-name="${symptomName}"]`);
+  const visible = await input.isVisible().catch(() => false);
+  if (!visible) {
+    const moreSummary = root.locator('details.symptom-more-details summary');
+    if (await moreSummary.isVisible().catch(() => false)) {
+      await moreSummary.click();
+    }
+  }
+  await expect(input).toBeVisible();
+  return input;
+}
+
 async function registerOwnerAndOpenSettings(page: Page, prefix: string) {
   const creds = createCredentials(prefix);
 
@@ -122,8 +135,10 @@ async function saveTodayWithSymptom(page: Page, symptomName: string): Promise<st
   await expect(page).toHaveURL(/\/dashboard$/);
 
   await page.locator('input[name="is_period"]').check();
-  const customSymptom = page.locator(`input[name="symptom_ids"][data-symptom-name="${symptomName}"]`);
-  await expect(customSymptom).toBeVisible();
+  const customSymptom = await ensureSymptomInputVisible(
+    page.locator('form[hx-post^="/api/days/"]').first(),
+    symptomName
+  );
   await customSymptom.check({ force: true });
   await page.locator('button[data-save-button]').first().click();
   await expect(page.locator('#save-status .status-ok')).toBeVisible();
@@ -133,19 +148,21 @@ async function saveTodayWithSymptom(page: Page, symptomName: string): Promise<st
   return String(todayAction).replace('/api/days/', '');
 }
 
-async function openCalendarDay(page: Page, isoDate: string): Promise<void> {
+async function openCalendarDayEditor(page: Page, isoDate: string): Promise<Locator> {
   const month = isoDate.slice(0, 7);
   await page.goto(`/calendar?month=${month}&day=${isoDate}`);
   await expect(page).toHaveURL(new RegExp(`/calendar\\?month=${month}&day=${isoDate}`));
-  await expect(page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${isoDate}"]`)).toBeVisible();
+
+  const editButton = page.locator(`#day-editor button[hx-get="/calendar/day/${isoDate}?mode=edit"]`).first();
+  await expect(editButton).toBeVisible();
+  await editButton.click();
+
+  const form = page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${isoDate}"]`);
+  await expect(form).toBeVisible();
+  return form;
 }
 
 async function completeOnboardingWithStartDate(page: Page, startDate: string): Promise<void> {
-  const beginButton = page.locator('[data-onboarding-action="begin"]');
-  if (await beginButton.isVisible().catch(() => false)) {
-    await beginButton.click();
-  }
-
   const startDateInput = page.locator('#last-period-start');
   await expect(dateFieldRoot(startDateInput)).toBeVisible();
 
@@ -161,31 +178,30 @@ async function completeOnboardingWithStartDate(page: Page, startDate: string): P
   const stepTwoForm = page.locator('form[hx-post="/onboarding/step2"]');
   await expect(stepTwoForm).toBeVisible();
   await stepTwoForm.locator('button[type="submit"]').click();
-
-  const stepThreeForm = page.locator('form[hx-post="/onboarding/complete"]');
-  await expect(stepThreeForm).toBeVisible();
-  await stepThreeForm.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
 }
 
 async function currentNextPeriodText(page: Page): Promise<string> {
   const value = await page
-    .locator('article.stat-card')
+    .locator('.dashboard-status-line .dashboard-status-item')
     .nth(2)
-    .locator('.stat-value')
     .textContent();
 
   return String(value || '').trim();
 }
 
 test.describe('Settings: profile and cycle', () => {
-  test('profile name updates nav identity, long value is rejected, empty clears to email fallback', async ({
+  test('profile name persists, long value is rejected, and empty clears without header fallback', async ({
     page,
   }) => {
     const creds = await registerOwnerAndOpenSettings(page, 'settings-profile');
 
-    const profileEmail = page.locator('#settings-profile-email');
-    await expect(profileEmail).toHaveAttribute('readonly', '');
+    const profileAccountPanel = page.locator('#settings-account .journal-panel').filter({
+      hasText: creds.email,
+    });
+    await expect(profileAccountPanel).toContainText(creds.email);
+    await expect(profileAccountPanel).toContainText('Cannot be changed.');
+    await expect(page.locator('#settings-account input#settings-profile-email')).toHaveCount(0);
 
     const displayNameInput = page.locator('#settings-display-name');
     const saveProfileButton = page.locator(
@@ -199,7 +215,8 @@ test.describe('Settings: profile and cycle', () => {
 
     await page.reload();
     await expect(page).toHaveURL(/\/settings$/);
-    await expect(page.locator('.nav-user-chip')).toContainText(newName);
+    await expect(displayNameInput).toHaveValue(newName);
+    await expect(page.locator('.nav-user-chip')).toHaveCount(0);
 
     await displayNameInput.evaluate((el) => {
       (el as HTMLInputElement).value = 'X'.repeat(80);
@@ -211,9 +228,9 @@ test.describe('Settings: profile and cycle', () => {
     await saveProfileButton.click();
     await expect(page.locator('#settings-profile-status .status-ok')).toBeVisible();
 
-    const fallbackIdentity = creds.email.split('@')[0];
     await page.reload();
-    await expect(page.locator('.nav-user-chip')).toContainText(fallbackIdentity);
+    await expect(displayNameInput).toHaveValue('');
+    await expect(page.locator('.nav-user-chip')).toHaveCount(0);
   });
 
   test('cycle settings persist, affect dashboard predictions, and reject future last-period date', async ({
@@ -328,10 +345,13 @@ test.describe('Settings: profile and cycle', () => {
     await expect(customSymptomRow(symptomSection, 'Joint stiffness', 'archived').locator('[data-symptom-row-success]')).toBeVisible();
 
     await page.goto('/dashboard');
-    await expect(page.locator('input[name="symptom_ids"][data-symptom-name="Joint stiffness"]')).toBeVisible();
-    await expect(page.locator('input[name="symptom_ids"][data-symptom-name="Joint stiffness"]')).toBeChecked();
+    const archivedDashboardSymptom = await ensureSymptomInputVisible(
+      page.locator('form[hx-post^="/api/days/"]').first(),
+      'Joint stiffness'
+    );
+    await expect(archivedDashboardSymptom).toBeChecked();
 
-    await openCalendarDay(page, otherISO);
+    await openCalendarDayEditor(page, otherISO);
     await expect(
       page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${otherISO}"] input[name="symptom_ids"][data-symptom-name="Joint stiffness"]`)
     ).toHaveCount(0);
@@ -376,7 +396,7 @@ test.describe('Settings: profile and cycle', () => {
     ).toBeVisible();
     await expect(customSymptomRow(symptomSection, 'Joint support', 'active')).toBeVisible();
 
-    await openCalendarDay(page, otherISO);
+    await openCalendarDayEditor(page, otherISO);
     await expect(
       page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${otherISO}"] input[name="symptom_ids"][data-symptom-name="Joint ease"]`)
     ).toBeVisible();
@@ -439,12 +459,11 @@ test.describe('Settings: profile and cycle', () => {
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.locator('input[name="is_period"]').check();
-    await expect(
-      page.locator(`input[name="symptom_ids"][data-symptom-name="${longButAllowedName}"]`)
-    ).toBeVisible();
-    await page.locator(`input[name="symptom_ids"][data-symptom-name="${longButAllowedName}"]`).check({
-      force: true,
-    });
+    const longSymptomInput = await ensureSymptomInputVisible(
+      page.locator('form[hx-post^="/api/days/"]').first(),
+      longButAllowedName
+    );
+    await longSymptomInput.check({ force: true });
     await assertSelectedSymptomChipHasNoTrailingMarker(
       page.locator(
         `label.choice-option:has(input[name="symptom_ids"][data-symptom-name="${longButAllowedName}"]:checked) .check-chip`

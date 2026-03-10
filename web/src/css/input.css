@@ -437,6 +437,25 @@
     text-underline-offset: 2px;
   }
 
+  .dashboard-status-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+  }
+
+  .dashboard-status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.34rem;
+  }
+
+  .dashboard-status-separator {
+    color: rgba(172, 136, 96, 0.72);
+  }
+
   .stat-card {
     padding: 1rem;
   }
@@ -788,7 +807,8 @@
   }
 
   .radio-tile,
-  .check-chip {
+  .check-chip,
+  .mood-chip {
     display: inline-flex;
     width: 100%;
     align-items: center;
@@ -825,6 +845,55 @@
     overflow: hidden;
   }
 
+  .mood-chip {
+    min-height: 3rem;
+    max-width: 4rem;
+    margin-inline: auto;
+    border-radius: 999px;
+    padding: 0.5rem 0.9rem;
+  }
+
+  .mood-chip-sm {
+    min-height: 2.4rem;
+    max-width: 3.2rem;
+    padding: 0.34rem 0.72rem;
+  }
+
+  .mood-chip-emoji {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .flow-radio-row,
+  .mood-row {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mood-row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .flow-radio-row-compact {
+    gap: 0.45rem;
+  }
+
+  .mood-row-compact {
+    gap: 0.4rem;
+  }
+
+  .radio-tile-inline {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.38rem;
+    min-height: 2.7rem;
+  }
+
+  .radio-icon-inline {
+    font-size: 0.95rem;
+  }
+
   .check-chip-sm {
     min-height: 2.3rem;
     font-size: 0.78rem;
@@ -857,6 +926,37 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--text-muted);
+  }
+
+  .symptom-more-details {
+    border-top: 1px dashed rgba(172, 136, 96, 0.34);
+    padding-top: 0.75rem;
+  }
+
+  .symptom-more-summary {
+    cursor: pointer;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--accent-strong);
+    list-style: none;
+  }
+
+  .symptom-more-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .note-disclosure {
+    border-top: 1px dashed rgba(172, 136, 96, 0.34);
+    padding-top: 0.85rem;
+  }
+
+  .note-disclosure summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .note-disclosure summary::-webkit-details-marker {
+    display: none;
   }
 
   .symptom-group-panel .symptom-grid {
@@ -1106,6 +1206,53 @@
     padding-top: 0.6rem;
   }
 
+  .calendar-cell-markers {
+    margin-top: 0.7rem;
+    display: flex;
+    min-height: 0.8rem;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .calendar-ovulation-dot {
+    display: inline-block;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 999px;
+    background: var(--ovulation-color);
+    box-shadow: 0 0 0 2px rgba(244, 213, 141, 0.22);
+  }
+
+  .check-chip-static {
+    width: auto;
+    min-height: 2.1rem;
+    padding-inline: 0.72rem;
+  }
+
+  .stats-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #d4a574, #e8c4a8);
+  }
+
+  .security-advanced {
+    border-top: 1px dashed rgba(172, 136, 96, 0.34);
+    padding-top: 1rem;
+  }
+
+  .security-advanced summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .security-advanced summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .settings-danger-zone {
+    margin-top: 1rem;
+  }
+
   .danger-link {
     border: none;
     background: transparent;
@@ -1151,7 +1298,8 @@
   }
 
   .choice-input:checked + .radio-tile,
-  .choice-input:checked + .check-chip {
+  .choice-input:checked + .check-chip,
+  .choice-input:checked + .mood-chip {
     border-color: rgba(186, 131, 80, 0.95);
     background: linear-gradient(135deg, rgba(243, 215, 189, 0.9), rgba(232, 196, 168, 0.7));
     box-shadow:
@@ -1160,12 +1308,14 @@
   }
 
   .choice-input:disabled + .radio-tile,
-  .choice-input:disabled + .check-chip {
+  .choice-input:disabled + .check-chip,
+  .choice-input:disabled + .mood-chip {
     opacity: 0.76;
   }
 
   .choice-input:disabled:checked + .radio-tile,
-  .choice-input:disabled:checked + .check-chip {
+  .choice-input:disabled:checked + .check-chip,
+  .choice-input:disabled:checked + .mood-chip {
     border-color: rgba(232, 196, 168, 0.8);
     background: rgba(255, 249, 240, 0.72);
     box-shadow: none;
@@ -1666,19 +1816,11 @@
     transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .onboarding-progress-fill[data-step="0"] {
-    width: 0;
-  }
-
   .onboarding-progress-fill[data-step="1"] {
-    width: 33.3333%;
+    width: 50%;
   }
 
   .onboarding-progress-fill[data-step="2"] {
-    width: 66.6667%;
-  }
-
-  .onboarding-progress-fill[data-step="3"] {
     width: 100%;
   }
 
@@ -1787,7 +1929,8 @@
   }
 
   :root[data-theme="dark"] .radio-tile,
-  :root[data-theme="dark"] .check-chip {
+  :root[data-theme="dark"] .check-chip,
+  :root[data-theme="dark"] .mood-chip {
     border-color: rgba(127, 105, 160, 0.72);
     background: rgba(46, 38, 61, 0.84);
     color: var(--text-primary);
@@ -1811,7 +1954,8 @@
   }
 
   :root[data-theme="dark"] .choice-input:checked + .radio-tile,
-  :root[data-theme="dark"] .choice-input:checked + .check-chip {
+  :root[data-theme="dark"] .choice-input:checked + .check-chip,
+  :root[data-theme="dark"] .choice-input:checked + .mood-chip {
     border-color: rgba(222, 176, 117, 0.9);
     background: linear-gradient(135deg, rgba(103, 73, 46, 0.9), rgba(66, 48, 86, 0.88));
     box-shadow:
@@ -1847,6 +1991,10 @@
   :root[data-theme="dark"] .calendar-cell-fertile {
     border-color: rgba(137, 179, 154, 0.8);
     background: rgba(69, 109, 88, 0.42);
+  }
+
+  :root[data-theme="dark"] .calendar-ovulation-dot {
+    box-shadow: 0 0 0 2px rgba(216, 176, 98, 0.28);
   }
 
   :root[data-theme="dark"] .calendar-today-pill {
@@ -1963,6 +2111,22 @@
       gap: 0.36rem;
     }
 
+    .flow-radio-row,
+    .flow-radio-row-compact {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mood-row,
+    .mood-row-compact {
+      gap: 0.32rem;
+    }
+
+    .mood-chip {
+      min-height: 2.55rem;
+      max-width: none;
+      padding-inline: 0;
+    }
+
     .symptom-grid .symptom-label {
       white-space: normal;
       overflow: visible;
@@ -1989,10 +2153,6 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 0.2rem;
-    }
-
-    .calendar-badges {
-      display: none;
     }
 
     .calendar-cell {

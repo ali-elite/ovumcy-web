@@ -19,6 +19,7 @@ func parseDayPayload(c *fiber.Ctx) (dayPayload, error) {
 	} else {
 		payload.IsPeriod = services.ParseBoolLike(c.FormValue("is_period"))
 		payload.Flow = strings.ToLower(strings.TrimSpace(c.FormValue("flow")))
+		payload.Mood = clampFormIntValue(c.FormValue("mood"))
 		payload.Notes = strings.TrimSpace(c.FormValue("notes"))
 
 		symptomRaw := c.Context().PostArgs().PeekMulti("symptom_ids")
@@ -37,4 +38,12 @@ func parseDayPayload(c *fiber.Ctx) (dayPayload, error) {
 	payload.Notes = strings.TrimSpace(payload.Notes)
 
 	return payload, nil
+}
+
+func clampFormIntValue(raw string) int {
+	value, err := parseRequestInt(raw)
+	if err != nil {
+		return 0
+	}
+	return value
 }

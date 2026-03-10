@@ -27,7 +27,7 @@ func TestCalendarDayPanelDeleteEntryUsesConfirmForm(t *testing.T) {
 		t.Fatalf("create daily log: %v", err)
 	}
 
-	request := httptest.NewRequest(http.MethodGet, "/calendar/day/2026-02-17", nil)
+	request := httptest.NewRequest(http.MethodGet, "/calendar/day/2026-02-17?mode=edit", nil)
 	request.Header.Set("Accept-Language", "en")
 	request.Header.Set("Cookie", authCookie)
 
@@ -47,9 +47,9 @@ func TestCalendarDayPanelDeleteEntryUsesConfirmForm(t *testing.T) {
 	}
 	rendered := string(body)
 	if !strings.Contains(rendered, `hx-delete="/api/log/delete?date=2026-02-17&source=calendar"`) {
-		t.Fatalf("expected delete endpoint in day panel")
+		t.Fatalf("expected delete endpoint in calendar edit panel")
 	}
 	if !strings.Contains(rendered, ">Delete entry</button>") {
-		t.Fatalf("expected visible delete entry action in day panel")
+		t.Fatalf("expected visible delete entry action in calendar edit panel")
 	}
 }

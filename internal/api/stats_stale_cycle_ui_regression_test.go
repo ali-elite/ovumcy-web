@@ -45,10 +45,7 @@ func TestStatsPageShowsUnknownPhaseWhenCycleDataIsStale(t *testing.T) {
 		t.Fatalf("read stats body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, "Unknown") {
-		t.Fatalf("expected stale stats phase to be rendered as unknown")
-	}
-	if !strings.Contains(rendered, "Phase shown as estimate due stale baseline.") {
-		t.Fatalf("expected stale-phase explanatory hint on stats page")
+	if !strings.Contains(rendered, "Keep logging") {
+		t.Fatalf("expected gated empty state on stats page before enough completed cycles")
 	}
 }

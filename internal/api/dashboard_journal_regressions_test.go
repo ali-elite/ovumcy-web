@@ -57,16 +57,13 @@ func TestDashboardSymptomsNotesPanelUsesSavedSymptomsAndNotesState(t *testing.T)
 		t.Fatalf("read dashboard body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, "Symptoms and notes") {
-		t.Fatalf("expected symptoms and notes panel header")
-	}
 	if !strings.Contains(rendered, "Remember to hydrate") {
-		t.Fatalf("expected saved note to be rendered on dashboard")
+		t.Fatalf("expected saved note to stay visible in dashboard form")
 	}
 	if !strings.Contains(rendered, "Custom cramps") {
-		t.Fatalf("expected saved custom symptom label to be rendered on dashboard")
+		t.Fatalf("expected saved custom symptom label to be rendered in dashboard picker")
 	}
 	if !strings.Contains(rendered, "Custom headache") {
-		t.Fatalf("expected second saved custom symptom label to be rendered on dashboard")
+		t.Fatalf("expected second saved custom symptom label to be rendered in dashboard picker")
 	}
 }

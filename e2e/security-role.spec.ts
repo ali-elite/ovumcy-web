@@ -45,6 +45,15 @@ async function registerOwnerAndOpenSettings(page: Page, prefix: string): Promise
   await expect(page).toHaveURL(/\/settings$/);
 }
 
+async function openTodayNotes(page: Page): Promise<void> {
+  const disclosure = page.locator('details.note-disclosure');
+  const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
+  if (!isOpen) {
+    await disclosure.locator('summary').click();
+  }
+  await expect(page.locator('#today-notes')).toBeVisible();
+}
+
 function todayISOInBrowser(): Promise<string> {
   return Promise.resolve().then(() => {
     const now = new Date();
@@ -70,15 +79,9 @@ test.describe('Security and role-based access', () => {
     await page.locator('form[action="/api/settings/profile"] button[data-save-button]').click();
 
     await expect(page.locator('#settings-profile-status .status-ok')).toBeVisible();
-
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/dashboard$/);
-
-    const navChip = page.locator('.nav-user-chip');
-    await expect(navChip).toBeVisible();
-
-    const chipHtml = (await navChip.innerHTML()).toLowerCase();
-    expect(chipHtml).not.toContain('<img');
+    await expect(page.locator('.nav-user-chip')).toHaveCount(0);
+    await expect(page.locator('#settings-display-name')).toHaveValue(payload);
+    await expect(page.locator('#settings-account img')).toHaveCount(0);
 
     await page.waitForTimeout(250);
     expect(dialogTriggered).toBe(false);
@@ -98,13 +101,15 @@ test.describe('Security and role-based access', () => {
     const savedDay = String(todayAction || '').replace('/api/days/', '');
 
     const payload = `<script>alert('xss-notes')</script><img src=x onerror=alert('xss-notes-img')>`;
+    await openTodayNotes(page);
     await page.locator('#today-notes').fill(payload);
     await page.locator('button[data-save-button]').first().click();
     await expect(page.locator('#save-status .status-ok')).toBeVisible();
 
-    await page.goto(`/calendar?day=${savedDay}`);
-    await expect(page).toHaveURL(new RegExp(`/calendar\\?day=${savedDay}$`));
-    await expect(page.locator('#calendar-notes')).toHaveValue(payload);
+    const month = savedDay.slice(0, 7);
+    await page.goto(`/calendar?month=${month}&day=${savedDay}`);
+    await expect(page).toHaveURL(new RegExp(`/calendar\\?month=${month}&day=${savedDay}`));
+    await expect(page.locator('#day-editor')).toContainText(payload);
 
     await page.waitForTimeout(250);
     expect(dialogTriggered).toBe(false);

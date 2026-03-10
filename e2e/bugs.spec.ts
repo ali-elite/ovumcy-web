@@ -156,19 +156,18 @@ test.describe('Bug regressions', () => {
       expect(todayAction).toMatch(/^\/api\/days\/\d{4}-\d{2}-\d{2}$/);
       const actualTodayISO = String(todayAction || '').replace('/api/days/', '');
 
-      const todayCard = page.locator('section.journal-card').filter({
-        has: page.locator('h2.journal-subtitle', { hasText: /Today journal|Запись за сегодня/i }),
-      });
+      const todayCard = page
+        .locator('form[hx-post^="/api/days/"]')
+        .first()
+        .locator('xpath=ancestor::section[contains(@class,"journal-card")][1]');
       const subtitleText = String((await todayCard.locator('p.journal-muted').first().textContent()) || '');
       expect(subtitleText).toContain(expectedToday.day);
       expect(
         subtitleText.includes(expectedToday.weekdayEN) || subtitleText.toLowerCase().includes(expectedToday.weekdayRU)
       ).toBeTruthy();
 
-      const cycleCard = page.locator('article.stat-card').filter({
-        has: page.locator('p.stat-label', { hasText: /Cycle day|День цикла/i }),
-      });
-      const cycleValueText = String((await cycleCard.locator('.stat-value').first().textContent()) || '');
+      const cycleStatusItem = page.locator('.dashboard-status-line .dashboard-status-item').nth(1);
+      const cycleValueText = String((await cycleStatusItem.textContent()) || '');
       const cycleDayMatch = cycleValueText.match(/\d+/);
       expect(cycleDayMatch, `Cannot parse cycle day from "${cycleValueText}"`).toBeTruthy();
       const expectedCycleDay = page.evaluate(({ todayISO, startISO }) => {
@@ -264,7 +263,7 @@ test.describe('Bug regressions', () => {
   });
 
   test.describe('BUG-03: profile name immediate nav update', () => {
-    test('settings profile save updates nav identity without reload', async ({ page }) => {
+    test('settings profile save keeps the header identity empty and persists the field value', async ({ page }) => {
       await registerOwnerAndReachDashboard(page, 'bug03-profile-live');
 
       await page.goto('/settings');
@@ -277,7 +276,10 @@ test.describe('Bug regressions', () => {
       await page.locator('form[action="/api/settings/profile"] button[data-save-button]').click();
       await expect(page.locator('#settings-profile-status .status-ok')).toBeVisible();
 
-      await expect(page.locator('.nav-user-chip')).toContainText(newName);
+      await expect(page.locator('.nav-user-chip')).toHaveCount(0);
+      await page.reload();
+      await expect(page.locator('#settings-display-name')).toHaveValue(newName);
+      await expect(page.locator('.nav-user-chip')).toHaveCount(0);
     });
   });
 });

@@ -51,6 +51,15 @@ async function saveToday(page: Page): Promise<void> {
   await expect(page.locator('#save-status .status-ok')).toBeVisible();
 }
 
+async function openTodayNotes(page: Page): Promise<void> {
+  const disclosure = page.locator('details.note-disclosure');
+  const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
+  if (!isOpen) {
+    await disclosure.locator('summary').click();
+  }
+  await expect(page.locator('#today-notes')).toBeVisible();
+}
+
 async function clientLocalISODate(page: Page): Promise<string> {
   return page.evaluate(() => {
     const now = new Date();
@@ -117,6 +126,7 @@ test.describe('Dashboard: today editor', () => {
     await expect(symptoms.nth(1)).not.toBeChecked();
 
     const noteText = `dashboard-note-${Date.now()}`;
+    await openTodayNotes(page);
     await notes.fill(noteText);
 
     await saveToday(page);
@@ -132,7 +142,7 @@ test.describe('Dashboard: today editor', () => {
     await expect(notes).toHaveValue(noteText);
   });
 
-  test('switching Period day off clears symptoms/flow selection for saved state', async ({ page }) => {
+  test('switching Period day off keeps symptoms but clears flow for saved state', async ({ page }) => {
     await registerOwnerOnDashboard(page, 'dashboard-period-off');
 
     const periodToggle = page.locator('input[name="is_period"]');
@@ -150,14 +160,14 @@ test.describe('Dashboard: today editor', () => {
     await expect(periodToggle).toBeChecked();
     await periodToggle.uncheck();
 
-    await expect(symptoms.nth(0)).not.toBeChecked();
+    await expect(symptoms.nth(0)).toBeChecked();
     await expect(flowLight).toBeDisabled();
 
     await saveToday(page);
     await page.reload();
 
     await expect(periodToggle).not.toBeChecked();
-    await expect(symptoms.nth(0)).not.toBeChecked();
+    await expect(symptoms.nth(0)).toBeChecked();
     await expect(flowLight).not.toBeChecked();
   });
 
@@ -172,6 +182,7 @@ test.describe('Dashboard: today editor', () => {
     await periodToggle.check();
     await flowMedium.check({ force: true });
     await symptoms.nth(0).check({ force: true });
+    await openTodayNotes(page);
     await notes.fill(`to-clear-${Date.now()}`);
     await saveToday(page);
 
@@ -208,10 +219,13 @@ test.describe('Dashboard: today editor', () => {
 
     await periodToggle.check();
     await flowMedium.check({ force: true });
+    await openTodayNotes(page);
     await notes.fill(noteText);
     await saveToday(page);
 
     await page.goto(`/calendar?month=${month}&day=${todayISO}`);
+    await expect(page.locator('#day-editor')).toContainText(noteText);
+    await page.locator(`#day-editor button[hx-get="/calendar/day/${todayISO}?mode=edit"]`).click();
     const dayEditorForm = page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${todayISO}"]`);
     await expect(dayEditorForm).toBeVisible();
     await expect(dayEditorForm.locator('input[name="is_period"]')).toBeChecked();

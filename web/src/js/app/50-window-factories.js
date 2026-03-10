@@ -243,17 +243,9 @@
       var root = roots[index];
       if (root.dataset.dashboardEditorBound !== "1") {
         root.dataset.dashboardEditorBound = "1";
-        root.__ovumcyDashboardWasPeriod = !!(root.querySelector("[data-period-toggle]") && root.querySelector("[data-period-toggle]").checked);
 
         root.addEventListener("change", function (event) {
           var periodToggle = event.target && event.target.matches && event.target.matches("[data-period-toggle]") ? event.target : null;
-          if (periodToggle) {
-            if (!periodToggle.checked && this.__ovumcyDashboardWasPeriod) {
-              clearCheckedInputs(this, "input[name='symptom_ids']");
-            }
-            this.__ovumcyDashboardWasPeriod = periodToggle.checked;
-          }
-
           if (periodToggle || (event.target && event.target.name === "symptom_ids")) {
             syncDashboardPreview(this);
           }
@@ -281,17 +273,12 @@
       var form = forms[index];
       if (form.dataset.dayEditorBound !== "1") {
         form.dataset.dayEditorBound = "1";
-        form.__ovumcyDayEditorWasPeriod = !!(form.querySelector("[data-period-toggle]") && form.querySelector("[data-period-toggle]").checked);
 
         form.addEventListener("change", function (event) {
           if (!event.target || !event.target.matches || !event.target.matches("[data-period-toggle]")) {
             return;
           }
 
-          if (!event.target.checked && this.__ovumcyDayEditorWasPeriod) {
-            clearCheckedInputs(this, "input[name='symptom_ids']");
-          }
-          this.__ovumcyDayEditorWasPeriod = event.target.checked;
           syncDayEditorForm(this);
         });
       }
@@ -492,7 +479,7 @@
   }
 
   function normalizeOnboardingStep(rawStep) {
-    return clampInteger(rawStep, 0, 0, 3);
+    return clampInteger(rawStep, 1, 1, 2);
   }
 
   function clearOnboardingStatus(state, stepKey) {
@@ -505,7 +492,6 @@
   function clearAllOnboardingStatuses(state) {
     clearOnboardingStatus(state, "1");
     clearOnboardingStatus(state, "2");
-    clearOnboardingStatus(state, "3");
   }
 
   function syncOnboardingURL(state) {
@@ -515,7 +501,7 @@
 
     try {
       var currentURL = new URL(window.location.href);
-      if (state.step > 0) {
+      if (state.step > 1) {
         currentURL.searchParams.set("step", String(state.step));
       } else {
         currentURL.searchParams.delete("step");
@@ -552,12 +538,12 @@
   }
 
   function syncOnboardingStepUI(state) {
-    setNodeHidden(state.progress, state.step === 0);
+    setNodeHidden(state.progress, false);
 
-    for (var panelStep = 0; panelStep <= 3; panelStep++) {
+    for (var panelStep = 1; panelStep <= 2; panelStep++) {
       setNodeHidden(state.panels[String(panelStep)], state.step !== panelStep);
     }
-    for (var kickerStep = 1; kickerStep <= 3; kickerStep++) {
+    for (var kickerStep = 1; kickerStep <= 2; kickerStep++) {
       setNodeHidden(state.progressKickers[String(kickerStep)], state.step !== kickerStep);
     }
     if (state.progressBar) {
@@ -667,15 +653,12 @@
           periodValue: root.querySelector("[data-onboarding-period-length-value]"),
           stepTwoSubmit: root.querySelector("[data-onboarding-step2-submit]"),
           panels: {
-            "0": root.querySelector("[data-onboarding-panel='0']"),
             "1": root.querySelector("[data-onboarding-panel='1']"),
-            "2": root.querySelector("[data-onboarding-panel='2']"),
-            "3": root.querySelector("[data-onboarding-panel='3']")
+            "2": root.querySelector("[data-onboarding-panel='2']")
           },
           progressKickers: {
             "1": root.querySelector("[data-onboarding-progress-kicker='1']"),
-            "2": root.querySelector("[data-onboarding-progress-kicker='2']"),
-            "3": root.querySelector("[data-onboarding-progress-kicker='3']")
+            "2": root.querySelector("[data-onboarding-progress-kicker='2']")
           },
           stepTwoMessages: {
             error: root.querySelector("[data-onboarding-step2-message='error']"),
@@ -686,8 +669,7 @@
           timezoneFields: root.querySelectorAll("[data-onboarding-timezone-field]"),
           statusTargets: {
             "1": root.querySelector("#onboarding-step1-status"),
-            "2": root.querySelector("#onboarding-step2-status"),
-            "3": root.querySelector("#onboarding-step3-status")
+            "2": root.querySelector("#onboarding-step2-status")
           },
           dayOptions: []
         };
@@ -695,12 +677,6 @@
         root.__ovumcyOnboardingState = state;
 
         root.addEventListener("click", function (event) {
-          var beginButton = closestFromEvent(event, "[data-onboarding-action='begin']");
-          if (beginButton && this.contains(beginButton)) {
-            goToOnboardingStep(this.__ovumcyOnboardingState, 1);
-            return;
-          }
-
           var stepButton = closestFromEvent(event, "[data-onboarding-go-step]");
           if (stepButton && this.contains(stepButton)) {
             goToOnboardingStep(this.__ovumcyOnboardingState, stepButton.getAttribute("data-onboarding-go-step"));
@@ -789,9 +765,6 @@
           switch (form.getAttribute("data-onboarding-form-step")) {
             case "1":
               goToOnboardingStep(this.__ovumcyOnboardingState, 2);
-              break;
-            case "2":
-              goToOnboardingStep(this.__ovumcyOnboardingState, 3);
               break;
           }
         });

@@ -30,6 +30,9 @@ test.describe('Theme mode', () => {
   test('theme toggle switches mode and persists between pages', async ({ page, context }) => {
     await registerAndReachDashboard(page, 'theme-mode');
 
+    await page.goto('/settings');
+    await expect(page).toHaveURL(/\/settings$/);
+
     const html = page.locator('html');
     const toggle = page.locator('[data-theme-toggle]');
     await expect(toggle).toBeVisible();
@@ -48,9 +51,10 @@ test.describe('Theme mode', () => {
     await page.reload();
     await expect(html).toHaveAttribute('data-theme', nextTheme);
 
-    await page.goto('/settings');
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/dashboard$/);
     await expect(html).toHaveAttribute('data-theme', nextTheme);
-    await expect(page.locator('h1.journal-title')).toBeVisible();
+    await expect(page.locator('.dashboard-status-line')).toBeVisible();
 
     const secondPage = await context.newPage();
     await secondPage.goto('/privacy');
@@ -60,4 +64,3 @@ test.describe('Theme mode', () => {
     await logoutViaAPI(page);
   });
 });
-

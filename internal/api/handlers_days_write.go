@@ -28,6 +28,7 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 	entry, err := handler.dayService.UpsertDayEntryWithAutoFill(user.ID, day, services.DayEntryInput{
 		IsPeriod:   payload.IsPeriod,
 		Flow:       payload.Flow,
+		Mood:       payload.Mood,
 		Notes:      payload.Notes,
 		SymptomIDs: cleanIDs,
 	}, location)

@@ -27,18 +27,25 @@ func (handler *Handler) buildDashboardViewData(user *models.User, language strin
 		"NextPeriodInPast":           viewData.CycleContext.NextPeriodInPast,
 		"OvulationInPast":            viewData.CycleContext.OvulationInPast,
 		"Today":                      viewData.Today.Format("2006-01-02"),
+		"Yesterday":                  viewData.Yesterday.Format("2006-01-02"),
+		"YesterdayMonth":             viewData.YesterdayMonth,
 		"FormattedDate":              viewData.FormattedDate,
 		"TodayEntry":                 viewData.TodayLog,
 		"TodayLog":                   viewData.TodayLog,
 		"TodayHasData":               viewData.TodayHasData,
+		"TodayEntryExists":           viewData.TodayEntryExists,
 		"Symptoms":                   viewData.Symptoms,
+		"PrimarySymptoms":            viewData.PrimarySymptoms,
+		"ExtraSymptoms":              viewData.ExtraSymptoms,
+		"HasExtraSymptoms":           viewData.HasExtraSymptoms,
 		"SelectedSymptomID":          viewData.SelectedSymptomID,
+		"ShowYesterdayJump":          viewData.ShowYesterdayJump,
 		"IsOwner":                    viewData.IsOwner,
 	}
 	return data, nil
 }
 
-func (handler *Handler) buildDayEditorPartialData(user *models.User, language string, messages map[string]string, day time.Time, now time.Time, location *time.Location) (fiber.Map, error) {
+func (handler *Handler) buildDayEditorPartialData(user *models.User, language string, messages map[string]string, day time.Time, now time.Time, location *time.Location, editMode bool) (fiber.Map, error) {
 	viewData, err := handler.dashboardViewService.BuildDayEditorViewData(user, language, day, now, location)
 	if err != nil {
 		return nil, err
@@ -52,8 +59,12 @@ func (handler *Handler) buildDayEditorPartialData(user *models.User, language st
 		"NoDataLabel":       translateMessage(messages, "common.not_available"),
 		"Log":               viewData.Log,
 		"Symptoms":          viewData.Symptoms,
+		"PrimarySymptoms":   viewData.PrimarySymptoms,
+		"ExtraSymptoms":     viewData.ExtraSymptoms,
+		"HasExtraSymptoms":  viewData.HasExtraSymptoms,
 		"SelectedSymptomID": viewData.SelectedSymptomID,
 		"HasDayData":        viewData.HasDayData,
+		"EditMode":          editMode,
 		"IsOwner":           viewData.IsOwner,
 	}
 	return payload, nil

@@ -10,6 +10,7 @@ type credentialsInput struct {
 type dayPayload struct {
 	IsPeriod   bool   `json:"is_period"`
 	Flow       string `json:"flow"`
+	Mood       int    `json:"mood"`
 	SymptomIDs []uint `json:"symptom_ids"`
 	Notes      string `json:"notes"`
 }

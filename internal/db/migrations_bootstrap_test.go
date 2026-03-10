@@ -70,12 +70,13 @@ func TestOpenSQLiteUpgradesLegacyInitSchema(t *testing.T) {
 
 	var migratedLog struct {
 		Flow       string  `gorm:"column:flow"`
+		Mood       int     `gorm:"column:mood"`
 		SymptomIDs *string `gorm:"column:symptom_ids"`
 		Notes      string  `gorm:"column:notes"`
 	}
 	if err := database.
 		Table("daily_logs").
-		Select("flow", "symptom_ids", "notes").
+		Select("flow", "mood", "symptom_ids", "notes").
 		Where("notes = ?", "legacy-log").
 		First(&migratedLog).Error; err != nil {
 		t.Fatalf("load migrated legacy daily log: %v", err)
@@ -83,6 +84,9 @@ func TestOpenSQLiteUpgradesLegacyInitSchema(t *testing.T) {
 
 	if migratedLog.Flow != "light" {
 		t.Fatalf("expected migrated flow=light, got %q", migratedLog.Flow)
+	}
+	if migratedLog.Mood != 0 {
+		t.Fatalf("expected migrated mood default to be 0, got %d", migratedLog.Mood)
 	}
 	if migratedLog.SymptomIDs == nil || strings.TrimSpace(*migratedLog.SymptomIDs) != "[1,2]" {
 		t.Fatalf("expected migrated symptom_ids to remain [1,2], got %v", migratedLog.SymptomIDs)
@@ -225,6 +229,9 @@ func assertDailyLogsSchemaReconciled(t *testing.T, database *gorm.DB) {
 	t.Helper()
 
 	columns := loadTableColumns(t, database, "daily_logs")
+	if _, exists := columns["mood"]; !exists {
+		t.Fatal("expected daily_logs.mood column to exist after migrations")
+	}
 	if _, exists := columns["symptom_ids"]; !exists {
 		t.Fatal("expected daily_logs.symptom_ids column to exist after migrations")
 	}

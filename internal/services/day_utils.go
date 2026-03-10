@@ -44,6 +44,9 @@ func DayHasData(entry models.DailyLog) bool {
 	if entry.IsPeriod {
 		return true
 	}
+	if entry.Mood >= MinDayMood && entry.Mood <= MaxDayMood {
+		return true
+	}
 	if len(entry.SymptomIDs) > 0 {
 		return true
 	}

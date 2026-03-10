@@ -13,6 +13,7 @@ var (
 	ErrDashboardViewLoadTodayLog = errors.New("dashboard view load today log")
 	ErrDashboardViewLoadDayState = errors.New("dashboard view load day state")
 	ErrDashboardViewLoadDayLog   = errors.New("dashboard view load day log")
+	ErrDashboardViewLoadLogs     = errors.New("dashboard view load logs")
 )
 
 type DashboardStatsProvider interface {
@@ -25,6 +26,7 @@ type DashboardViewerProvider interface {
 
 type DashboardDayStateProvider interface {
 	DayHasDataForDate(userID uint, day time.Time, location *time.Location) (bool, error)
+	FetchAllLogsForUser(userID uint) ([]models.DailyLog, error)
 }
 
 type DashboardViewService struct {
@@ -37,11 +39,18 @@ type DashboardViewData struct {
 	Stats             CycleStats
 	CycleContext      DashboardCycleContext
 	Today             time.Time
+	Yesterday         time.Time
+	YesterdayMonth    string
 	FormattedDate     string
 	TodayLog          models.DailyLog
 	TodayHasData      bool
+	TodayEntryExists  bool
 	Symptoms          []models.SymptomType
+	PrimarySymptoms   []models.SymptomType
+	ExtraSymptoms     []models.SymptomType
+	HasExtraSymptoms  bool
 	SelectedSymptomID map[uint]bool
+	ShowYesterdayJump bool
 	IsOwner           bool
 }
 
@@ -52,6 +61,9 @@ type DayEditorViewData struct {
 	IsFutureDate      bool
 	Log               models.DailyLog
 	Symptoms          []models.SymptomType
+	PrimarySymptoms   []models.SymptomType
+	ExtraSymptoms     []models.SymptomType
+	HasExtraSymptoms  bool
 	SelectedSymptomID map[uint]bool
 	HasDayData        bool
 	IsOwner           bool
@@ -79,16 +91,34 @@ func (service *DashboardViewService) BuildDashboardViewData(user *models.User, l
 	}
 
 	cycleContext := BuildDashboardCycleContext(user, stats, today, location)
+	selectedSymptomID := SymptomIDSet(todayLog.SymptomIDs)
+	rankedSymptoms, err := service.loadRankedPickerSymptoms(user.ID, symptoms)
+	if err != nil {
+		return DashboardViewData{}, err
+	}
+	primarySymptoms, extraSymptoms := SplitSymptomsForCollapsedPicker(rankedSymptoms, selectedSymptomID, 8)
+	yesterday := today.AddDate(0, 0, -1)
+	yesterdayHasData, err := service.days.DayHasDataForDate(user.ID, yesterday, location)
+	if err != nil {
+		return DashboardViewData{}, fmt.Errorf("%w: %v", ErrDashboardViewLoadDayState, err)
+	}
 
 	return DashboardViewData{
 		Stats:             stats,
 		CycleContext:      cycleContext,
 		Today:             today,
+		Yesterday:         yesterday,
+		YesterdayMonth:    yesterday.Format("2006-01"),
 		FormattedDate:     LocalizedDashboardDate(language, today),
 		TodayLog:          todayLog,
 		TodayHasData:      DayHasData(todayLog),
-		Symptoms:          symptoms,
-		SelectedSymptomID: SymptomIDSet(todayLog.SymptomIDs),
+		TodayEntryExists:  todayLog.ID != 0,
+		Symptoms:          rankedSymptoms,
+		PrimarySymptoms:   primarySymptoms,
+		ExtraSymptoms:     extraSymptoms,
+		HasExtraSymptoms:  len(extraSymptoms) > 0,
+		SelectedSymptomID: selectedSymptomID,
+		ShowYesterdayJump: !yesterdayHasData,
 		IsOwner:           IsOwnerUser(user),
 	}, nil
 }
@@ -103,6 +133,12 @@ func (service *DashboardViewService) BuildDayEditorViewData(user *models.User, l
 	if err != nil {
 		return DayEditorViewData{}, fmt.Errorf("%w: %v", ErrDashboardViewLoadDayLog, err)
 	}
+	selectedSymptomID := SymptomIDSet(logEntry.SymptomIDs)
+	rankedSymptoms, err := service.loadRankedPickerSymptoms(user.ID, symptoms)
+	if err != nil {
+		return DayEditorViewData{}, err
+	}
+	primarySymptoms, extraSymptoms := SplitSymptomsForCollapsedPicker(rankedSymptoms, selectedSymptomID, 8)
 
 	return DayEditorViewData{
 		Date:              day,
@@ -110,9 +146,24 @@ func (service *DashboardViewService) BuildDayEditorViewData(user *models.User, l
 		DateLabel:         LocalizedDateLabel(language, day),
 		IsFutureDate:      day.After(DateAtLocation(now.In(location), location)),
 		Log:               logEntry,
-		Symptoms:          symptoms,
-		SelectedSymptomID: SymptomIDSet(logEntry.SymptomIDs),
+		Symptoms:          rankedSymptoms,
+		PrimarySymptoms:   primarySymptoms,
+		ExtraSymptoms:     extraSymptoms,
+		HasExtraSymptoms:  len(extraSymptoms) > 0,
+		SelectedSymptomID: selectedSymptomID,
 		HasDayData:        hasDayData,
 		IsOwner:           IsOwnerUser(user),
 	}, nil
+}
+
+func (service *DashboardViewService) loadRankedPickerSymptoms(userID uint, symptoms []models.SymptomType) ([]models.SymptomType, error) {
+	if len(symptoms) < 2 {
+		return symptoms, nil
+	}
+
+	logs, err := service.days.FetchAllLogsForUser(userID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDashboardViewLoadLogs, err)
+	}
+	return RankSymptomsForEntryPicker(symptoms, logs), nil
 }

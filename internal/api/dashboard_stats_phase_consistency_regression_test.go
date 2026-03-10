@@ -57,10 +57,7 @@ func TestDashboardAndStatsUseSameStalePhasePresentation(t *testing.T) {
 		t.Fatalf("read stats body: %v", err)
 	}
 	renderedStats := string(statsBody)
-	if !strings.Contains(renderedStats, "Unknown") {
-		t.Fatalf("expected stats stale phase to render as unknown")
-	}
-	if !strings.Contains(renderedStats, "Phase shown as estimate due stale baseline.") {
-		t.Fatalf("expected stats stale phase hint to be rendered")
+	if !strings.Contains(renderedStats, "Keep logging") {
+		t.Fatalf("expected stats page to show gated empty state before enough completed cycles")
 	}
 }

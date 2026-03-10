@@ -9,12 +9,12 @@
   <div class="journal-panel text-sm">{{t .Messages "warning.future_date"}}</div>
   {{end}}
 
-  {{if .IsOwner}}
+  {{if and .IsOwner .EditMode}}
   <form
     hx-post="/api/days/{{.DateString}}"
     hx-target="#calendar-save-status"
     hx-swap="innerHTML"
-    class="space-y-4 calendar-day-editor-form"
+    class="space-y-5 calendar-day-editor-form"
     data-save-feedback
     data-day-editor-form>
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -24,23 +24,33 @@
       <span>🩸 {{t .Messages "dashboard.period_day"}}</span>
     </label>
 
+    <fieldset class="space-y-2">
+      <legend class="field-label">{{t .Messages "dashboard.mood"}}</legend>
+      {{template "mood_picker" (dict "SelectedMood" .Log.Mood "Compact" true)}}
+    </fieldset>
+
     <fieldset class="space-y-2" data-period-fields {{if not .Log.IsPeriod}}hidden{{end}}>
       <legend class="field-label">{{t .Messages "dashboard.flow"}}</legend>
-      {{template "period_flow_options" (dict "Messages" .Messages "SelectedFlow" .Log.Flow "Compact" true "DisableWhenNotPeriod" false "CurrentIsPeriod" .Log.IsPeriod)}}
+      {{template "period_flow_options" (dict "Messages" .Messages "SelectedFlow" .Log.Flow "Compact" true "DisableWhenNotPeriod" true "CurrentIsPeriod" .Log.IsPeriod)}}
     </fieldset>
 
     <fieldset class="space-y-2">
       <legend class="field-label">{{t .Messages "dashboard.symptoms"}}</legend>
-      {{template "symptom_options" (dict "Messages" .Messages "Symptoms" .Symptoms "SelectedSymptomID" .SelectedSymptomID "Lang" .Lang "Compact" true "IncludePreviewHooks" false "DisableWhenNotPeriod" true "CurrentIsPeriod" .Log.IsPeriod)}}
+      {{template "symptom_options" (dict "Messages" .Messages "PrimarySymptoms" .PrimarySymptoms "ExtraSymptoms" .ExtraSymptoms "HasExtraSymptoms" .HasExtraSymptoms "SelectedSymptomID" .SelectedSymptomID "Lang" .Lang "Compact" true "IncludePreviewHooks" false)}}
     </fieldset>
 
-    <label class="field-label" for="calendar-notes">{{t .Messages "dashboard.notes"}}</label>
-    <textarea id="calendar-notes" name="notes" rows="4" maxlength="2000" class="textarea-field">{{.Log.Notes}}</textarea>
+    <details class="note-disclosure" {{if ne .Log.Notes ""}}open{{end}}>
+      <summary class="inline-link text-sm">{{if ne .Log.Notes ""}}{{t .Messages "dashboard.edit_note"}}{{else}}{{t .Messages "dashboard.add_note"}}{{end}}</summary>
+      <div class="mt-3 space-y-2">
+        <label class="field-label" for="calendar-notes">{{t .Messages "dashboard.notes"}}</label>
+        <textarea id="calendar-notes" name="notes" rows="3" maxlength="2000" class="textarea-field">{{.Log.Notes}}</textarea>
+      </div>
+    </details>
 
-    <div class="space-y-2">
-      <button type="submit" class="btn-primary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{t .Messages "dashboard.save_day"}}</button>
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="submit" class="btn-primary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{if gt .Log.ID 0}}{{t .Messages "dashboard.update_entry"}}{{else}}{{t .Messages "dashboard.save_day"}}{{end}}</button>
+      <button type="button" class="btn-secondary" hx-get="/calendar/day/{{.DateString}}" hx-target="#day-editor" hx-swap="innerHTML">{{t .Messages "common.cancel"}}</button>
       <div id="calendar-save-status" class="save-status text-sm"></div>
-      <p class="journal-muted text-xs">{{t .Messages "calendar.autosave_hint"}}</p>
     </div>
   </form>
 
@@ -56,8 +66,20 @@
     </form>
   </div>
   {{end}}
+  {{else if .IsOwner}}
+    {{if .HasDayData}}
+    {{template "owner_log_summary" (dict "Messages" .Messages "Log" .Log "Symptoms" .Symptoms "SelectedSymptomID" .SelectedSymptomID "NoDataLabel" .NoDataLabel)}}
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="button" class="btn-secondary" hx-get="/calendar/day/{{.DateString}}?mode=edit" hx-target="#day-editor" hx-swap="innerHTML">{{t .Messages "calendar.edit_entry"}}</button>
+    </div>
+    {{else}}
+    <div class="journal-panel space-y-3 text-sm">
+      <p>{{t .Messages "calendar.no_entry"}}</p>
+      <button type="button" class="btn-primary" hx-get="/calendar/day/{{.DateString}}?mode=edit" hx-target="#day-editor" hx-swap="innerHTML">{{t .Messages "calendar.add_entry"}}</button>
+    </div>
+    {{end}}
   {{else}}
-  {{template "readonly_log_summary" (dict "Messages" .Messages "Log" .Log)}}
+  {{template "readonly_log_summary" (dict "Messages" .Messages "Log" .Log "NoDataLabel" .NoDataLabel)}}
   {{end}}
 </div>
 {{end}}

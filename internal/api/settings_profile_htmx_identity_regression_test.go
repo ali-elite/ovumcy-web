@@ -80,7 +80,7 @@ func TestProfileUpdateHTMXReturnsFallbackIdentityWhenDisplayNameCleared(t *testi
 	}
 
 	identity := strings.TrimSpace(clearResponse.Header.Get("X-Ovumcy-Profile-Identity"))
-	if identity != "profile-htmx-clear" {
-		t.Fatalf("expected fallback identity %q, got %q", "profile-htmx-clear", identity)
+	if identity != "" {
+		t.Fatalf("expected empty identity header when display name is cleared, got %q", identity)
 	}
 }

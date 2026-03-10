@@ -38,6 +38,7 @@ func (stub *stubDashboardViewerProvider) FetchDayLogForViewer(_ *models.User, _ 
 type stubDashboardDayStateProvider struct {
 	hasData bool
 	err     error
+	logs    []models.DailyLog
 }
 
 func (stub *stubDashboardDayStateProvider) DayHasDataForDate(_ uint, _ time.Time, _ *time.Location) (bool, error) {
@@ -45,6 +46,15 @@ func (stub *stubDashboardDayStateProvider) DayHasDataForDate(_ uint, _ time.Time
 		return false, stub.err
 	}
 	return stub.hasData, nil
+}
+
+func (stub *stubDashboardDayStateProvider) FetchAllLogsForUser(_ uint) ([]models.DailyLog, error) {
+	if stub.err != nil {
+		return nil, stub.err
+	}
+	logs := make([]models.DailyLog, len(stub.logs))
+	copy(logs, stub.logs)
+	return logs, nil
 }
 
 func TestBuildDashboardViewData(t *testing.T) {

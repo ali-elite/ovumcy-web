@@ -1,56 +1,46 @@
 {{define "content"}}
 <section class="space-y-6">
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <article class="journal-card stat-card reveal">
-      <p class="stat-label">{{t .Messages "dashboard.current_phase"}}</p>
-      {{if .CycleDataStale}}
-      <p class="stat-value mt-3"><span class="mr-2">{{phaseIcon "unknown"}}</span>{{phaseLabel .Messages "unknown"}}</p>
-      <p class="warning-amber mt-2 text-xs">{{t .Messages "dashboard.phase_estimated"}}</p>
-      {{else}}
-      <p class="stat-value mt-3"><span class="mr-2">{{phaseIcon .Stats.CurrentPhase}}</span>{{phaseLabel .Messages .Stats.CurrentPhase}}</p>
-      {{end}}
-    </article>
+  <section class="space-y-3">
+    <div class="dashboard-status-line reveal">
+      <span class="dashboard-status-item">
+        <span aria-hidden="true">{{if .CycleDataStale}}{{phaseIcon "unknown"}}{{else}}{{phaseIcon .Stats.CurrentPhase}}{{end}}</span>
+        <span>{{if .CycleDataStale}}{{phaseLabel .Messages "unknown"}}{{else}}{{phaseLabel .Messages .Stats.CurrentPhase}}{{end}}</span>
+      </span>
+      <span class="dashboard-status-separator" aria-hidden="true">·</span>
+      <span class="dashboard-status-item">{{t .Messages "dashboard.cycle_day"}} {{if gt .Stats.CurrentCycleDay 0}}{{if .CycleDataStale}}~{{end}}{{.Stats.CurrentCycleDay}}{{else}}{{.NoDataLabel}}{{end}}</span>
+      <span class="dashboard-status-separator" aria-hidden="true">·</span>
+      <span class="dashboard-status-item">{{t .Messages "dashboard.next_period"}}: {{if .DisplayNextPeriodStart.IsZero}}{{.NoDataLabel}}{{else}}{{formatLocalizedDate .Lang .DisplayNextPeriodStart "short"}}{{end}}</span>
+      <span class="dashboard-status-separator" aria-hidden="true">·</span>
+      <span class="dashboard-status-item">{{t .Messages "dashboard.ovulation"}}: {{if .DisplayOvulationImpossible}}{{t .Messages "dashboard.ovulation_unavailable"}}{{else if .DisplayOvulationDate.IsZero}}{{.NoDataLabel}}{{else}}{{formatLocalizedDate .Lang .DisplayOvulationDate "short"}}{{end}}</span>
+    </div>
 
-    <article class="journal-card stat-card reveal">
-      <p class="stat-label">{{t .Messages "dashboard.cycle_day"}}</p>
-      <p class="stat-value mt-3">{{if gt .Stats.CurrentCycleDay 0}}{{if .CycleDataStale}}~{{end}}{{.Stats.CurrentCycleDay}}{{else}}{{.NoDataLabel}}{{end}}</p>
+    {{if or .CycleDataStale .CycleDayWarning .NextPeriodInPast .OvulationInPast}}
+    <div class="flex flex-wrap items-center gap-3 text-sm">
       {{if .CycleDataStale}}
-      <p class="warning-amber mt-2 text-xs">{{t .Messages "dashboard.cycle_day_stale_hint"}}</p>
-      <p class="mt-3"><a href="/settings#settings-cycle" class="btn-secondary text-sm">{{t .Messages "dashboard.update_cycle_data"}}</a></p>
+      <p class="warning-amber">{{t .Messages "dashboard.cycle_day_stale_hint"}}</p>
       {{else if .CycleDayWarning}}
-      <p class="warning-amber mt-2 text-xs">{{printf (t .Messages "dashboard.cycle_day_long_hint") .CycleDayReference}}</p>
+      <p class="warning-amber">{{printf (t .Messages "dashboard.cycle_day_long_hint") .CycleDayReference}}</p>
       {{end}}
-    </article>
-
-    <article class="journal-card stat-card reveal">
-      <p class="stat-label">{{t .Messages "dashboard.next_period"}}</p>
-      <p class="stat-value mt-3">{{if .DisplayNextPeriodStart.IsZero}}{{.NoDataLabel}}{{else}}{{formatLocalizedDate .Lang .DisplayNextPeriodStart "full"}}{{end}}</p>
-      {{if .NextPeriodInPast}}
-      <p class="warning-amber mt-2 text-xs">{{t .Messages "dashboard.prediction_in_past"}}</p>
-      <p class="mt-3"><a href="/settings#settings-cycle" class="btn-secondary text-sm">{{t .Messages "dashboard.update_cycle_data"}}</a></p>
+      {{if or .NextPeriodInPast .OvulationInPast}}
+      <p class="warning-amber">{{t .Messages "dashboard.prediction_in_past"}}</p>
       {{end}}
-    </article>
-
-    <article class="journal-card stat-card reveal">
-      <p class="stat-label">{{t .Messages "dashboard.ovulation"}}</p>
-      <p class="stat-value mt-3">{{if .DisplayOvulationImpossible}}{{t .Messages "dashboard.ovulation_unavailable"}}{{else if .DisplayOvulationDate.IsZero}}{{.NoDataLabel}}{{else}}{{formatLocalizedDate .Lang .DisplayOvulationDate "full"}}{{end}}</p>
-      {{if and (not .DisplayOvulationImpossible) (not .DisplayOvulationDate.IsZero) (not .DisplayOvulationExact)}}
-      <p class="journal-muted mt-2 text-xs">{{t .Messages "dashboard.ovulation_approximate"}}</p>
-      {{end}}
-      {{if .OvulationInPast}}
-      <p class="warning-amber mt-2 text-xs">{{t .Messages "dashboard.prediction_in_past"}}</p>
-      <p class="mt-3"><a href="/settings#settings-cycle" class="btn-secondary text-sm">{{t .Messages "dashboard.update_cycle_data"}}</a></p>
-      {{end}}
-    </article>
-  </div>
+      <a href="/settings#settings-cycle" class="btn-secondary text-sm">{{t .Messages "dashboard.update_cycle_data"}}</a>
+    </div>
+    {{else if and (not .DisplayOvulationImpossible) (not .DisplayOvulationDate.IsZero) (not .DisplayOvulationExact)}}
+    <p class="journal-muted text-sm">{{t .Messages "dashboard.ovulation_approximate"}}</p>
+    {{end}}
+  </section>
 
   <div class="grid gap-6" data-dashboard-editor>
     <section class="journal-card p-5 sm:p-6">
-      <div class="mb-5 flex items-center justify-between gap-3">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="journal-subtitle">{{t .Messages "dashboard.today_editor"}}</h2>
           <p class="journal-muted">{{.FormattedDate}}</p>
         </div>
+        {{if and .IsOwner .ShowYesterdayJump}}
+        <a href="/calendar?month={{.YesterdayMonth}}&selected={{.Yesterday}}" class="inline-link text-sm">← {{t .Messages "dashboard.fill_yesterday"}}</a>
+        {{end}}
       </div>
 
       {{if .IsOwner}}
@@ -62,6 +52,11 @@
           <span>🩸 {{t .Messages "dashboard.period_day"}}</span>
         </label>
 
+        <fieldset class="space-y-3">
+          <legend class="field-label">{{t .Messages "dashboard.mood"}}</legend>
+          {{template "mood_picker" (dict "SelectedMood" .TodayEntry.Mood "Compact" false)}}
+        </fieldset>
+
         <fieldset class="space-y-3" data-period-fields {{if not .TodayEntry.IsPeriod}}hidden{{end}}>
           <legend class="field-label">{{t .Messages "dashboard.flow"}}</legend>
           {{template "period_flow_options" (dict "Messages" .Messages "SelectedFlow" .TodayEntry.Flow "Compact" false "DisableWhenNotPeriod" true "CurrentIsPeriod" .TodayEntry.IsPeriod)}}
@@ -69,14 +64,19 @@
 
         <fieldset class="space-y-3">
           <legend class="field-label">{{t .Messages "dashboard.symptoms"}}</legend>
-          {{template "symptom_options" (dict "Messages" .Messages "Symptoms" .Symptoms "SelectedSymptomID" .SelectedSymptomID "Lang" .Lang "Compact" false "IncludePreviewHooks" true "DisableWhenNotPeriod" true "CurrentIsPeriod" .TodayEntry.IsPeriod)}}
+          {{template "symptom_options" (dict "Messages" .Messages "PrimarySymptoms" .PrimarySymptoms "ExtraSymptoms" .ExtraSymptoms "HasExtraSymptoms" .HasExtraSymptoms "SelectedSymptomID" .SelectedSymptomID "Lang" .Lang "Compact" false "IncludePreviewHooks" false)}}
         </fieldset>
 
-        <label class="field-label" for="today-notes">{{t .Messages "dashboard.notes"}}</label>
-        <textarea id="today-notes" name="notes" rows="4" maxlength="2000" class="textarea-field" data-dashboard-notes>{{.TodayEntry.Notes}}</textarea>
+        <details class="note-disclosure" {{if ne .TodayEntry.Notes ""}}open{{end}}>
+          <summary class="inline-link text-sm">{{if ne .TodayEntry.Notes ""}}{{t .Messages "dashboard.edit_note"}}{{else}}{{t .Messages "dashboard.add_note"}}{{end}}</summary>
+          <div class="mt-3 space-y-2">
+            <label class="field-label" for="today-notes">{{t .Messages "dashboard.notes"}}</label>
+            <textarea id="today-notes" name="notes" rows="3" maxlength="2000" class="textarea-field">{{.TodayEntry.Notes}}</textarea>
+          </div>
+        </details>
 
         <div class="flex flex-wrap items-center gap-3">
-          <button type="submit" class="btn-primary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{t .Messages "dashboard.save_today"}}</button>
+          <button type="submit" class="btn-primary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{if .TodayEntryExists}}{{t .Messages "dashboard.update_entry"}}{{else}}{{t .Messages "dashboard.save_today"}}{{end}}</button>
           <div id="save-status" class="save-status text-sm"></div>
         </div>
 
@@ -93,44 +93,8 @@
         {{end}}
       </form>
       {{else}}
-      {{template "readonly_log_summary" (dict "Messages" .Messages "Log" .TodayEntry)}}
+      {{template "readonly_log_summary" (dict "Messages" .Messages "Log" .TodayEntry "NoDataLabel" .NoDataLabel)}}
       {{end}}
-    </section>
-
-    <section
-      class="journal-card p-5 sm:p-6"
-      data-dashboard-preview
-      {{if and (not .TodayEntry.IsPeriod) (eq (len .SelectedSymptomID) 0) (eq .TodayEntry.Notes "")}}hidden{{end}}>
-      <h2 class="journal-subtitle" data-dashboard-preview-heading="period" {{if not .TodayEntry.IsPeriod}}hidden{{end}}>{{t .Messages "dashboard.cycle_snapshot"}}</h2>
-      <h2 class="journal-subtitle" data-dashboard-preview-heading="other" {{if .TodayEntry.IsPeriod}}hidden{{end}}>{{t .Messages "dashboard.symptoms_notes"}}</h2>
-
-      <dl class="mt-4 space-y-3 text-sm" data-dashboard-period-summary {{if not .TodayEntry.IsPeriod}}hidden{{end}}>
-        <div class="stat-row"><dt>{{t .Messages "dashboard.average_cycle"}}</dt><dd>{{if gt .Stats.AverageCycleLength 0.0}}{{formatFloat .Stats.AverageCycleLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</dd></div>
-        <div class="stat-row"><dt>{{t .Messages "dashboard.median_cycle"}}</dt><dd>{{if gt .Stats.MedianCycleLength 0}}{{.Stats.MedianCycleLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</dd></div>
-        <div class="stat-row"><dt>{{t .Messages "dashboard.average_period"}}</dt><dd>{{if gt .Stats.AveragePeriodLength 0.0}}{{formatFloat .Stats.AveragePeriodLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</dd></div>
-        <div class="stat-row"><dt>{{t .Messages "dashboard.last_period_start"}}</dt><dd>{{if .Stats.LastPeriodStart.IsZero}}{{.NoDataLabel}}{{else}}{{formatLocalizedDate .Lang .Stats.LastPeriodStart "short"}}{{end}}</dd></div>
-        <div class="stat-row"><dt>{{t .Messages "dashboard.fertile_window"}}</dt><dd>{{if .Stats.FertilityWindowStart.IsZero}}{{.NoDataLabel}}{{else}}{{formatLocalizedDate .Lang .Stats.FertilityWindowStart "short"}} - {{formatLocalizedDate .Lang .Stats.FertilityWindowEnd "short"}}{{end}}</dd></div>
-      </dl>
-
-      <div class="mt-4 space-y-4 text-sm" data-dashboard-other-summary {{if .TodayEntry.IsPeriod}}hidden{{end}}>
-        <div>
-          <p class="journal-muted">{{t .Messages "dashboard.symptoms"}}</p>
-          <ul class="mt-2 space-y-1" data-dashboard-symptom-list {{if eq (len .SelectedSymptomID) 0}}hidden{{end}}>
-            {{range .Symptoms}}
-            {{if hasSymptom $.SelectedSymptomID .ID}}
-            <li>{{symptomLabel $.Messages .Name}}</li>
-            {{end}}
-            {{end}}
-          </ul>
-          <p class="mt-2" data-dashboard-symptom-empty {{if gt (len .SelectedSymptomID) 0}}hidden{{end}}>{{.NoDataLabel}}</p>
-        </div>
-
-        <div>
-          <p class="journal-muted">{{t .Messages "dashboard.notes"}}</p>
-          <p class="mt-2 whitespace-pre-wrap break-words" data-dashboard-notes-value {{if eq .TodayEntry.Notes ""}}hidden{{end}}>{{.TodayEntry.Notes}}</p>
-          <p class="mt-2" data-dashboard-notes-empty {{if ne .TodayEntry.Notes ""}}hidden{{end}}>{{.NoDataLabel}}</p>
-        </div>
-      </div>
     </section>
   </div>
 </section>

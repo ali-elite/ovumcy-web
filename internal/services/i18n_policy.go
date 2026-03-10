@@ -43,6 +43,7 @@ var authErrorTranslationKeys = map[string]string{
 	"failed to hide symptom":                          "settings.symptoms.error.hide_failed",
 	"failed to restore symptom":                       "settings.symptoms.error.restore_failed",
 	"period flow is required":                         "calendar.error.period_flow_required",
+	"invalid mood value":                              "dashboard.error.invalid_mood",
 	"date is required":                                "onboarding.error.date_required",
 	"invalid last period start":                       "onboarding.error.invalid_last_period_start",
 	"last period start must be within last 60 days":   "onboarding.error.last_period_range",

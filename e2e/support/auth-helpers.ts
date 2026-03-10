@@ -92,27 +92,23 @@ export async function completeOnboardingIfPresent(page: Page): Promise<void> {
   }
 
   const startDateInput = page.locator('#last-period-start');
-  const startDateField = dateFieldRoot(startDateInput);
-  const isStepOneVisible = await startDateField.isVisible().catch(() => false);
+  const stepOneForm = page.locator('form[hx-post="/onboarding/step1"]');
+  const stepTwoForm = page.locator('form[hx-post="/onboarding/step2"]');
+  const isStepOneVisible = await stepOneForm.isVisible().catch(() => false);
+  const isStepTwoVisible = await stepTwoForm.isVisible().catch(() => false);
 
-  if (!isStepOneVisible) {
-    const beginButton = page.locator('[data-onboarding-action="begin"]');
-    if (await beginButton.isVisible().catch(() => false)) {
-      await beginButton.click();
-    }
+  if (isStepOneVisible) {
+    await expect(dateFieldRoot(startDateInput)).toBeVisible();
+    await fillDateField(startDateInput, isoDateDaysAgo(3));
+    await stepOneForm.locator('button[type="submit"]').click();
   }
 
-  await expect(startDateField).toBeVisible();
-  await fillDateField(startDateInput, isoDateDaysAgo(3));
-  await page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]').click();
+  if (!isStepOneVisible && !isStepTwoVisible) {
+    throw new Error(`Unexpected onboarding state at ${page.url()}`);
+  }
 
-  const stepTwoForm = page.locator('form[hx-post="/onboarding/step2"]');
   await expect(stepTwoForm).toBeVisible();
   await stepTwoForm.locator('button[type="submit"]').click();
-
-  const stepThreeForm = page.locator('form[hx-post="/onboarding/complete"]');
-  await expect(stepThreeForm).toBeVisible();
-  await stepThreeForm.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
 }
 

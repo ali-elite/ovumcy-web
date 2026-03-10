@@ -25,7 +25,7 @@ func TestCalendarDayPanelUsesLanguageSpecificSymptomLabelClass(t *testing.T) {
 		t.Fatalf("create symptom: %v", err)
 	}
 
-	enRequest := httptest.NewRequest(http.MethodGet, "/calendar/day/2026-02-17", nil)
+	enRequest := httptest.NewRequest(http.MethodGet, "/calendar/day/2026-02-17?mode=edit", nil)
 	enRequest.Header.Set("Accept-Language", "en")
 	enRequest.Header.Set("Cookie", authCookie)
 	enResponse, err := app.Test(enRequest, -1)
@@ -42,7 +42,7 @@ func TestCalendarDayPanelUsesLanguageSpecificSymptomLabelClass(t *testing.T) {
 		t.Fatalf("expected nowrap symptom class for english labels")
 	}
 
-	ruRequest := httptest.NewRequest(http.MethodGet, "/calendar/day/2026-02-17", nil)
+	ruRequest := httptest.NewRequest(http.MethodGet, "/calendar/day/2026-02-17?mode=edit", nil)
 	ruRequest.Header.Set("Accept-Language", "ru")
 	ruRequest.Header.Set("Cookie", authCookie)
 	ruResponse, err := app.Test(ruRequest, -1)

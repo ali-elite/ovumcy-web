@@ -32,7 +32,7 @@ func (handler *Handler) OnboardingStep1(c *fiber.Ctx) error {
 	if isHTMX(c) {
 		return c.SendStatus(fiber.StatusNoContent)
 	}
-	return c.Redirect("/onboarding", fiber.StatusSeeOther)
+	return c.Redirect("/onboarding?step=2", fiber.StatusSeeOther)
 }
 
 func (handler *Handler) OnboardingStep2(c *fiber.Ctx) error {
@@ -54,12 +54,24 @@ func (handler *Handler) OnboardingStep2(c *fiber.Ctx) error {
 	if err != nil {
 		return handler.respondMappedError(c, onboardingSaveStepErrorSpec())
 	}
-
+	if _, err := handler.onboardingSvc.CompleteOnboardingForUser(user.ID, handler.requestLocationFromOnboardingForm(c)); err != nil {
+		if services.ClassifyOnboardingCompletionError(err) == services.OnboardingCompletionErrorStepsRequired {
+			if acceptsJSON(c) {
+				return c.JSON(fiber.Map{"ok": true})
+			}
+			if isHTMX(c) {
+				return c.SendStatus(fiber.StatusNoContent)
+			}
+			return c.Redirect("/onboarding?step=1", fiber.StatusSeeOther)
+		}
+		return handler.respondMappedError(c, onboardingFinishErrorSpec())
+	}
+	if isHTMX(c) {
+		c.Set("HX-Redirect", "/dashboard")
+		return c.SendStatus(fiber.StatusNoContent)
+	}
 	if acceptsJSON(c) {
 		return c.JSON(fiber.Map{"ok": true})
 	}
-	if isHTMX(c) {
-		return c.SendStatus(fiber.StatusNoContent)
-	}
-	return c.Redirect("/onboarding", fiber.StatusSeeOther)
+	return c.Redirect("/dashboard", fiber.StatusSeeOther)
 }

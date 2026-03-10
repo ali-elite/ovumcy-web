@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ var ExportCSVHeaders = []string{
 	"Date",
 	"Period",
 	"Flow",
+	"Mood rating",
 	"Cramps",
 	"Headache",
 	"Acne",
@@ -142,6 +144,7 @@ type ExportJSONEntry struct {
 	Date          string             `json:"date"`
 	Period        bool               `json:"period"`
 	Flow          string             `json:"flow"`
+	MoodRating    int                `json:"mood_rating"`
 	Symptoms      ExportSymptomFlags `json:"symptoms"`
 	OtherSymptoms []string           `json:"other_symptoms"`
 	Notes         string             `json:"notes"`
@@ -151,6 +154,7 @@ type ExportCSVRow struct {
 	Date          string
 	Period        bool
 	Flow          string
+	MoodRating    int
 	Symptoms      ExportSymptomFlags
 	OtherSymptoms []string
 	Notes         string
@@ -223,6 +227,7 @@ func (service *ExportService) BuildJSONEntries(userID uint, from *time.Time, to 
 			Date:          DateAtLocation(logEntry.Date, location).Format(exportDateLayout),
 			Period:        logEntry.IsPeriod,
 			Flow:          normalizeExportFlow(logEntry.Flow),
+			MoodRating:    normalizeExportMood(logEntry.Mood),
 			Symptoms:      flags,
 			OtherSymptoms: other,
 			Notes:         logEntry.Notes,
@@ -244,6 +249,7 @@ func (service *ExportService) BuildCSVRows(userID uint, from *time.Time, to *tim
 			Date:          DateAtLocation(logEntry.Date, location).Format(exportDateLayout),
 			Period:        logEntry.IsPeriod,
 			Flow:          csvFlowLabel(logEntry.Flow),
+			MoodRating:    normalizeExportMood(logEntry.Mood),
 			Symptoms:      flags,
 			OtherSymptoms: other,
 			Notes:         logEntry.Notes,
@@ -257,6 +263,7 @@ func (row ExportCSVRow) Columns() []string {
 		row.Date,
 		csvYesNo(row.Period),
 		row.Flow,
+		csvMoodRating(row.MoodRating),
 		csvYesNo(row.Symptoms.Cramps),
 		csvYesNo(row.Symptoms.Headache),
 		csvYesNo(row.Symptoms.Acne),
@@ -354,4 +361,18 @@ func normalizeExportFlow(flow string) string {
 	default:
 		return models.FlowNone
 	}
+}
+
+func normalizeExportMood(value int) int {
+	if value >= MinDayMood && value <= MaxDayMood {
+		return value
+	}
+	return 0
+}
+
+func csvMoodRating(value int) string {
+	if value <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d", value)
 }

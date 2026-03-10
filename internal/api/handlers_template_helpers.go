@@ -32,6 +32,7 @@ func newTemplateFuncMap() template.FuncMap {
 		"roleLabel": func(messages map[string]string, role string) string {
 			return translateMessage(messages, services.RoleTranslationKey(role))
 		},
+		"moodEmoji":      services.MoodEmoji,
 		"userIdentity":   templateUserIdentity,
 		"hasDisplayName": templateHasDisplayName,
 		"isActiveRoute":  isActiveTemplateRoute,

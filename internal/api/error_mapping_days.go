@@ -22,6 +22,8 @@ func mapDayUpsertError(err error) APIErrorSpec {
 	switch services.ClassifyDayUpsertError(err) {
 	case services.DayUpsertErrorInvalidFlow:
 		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid flow value")
+	case services.DayUpsertErrorInvalidMood:
+		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid mood value")
 	case services.DayUpsertErrorLoadFailed:
 		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load day")
 	case services.DayUpsertErrorCreateFailed:

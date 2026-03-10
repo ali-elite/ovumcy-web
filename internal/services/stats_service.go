@@ -25,8 +25,11 @@ const statsOverviewWindowYears = 2
 type StatsFlags struct {
 	HasObservedCycleData bool
 	HasTrendData         bool
+	HasInsights          bool
 	HasReliableTrend     bool
 	CycleDataStale       bool
+	CompletedCycleCount  int
+	InsightProgress      int
 }
 
 func NewStatsService(days StatsDayReader, symptoms StatsSymptomReader) *StatsService {
@@ -82,15 +85,23 @@ func (service *StatsService) BuildTrend(user *models.User, logs []models.DailyLo
 
 func (service *StatsService) BuildFlags(user *models.User, logs []models.DailyLog, stats CycleStats, now time.Time, location *time.Location, trendPointCount int) StatsFlags {
 	observedCycleCount := len(CycleLengths(logs))
+	completedCycleCount := len(CompletedCycleTrendLengths(logs, now, location))
 	today := DateAtLocation(now, location)
 	cycleDayReference := DashboardCycleReferenceLength(user, stats)
 	cycleStaleAnchor := DashboardCycleStaleAnchor(user, stats, location)
+	insightProgress := completedCycleCount * 50
+	if insightProgress > 100 {
+		insightProgress = 100
+	}
 
 	return StatsFlags{
 		HasObservedCycleData: observedCycleCount > 0,
 		HasTrendData:         trendPointCount > 0,
+		HasInsights:          completedCycleCount >= 2,
 		HasReliableTrend:     trendPointCount >= 3,
 		CycleDataStale:       DashboardCycleDataLooksStale(cycleStaleAnchor, today, cycleDayReference),
+		CompletedCycleCount:  completedCycleCount,
+		InsightProgress:      insightProgress,
 	}
 }
 

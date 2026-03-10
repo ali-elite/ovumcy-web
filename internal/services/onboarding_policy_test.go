@@ -249,10 +249,10 @@ func TestResolveOnboardingStep(t *testing.T) {
 		want int
 	}{
 		{name: "valid middle step", raw: "2", want: 2},
-		{name: "negative clamped to zero", raw: "-1", want: 0},
-		{name: "too large clamped to three", raw: "99", want: 3},
-		{name: "invalid defaults to zero", raw: "abc", want: 0},
-		{name: "trimmed value accepted", raw: " 3 ", want: 3},
+		{name: "negative clamped to first step", raw: "-1", want: 1},
+		{name: "too large clamped to second step", raw: "99", want: 2},
+		{name: "invalid defaults to first step", raw: "abc", want: 1},
+		{name: "trimmed value accepted", raw: " 2 ", want: 2},
 	}
 
 	for _, testCase := range tests {
