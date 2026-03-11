@@ -62,6 +62,13 @@ func LocalizedDateLabel(language string, value time.Time) string {
 
 	weekday := weekdays[int(value.Weekday())]
 	month := months[monthIndex]
+	if lang == "ru" {
+		longMonths := monthLongNames[lang]
+		if monthIndex < 0 || monthIndex >= len(longMonths) {
+			return value.Format("Mon, Jan 2")
+		}
+		return fmt.Sprintf("%s, %d %s", weekday, value.Day(), longMonths[monthIndex])
+	}
 	if lang == "es" {
 		return fmt.Sprintf("%s, %d %s", weekday, value.Day(), month)
 	}

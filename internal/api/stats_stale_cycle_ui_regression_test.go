@@ -23,7 +23,7 @@ func TestStatsPageShowsUnknownPhaseWhenCycleDataIsStale(t *testing.T) {
 func TestStatsPageEmptyStateUsesDedicatedProgressMeterWithoutInlineStyle(t *testing.T) {
 	rendered := renderStatsPageWithStaleCycleData(t)
 
-	progressTag := regexp.MustCompile(`<progress[^>]*class="stats-progress-meter"[^>]*max="100"[^>]*>`).FindString(rendered)
+	progressTag := regexp.MustCompile(`<div[^>]*class="stats-empty-progress"[^>]*>`).FindString(rendered)
 	if progressTag == "" {
 		t.Fatalf("expected stats empty state to render a dedicated progress meter, got %q", rendered)
 	}

@@ -10,7 +10,9 @@
     <p class="journal-subtitle">{{t .Messages "stats.empty_title"}}</p>
     <p class="journal-muted text-sm">{{t .Messages "stats.empty_body"}}</p>
     <div class="space-y-2">
-      <progress class="stats-progress-meter" value="{{.InsightProgress}}" max="100">{{.InsightProgress}}%</progress>
+      <div class="stats-empty-progress" aria-hidden="true">
+        <div class="stats-empty-progress-fill" {{if le .InsightProgress 0}}hidden{{end}}></div>
+      </div>
       <p class="journal-muted text-sm">{{printf (t .Messages "stats.completed_cycles_progress") .CompletedCycleCount}}</p>
     </div>
   </section>

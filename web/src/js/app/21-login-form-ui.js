@@ -48,6 +48,40 @@
     target.appendChild(block);
   }
 
+  function clearFormStatus(target) {
+    if (!target) {
+      return;
+    }
+    target.textContent = "";
+  }
+
+  function clearAuthServerError(form) {
+    if (!form || !form.parentNode) {
+      return;
+    }
+
+    var serverError = form.parentNode.querySelector("[data-auth-server-error]");
+    if (serverError) {
+      serverError.remove();
+    }
+  }
+
+  function firstInvalidRequiredField(form, requiredMessage, emailMessage) {
+    if (!form || !form.querySelectorAll) {
+      return null;
+    }
+
+    var fields = form.querySelectorAll("input[required]");
+    for (var index = 0; index < fields.length; index++) {
+      var field = fields[index];
+      updateFieldValidityMessage(field, requiredMessage, emailMessage);
+      if (typeof field.checkValidity === "function" && !field.checkValidity()) {
+        return field;
+      }
+    }
+    return null;
+  }
+
   function initLoginValidation() {
     var form = document.getElementById("login-form");
     if (!form) {
@@ -56,7 +90,28 @@
 
     var requiredMessage = form.getAttribute("data-required-message") || "Please fill out this field.";
     var emailMessage = form.getAttribute("data-email-message") || "Please enter a valid email address.";
+    var statusTarget = document.getElementById("login-client-status");
     bindRequiredFieldValidation(form, requiredMessage, emailMessage);
+
+    form.addEventListener("input", function () {
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
+    });
+
+    form.addEventListener("submit", function (event) {
+      var invalidField;
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
+
+      invalidField = firstInvalidRequiredField(form, requiredMessage, emailMessage);
+      if (!invalidField) {
+        return;
+      }
+
+      event.preventDefault();
+      renderFormStatusError(statusTarget, invalidField.validationMessage || requiredMessage);
+      invalidField.focus();
+    });
   }
 
   function initRegisterValidation() {
@@ -78,13 +133,6 @@
 
     var statusTarget = document.getElementById("register-client-status");
 
-    function clearStatus() {
-      if (!statusTarget) {
-        return;
-      }
-      statusTarget.textContent = "";
-    }
-
     function isPasswordMatchValid() {
       confirmField.setCustomValidity("");
 
@@ -99,24 +147,37 @@
     }
 
     function handlePasswordInput() {
-      clearStatus();
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
       isPasswordMatchValid();
     }
 
     passwordField.addEventListener("input", handlePasswordInput);
     confirmField.addEventListener("input", handlePasswordInput);
+    form.addEventListener("input", function () {
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
+    });
 
     form.addEventListener("submit", function (event) {
-      clearStatus();
+      var invalidField;
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
+
+      invalidField = firstInvalidRequiredField(form, requiredMessage, emailMessage);
+      if (invalidField) {
+        event.preventDefault();
+        renderFormStatusError(statusTarget, invalidField.validationMessage || requiredMessage);
+        invalidField.focus();
+        return;
+      }
+
       if (isPasswordMatchValid()) {
         return;
       }
 
       event.preventDefault();
       renderFormStatusError(statusTarget, mismatchMessage);
-      if (typeof confirmField.reportValidity === "function") {
-        confirmField.reportValidity();
-      }
       focusLoginPasswordField(confirmField);
     });
   }

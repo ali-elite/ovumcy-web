@@ -78,7 +78,7 @@
     return year + "-" + month + "-" + day;
   }
 
-  function buildDayOptions(minDateRaw, maxDateRaw, locale) {
+  function buildDayOptions(minDateRaw, maxDateRaw, locale, todayLabel) {
     var minDate = parseDateValue(minDateRaw);
     var maxDate = parseDateValue(maxDateRaw);
     if (!minDate || !maxDate || minDate > maxDate) {
@@ -93,9 +93,12 @@
 
     for (var cursor = new Date(maxDate); cursor >= minDate; cursor.setDate(cursor.getDate() - 1)) {
       var current = new Date(cursor);
+      var isToday = formatDateValue(current) === formatDateValue(maxDate);
       result.push({
         value: formatDateValue(current),
-        label: formatter.format(current)
+        label: isToday && todayLabel ? String(todayLabel) : formatter.format(current),
+        secondaryLabel: isToday ? formatter.format(current) : "",
+        isToday: isToday
       });
     }
     return result;

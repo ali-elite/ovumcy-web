@@ -18,13 +18,14 @@
     </div>
 
     {{if .ErrorKey}}
-    <div class="status-error mt-5">{{t .Messages .ErrorKey}}</div>
+    <div class="status-error mt-5" data-auth-server-error>{{t .Messages .ErrorKey}}</div>
     {{end}}
 
     <form
       id="register-form"
       action="/api/auth/register"
       method="post"
+      novalidate
       class="mt-5 space-y-4"
       data-required-message="{{t .Messages "validation.required"}}"
       data-email-message="{{t .Messages "validation.email"}}"

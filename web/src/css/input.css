@@ -767,8 +767,8 @@
     width: 2.6rem;
     height: 1.38rem;
     border-radius: 999px;
-    border: 1px solid rgba(212, 165, 116, 0.42);
-    background: rgba(232, 196, 168, 0.35);
+    border: 1px solid rgba(188, 165, 138, 0.48);
+    background: rgba(218, 205, 189, 0.36);
     cursor: pointer;
   }
 
@@ -1270,6 +1270,22 @@
     background: rgba(232, 196, 168, 0.35);
   }
 
+  .stats-empty-progress {
+    width: 100%;
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(232, 196, 168, 0.26);
+    border: 1px solid rgba(212, 165, 116, 0.12);
+  }
+
+  .stats-empty-progress-fill {
+    width: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #d4a574, #e8c4a8);
+  }
+
   .stats-progress-meter::-webkit-progress-bar,
   .phase-mood-meter::-webkit-progress-bar {
     background: rgba(232, 196, 168, 0.35);
@@ -1300,6 +1316,27 @@
 
   .security-advanced summary::-webkit-details-marker {
     display: none;
+  }
+
+  .security-advanced-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    border-radius: 0.9rem;
+    border: 1px solid rgba(212, 165, 116, 0.2);
+    background: rgba(255, 249, 240, 0.72);
+    padding: 0.8rem 0.9rem;
+  }
+
+  .security-advanced-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .security-advanced-hint {
+    font-size: 0.78rem;
+    color: var(--text-muted);
   }
 
   .settings-danger-zone {
@@ -1360,6 +1397,17 @@
       0 8px 18px rgba(186, 131, 80, 0.12);
   }
 
+  .choice-input:checked + .mood-chip {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow:
+      0 0 0 3px rgba(186, 131, 80, 0.24),
+      0 14px 24px rgba(186, 131, 80, 0.18);
+  }
+
+  .choice-input:checked + .mood-chip .mood-chip-emoji {
+    transform: scale(1.08);
+  }
+
   .choice-input:disabled + .radio-tile,
   .choice-input:disabled + .check-chip,
   .choice-input:disabled + .mood-chip {
@@ -1376,8 +1424,39 @@
 
   .choice-chip-active {
     border-color: rgba(212, 165, 116, 0.95);
-    background: rgba(232, 196, 168, 0.5);
-    box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.2);
+    background: rgba(232, 196, 168, 0.62);
+    box-shadow:
+      0 0 0 2px rgba(212, 165, 116, 0.24),
+      0 8px 16px rgba(212, 165, 116, 0.14);
+  }
+
+  .onboarding-day-grid {
+    align-content: start;
+  }
+
+  .onboarding-day-chip {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    min-height: 2.7rem;
+    text-align: center;
+  }
+
+  .onboarding-day-chip-primary {
+    display: block;
+    font-size: 0.82rem;
+    line-height: 1.15;
+  }
+
+  .onboarding-day-chip-secondary {
+    display: block;
+    font-size: 0.68rem;
+    line-height: 1.1;
+    color: var(--text-muted);
+  }
+
+  .onboarding-day-chip-today {
+    min-height: 3.05rem;
   }
 
   .calendar-cell {
@@ -1826,6 +1905,15 @@
     background: rgba(232, 196, 168, 0.52);
   }
 
+  .mobile-tabbar-icon {
+    color: rgba(119, 87, 53, 0.95);
+  }
+
+  .mobile-tabbar-icon-glyph {
+    font-size: 1.08rem;
+    line-height: 1;
+  }
+
   .confirm-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -1873,6 +1961,10 @@
 
   .danger-card-strong {
     border: 1px solid var(--danger-strong-border);
+    background:
+      linear-gradient(180deg, rgba(255, 246, 244, 0.96), rgba(255, 238, 236, 0.94)),
+      var(--panel-bg);
+    box-shadow: inset 0 0 0 1px rgba(177, 86, 78, 0.08);
   }
 
   .danger-title {
@@ -1892,6 +1984,12 @@
 
   .onboarding-progress-fill[data-step="2"] {
     width: 100%;
+  }
+
+  .dashboard-danger-actions {
+    border-top: 1px dashed rgba(177, 86, 78, 0.24);
+    margin-top: 1rem;
+    padding-top: 1rem;
   }
 
   :root[data-theme="dark"] .lang-switch .lang-link-active,
@@ -2031,6 +2129,25 @@
     box-shadow:
       0 0 0 2px rgba(222, 176, 117, 0.2),
       0 8px 18px rgba(12, 8, 19, 0.3);
+  }
+
+  :root[data-theme="dark"] .choice-input:checked + .mood-chip {
+    box-shadow:
+      0 0 0 3px rgba(222, 176, 117, 0.22),
+      0 14px 24px rgba(12, 8, 19, 0.42);
+  }
+
+  :root[data-theme="dark"] .security-advanced-summary {
+    border-color: rgba(127, 105, 160, 0.3);
+    background: rgba(39, 32, 52, 0.88);
+  }
+
+  :root[data-theme="dark"] .dashboard-danger-actions {
+    border-top-color: rgba(222, 143, 136, 0.24);
+  }
+
+  :root[data-theme="dark"] .mobile-tabbar-icon {
+    color: rgba(240, 223, 197, 0.92);
   }
 
   :root[data-theme="dark"] .calendar-cell {

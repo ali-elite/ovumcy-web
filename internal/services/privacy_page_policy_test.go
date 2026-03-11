@@ -36,3 +36,15 @@ func TestBuildPrivacyBackNavigationAuthenticatedUsesDashboardFallback(t *testing
 		t.Fatalf("expected auth breadcrumb key nav.dashboard, got %q", navigation.BreadcrumbBackLabelKey)
 	}
 }
+
+func TestBuildPrivacyBackNavigationUsesCalendarBackLabelWhenRequested(t *testing.T) {
+	t.Parallel()
+
+	navigation := BuildPrivacyBackNavigation("/calendar?month=2026-03", true)
+	if navigation.BackPath != "/calendar?month=2026-03" {
+		t.Fatalf("expected sanitized calendar back path, got %q", navigation.BackPath)
+	}
+	if navigation.BreadcrumbBackLabelKey != "nav.calendar" {
+		t.Fatalf("expected nav.calendar breadcrumb key, got %q", navigation.BreadcrumbBackLabelKey)
+	}
+}

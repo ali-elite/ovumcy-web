@@ -188,6 +188,27 @@
     successStatusClearTimers.set(successNode, timer);
   }
 
+  function maybeShowSuccessToast(target) {
+    var successNode;
+    var message;
+    if (!target || target.getAttribute("data-success-toast") !== "true" || typeof window.showToast !== "function") {
+      return;
+    }
+
+    successNode = target.querySelector(".status-ok");
+    if (!successNode) {
+      return;
+    }
+
+    message = String(successNode.textContent || "").trim();
+    if (!message || target.dataset.toastShown === message) {
+      return;
+    }
+
+    target.dataset.toastShown = message;
+    window.showToast(message, "ok");
+  }
+
   function maybeRefreshDayEditor(target) {
     var dayEditor = document.getElementById("day-editor");
     var form = target.closest("form[data-save-feedback]");
@@ -265,6 +286,10 @@
     });
 
     document.body.addEventListener("htmx:beforeRequest", function (event) {
+      var target = event && event.detail ? event.detail.target : null;
+      if (target && target.classList && target.classList.contains("save-status")) {
+        delete target.dataset.toastShown;
+      }
       setSaveButtonState(getSaveFeedbackFormFromEvent(event), true);
     });
 
@@ -285,6 +310,7 @@
 
       maybeRefreshCurrentUserIdentity(target, event);
       maybeRefreshDayEditor(target);
+      maybeShowSuccessToast(target);
       scheduleClearSuccessStatus(target);
     });
 

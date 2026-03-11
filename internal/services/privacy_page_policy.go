@@ -25,8 +25,35 @@ func BuildPrivacyBackNavigation(backQuery string, isAuthenticated bool) PrivacyB
 		breadcrumbBackLabelKey = "nav.dashboard"
 	}
 
+	backPath := SanitizeRedirectPath(backQuery, backFallback)
+	if labelKey := privacyBackLabelKeyForPath(backPath, isAuthenticated); labelKey != "" {
+		breadcrumbBackLabelKey = labelKey
+	}
+
 	return PrivacyBackNavigation{
-		BackPath:               SanitizeRedirectPath(backQuery, backFallback),
+		BackPath:               backPath,
 		BreadcrumbBackLabelKey: breadcrumbBackLabelKey,
+	}
+}
+
+func privacyBackLabelKeyForPath(backPath string, isAuthenticated bool) string {
+	switch {
+	case strings.HasPrefix(backPath, "/calendar"):
+		return "nav.calendar"
+	case strings.HasPrefix(backPath, "/stats"):
+		return "nav.insights"
+	case strings.HasPrefix(backPath, "/settings"):
+		return "nav.settings"
+	case strings.HasPrefix(backPath, "/dashboard"):
+		return "nav.dashboard"
+	case strings.HasPrefix(backPath, "/login"), strings.HasPrefix(backPath, "/register"):
+		return "common.home"
+	case strings.HasPrefix(backPath, "/"):
+		if isAuthenticated {
+			return "nav.dashboard"
+		}
+		return "common.home"
+	default:
+		return ""
 	}
 }

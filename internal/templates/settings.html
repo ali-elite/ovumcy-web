@@ -267,7 +267,10 @@
     </div>
 
     <details class="security-advanced">
-      <summary class="inline-link text-sm">{{t .Messages "settings.security.advanced"}}</summary>
+      <summary class="security-advanced-summary">
+        <span class="security-advanced-title">{{t .Messages "settings.security.advanced"}}</span>
+        <span class="security-advanced-hint">{{t .Messages "settings.security.advanced_hint"}}</span>
+      </summary>
       <div class="mt-4 journal-panel space-y-4">
         <div>
           <h3 class="field-label">{{t .Messages "settings.recovery_code.title"}}</h3>

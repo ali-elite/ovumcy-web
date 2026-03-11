@@ -5,21 +5,18 @@
 
     <div>
       <h1 class="journal-title">{{t .Messages "auth.login_title"}}</h1>
-      {{if .IsFirstLaunch}}
-      <p class="journal-muted mt-2">{{t .Messages "auth.register_subtitle"}}</p>
-      {{else}}
       <p class="journal-muted mt-2">{{t .Messages "auth.login_subtitle"}}</p>
-      {{end}}
     </div>
 
     {{if .ErrorKey}}
-    <div class="status-error mt-5">{{t .Messages .ErrorKey}}</div>
+    <div class="status-error mt-5" data-auth-server-error>{{t .Messages .ErrorKey}}</div>
     {{end}}
 
     <form
       id="login-form"
       action="/api/auth/login"
       method="post"
+      novalidate
       class="mt-5 space-y-4"
       data-login-has-error="{{if .ErrorKey}}true{{else}}false{{end}}"
       data-password-draft-key="ovumcy_login_password_draft"
@@ -46,6 +43,7 @@
         </span>
       </label>
 
+      <div id="login-client-status" class="save-status text-sm" aria-live="polite"></div>
       <button type="submit" class="btn-primary w-full">{{t .Messages "auth.login"}}</button>
     </form>
 

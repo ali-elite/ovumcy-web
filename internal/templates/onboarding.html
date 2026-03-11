@@ -10,8 +10,9 @@
   data-period-length="{{.PeriodLength}}"
   data-auto-period-fill="{{if .AutoPeriodFill}}true{{else}}false{{end}}"
   data-period-exceeds-cycle-message="{{t .Messages "onboarding.step2.error_incompatible"}}"
+  data-today-label="{{t .Messages "onboarding.step1.today"}}"
   data-lang="{{.Lang}}">
-  <div class="journal-card journal-hero p-6 sm:p-8">
+  <div class="journal-card journal-hero overflow-hidden p-6 sm:p-8">
     <div class="space-y-3" data-onboarding-progress>
       <p class="journal-kicker" data-onboarding-progress-kicker="1" {{if ne .OnboardingStep 1}}hidden{{end}}>{{t .Messages "onboarding.progress.step1"}}</p>
       <p class="journal-kicker" data-onboarding-progress-kicker="2" {{if ne .OnboardingStep 2}}hidden{{end}}>{{t .Messages "onboarding.progress.step2"}}</p>
@@ -33,6 +34,7 @@
         hx-target="#onboarding-step1-status"
         hx-swap="innerHTML"
         data-onboarding-form-step="1"
+        autocomplete="off"
         class="space-y-4">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <input type="hidden" name="client_timezone" value="" data-onboarding-timezone-field>
@@ -51,7 +53,7 @@
             "Required" true)}}
         </div>
 
-        <div class="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4 lg:grid-cols-6" data-onboarding-day-options></div>
+        <div class="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4 lg:grid-cols-6 onboarding-day-grid" data-onboarding-day-options></div>
 
         <button type="submit" class="btn-primary">{{t .Messages "onboarding.button.next"}}</button>
         <div id="onboarding-step1-status" class="save-status text-sm"></div>
@@ -66,6 +68,7 @@
         hx-target="#onboarding-step2-status"
         hx-swap="innerHTML"
         data-onboarding-form-step="2"
+        autocomplete="off"
         class="space-y-6">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <input type="hidden" name="client_timezone" value="" data-onboarding-timezone-field>
@@ -119,7 +122,7 @@
 
         <div class="space-y-2">
           <label class="period-toggle">
-            <input type="checkbox" name="irregular_cycle" value="true" {{if .IrregularCycle}}checked{{end}}>
+            <input type="checkbox" name="irregular_cycle" value="true" autocomplete="off" {{if .IrregularCycle}}checked{{end}}>
             <span>〰️ {{t .Messages "onboarding.step2.irregular_cycle"}}</span>
           </label>
           <p class="journal-muted text-sm">{{t .Messages "onboarding.step2.irregular_cycle_hint"}}</p>

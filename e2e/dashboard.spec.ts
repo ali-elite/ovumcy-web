@@ -238,6 +238,46 @@ test.describe('Dashboard: today editor', () => {
     await expect(dayEditorForm.locator('#calendar-notes')).toHaveValue(noteText);
   });
 
+  test('mood and symptoms persist from dashboard into the calendar day summary and editor', async ({
+    page,
+  }) => {
+    await registerOwnerOnDashboard(page, 'dashboard-mood-symptoms-sync');
+
+    const moodFour = page.locator('input[name="mood"][value="4"]');
+    const symptoms = page.locator('input[name="symptom_ids"]');
+    const firstSymptomValue = await symptoms.nth(0).getAttribute('value');
+    const firstSymptomLabel = await symptoms.nth(0).evaluate((input) => {
+      const label = input.closest('label');
+      const chip = label ? label.querySelector('.check-chip') : null;
+      return chip ? chip.getAttribute('title') : null;
+    });
+
+    expect(firstSymptomValue).toBeTruthy();
+    expect(firstSymptomLabel).toBeTruthy();
+
+    await moodFour.check({ force: true });
+    await symptoms.nth(0).check({ force: true });
+    await saveToday(page);
+
+    const todayAction = await todaySaveForm(page).first().getAttribute('hx-post');
+    expect(todayAction).toMatch(/^\/api\/days\/\d{4}-\d{2}-\d{2}$/);
+
+    const todayISO = String(todayAction).replace('/api/days/', '');
+    const month = todayISO.slice(0, 7);
+    await page.goto(`/calendar?month=${month}&day=${todayISO}`);
+
+    const daySummary = page.locator('#day-editor');
+    await expect(daySummary).toContainText('4/5');
+    await expect(daySummary).toContainText(String(firstSymptomLabel));
+    await expect(daySummary).not.toContainText('Mood: -');
+
+    await page.locator(`#day-editor button[hx-get="/calendar/day/${todayISO}?mode=edit"]`).click();
+    const dayEditorForm = page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${todayISO}"]`);
+    await expect(dayEditorForm).toBeVisible();
+    await expect(dayEditorForm.locator('input[name="mood"][value="4"]')).toBeChecked();
+    await expect(dayEditorForm.locator(`input[name="symptom_ids"][value="${firstSymptomValue}"]`)).toBeChecked();
+  });
+
   test('manual cycle start on dashboard marks today as period and survives reload', async ({ page }) => {
     await registerOwnerOnDashboard(page, 'dashboard-manual-cycle-start');
 

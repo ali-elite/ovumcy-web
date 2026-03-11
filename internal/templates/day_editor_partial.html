@@ -21,7 +21,10 @@
 
     <label class="period-toggle">
       <input type="checkbox" name="is_period" value="true" data-period-toggle {{if .Log.IsPeriod}}checked{{end}}>
-      <span>🩸 {{t .Messages "dashboard.period_day"}}</span>
+      <span
+        data-period-toggle-label
+        data-period-label-on="{{t .Messages "dashboard.period_day"}}"
+        data-period-label-off="{{t .Messages "dashboard.period_day_action"}}">🩸 {{if .Log.IsPeriod}}{{t .Messages "dashboard.period_day"}}{{else}}{{t .Messages "dashboard.period_day_action"}}{{end}}</span>
     </label>
 
     <fieldset class="space-y-2">
@@ -61,18 +64,24 @@
     </fieldset>
     {{end}}
 
-    <details class="note-disclosure" {{if ne .Log.Notes ""}}open{{end}}>
-      <summary class="inline-link text-sm">{{if ne .Log.Notes ""}}{{t .Messages "dashboard.edit_note"}}{{else}}{{t .Messages "dashboard.add_note"}}{{end}}</summary>
+    <details
+      class="note-disclosure"
+      data-note-disclosure
+      data-note-open-text="{{t .Messages "dashboard.hide_note"}}"
+      data-note-empty-text="{{t .Messages "dashboard.add_note"}}"
+      data-note-filled-text="{{t .Messages "dashboard.edit_note"}}"
+      {{if ne .Log.Notes ""}}open{{end}}>
+      <summary class="inline-link text-sm"><span data-note-disclosure-label>{{if ne .Log.Notes ""}}{{t .Messages "dashboard.hide_note"}}{{else}}{{t .Messages "dashboard.add_note"}}{{end}}</span></summary>
       <div class="mt-3 space-y-2">
         <label class="field-label" for="calendar-notes">{{t .Messages "dashboard.notes"}}</label>
-        <textarea id="calendar-notes" name="notes" rows="3" maxlength="2000" class="textarea-field">{{.Log.Notes}}</textarea>
+        <textarea id="calendar-notes" name="notes" rows="3" maxlength="2000" class="textarea-field" data-dashboard-notes>{{.Log.Notes}}</textarea>
       </div>
     </details>
 
     <div class="flex flex-wrap items-center gap-3">
       <button type="submit" class="btn-primary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{if gt .Log.ID 0}}{{t .Messages "dashboard.update_entry"}}{{else}}{{t .Messages "dashboard.save_day"}}{{end}}</button>
       <button type="button" class="btn-secondary" hx-get="/calendar/day/{{.DateString}}" hx-target="#day-editor" hx-swap="innerHTML">{{t .Messages "common.cancel"}}</button>
-      <div id="calendar-save-status" class="save-status text-sm"></div>
+      <div id="calendar-save-status" class="save-status text-sm" data-success-toast="true"></div>
     </div>
   </form>
 

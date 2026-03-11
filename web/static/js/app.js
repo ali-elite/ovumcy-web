@@ -444,6 +444,40 @@
     target.appendChild(block);
   }
 
+  function clearFormStatus(target) {
+    if (!target) {
+      return;
+    }
+    target.textContent = "";
+  }
+
+  function clearAuthServerError(form) {
+    if (!form || !form.parentNode) {
+      return;
+    }
+
+    var serverError = form.parentNode.querySelector("[data-auth-server-error]");
+    if (serverError) {
+      serverError.remove();
+    }
+  }
+
+  function firstInvalidRequiredField(form, requiredMessage, emailMessage) {
+    if (!form || !form.querySelectorAll) {
+      return null;
+    }
+
+    var fields = form.querySelectorAll("input[required]");
+    for (var index = 0; index < fields.length; index++) {
+      var field = fields[index];
+      updateFieldValidityMessage(field, requiredMessage, emailMessage);
+      if (typeof field.checkValidity === "function" && !field.checkValidity()) {
+        return field;
+      }
+    }
+    return null;
+  }
+
   function initLoginValidation() {
     var form = document.getElementById("login-form");
     if (!form) {
@@ -452,7 +486,28 @@
 
     var requiredMessage = form.getAttribute("data-required-message") || "Please fill out this field.";
     var emailMessage = form.getAttribute("data-email-message") || "Please enter a valid email address.";
+    var statusTarget = document.getElementById("login-client-status");
     bindRequiredFieldValidation(form, requiredMessage, emailMessage);
+
+    form.addEventListener("input", function () {
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
+    });
+
+    form.addEventListener("submit", function (event) {
+      var invalidField;
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
+
+      invalidField = firstInvalidRequiredField(form, requiredMessage, emailMessage);
+      if (!invalidField) {
+        return;
+      }
+
+      event.preventDefault();
+      renderFormStatusError(statusTarget, invalidField.validationMessage || requiredMessage);
+      invalidField.focus();
+    });
   }
 
   function initRegisterValidation() {
@@ -474,13 +529,6 @@
 
     var statusTarget = document.getElementById("register-client-status");
 
-    function clearStatus() {
-      if (!statusTarget) {
-        return;
-      }
-      statusTarget.textContent = "";
-    }
-
     function isPasswordMatchValid() {
       confirmField.setCustomValidity("");
 
@@ -495,24 +543,37 @@
     }
 
     function handlePasswordInput() {
-      clearStatus();
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
       isPasswordMatchValid();
     }
 
     passwordField.addEventListener("input", handlePasswordInput);
     confirmField.addEventListener("input", handlePasswordInput);
+    form.addEventListener("input", function () {
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
+    });
 
     form.addEventListener("submit", function (event) {
-      clearStatus();
+      var invalidField;
+      clearFormStatus(statusTarget);
+      clearAuthServerError(form);
+
+      invalidField = firstInvalidRequiredField(form, requiredMessage, emailMessage);
+      if (invalidField) {
+        event.preventDefault();
+        renderFormStatusError(statusTarget, invalidField.validationMessage || requiredMessage);
+        invalidField.focus();
+        return;
+      }
+
       if (isPasswordMatchValid()) {
         return;
       }
 
       event.preventDefault();
       renderFormStatusError(statusTarget, mismatchMessage);
-      if (typeof confirmField.reportValidity === "function") {
-        confirmField.reportValidity();
-      }
       focusLoginPasswordField(confirmField);
     });
   }
@@ -1178,6 +1239,27 @@
     successStatusClearTimers.set(successNode, timer);
   }
 
+  function maybeShowSuccessToast(target) {
+    var successNode;
+    var message;
+    if (!target || target.getAttribute("data-success-toast") !== "true" || typeof window.showToast !== "function") {
+      return;
+    }
+
+    successNode = target.querySelector(".status-ok");
+    if (!successNode) {
+      return;
+    }
+
+    message = String(successNode.textContent || "").trim();
+    if (!message || target.dataset.toastShown === message) {
+      return;
+    }
+
+    target.dataset.toastShown = message;
+    window.showToast(message, "ok");
+  }
+
   function maybeRefreshDayEditor(target) {
     var dayEditor = document.getElementById("day-editor");
     var form = target.closest("form[data-save-feedback]");
@@ -1255,6 +1337,10 @@
     });
 
     document.body.addEventListener("htmx:beforeRequest", function (event) {
+      var target = event && event.detail ? event.detail.target : null;
+      if (target && target.classList && target.classList.contains("save-status")) {
+        delete target.dataset.toastShown;
+      }
       setSaveButtonState(getSaveFeedbackFormFromEvent(event), true);
     });
 
@@ -1275,6 +1361,7 @@
 
       maybeRefreshCurrentUserIdentity(target, event);
       maybeRefreshDayEditor(target);
+      maybeShowSuccessToast(target);
       scheduleClearSuccessStatus(target);
     });
 
@@ -1400,7 +1487,7 @@
     return year + "-" + month + "-" + day;
   }
 
-  function buildDayOptions(minDateRaw, maxDateRaw, locale) {
+  function buildDayOptions(minDateRaw, maxDateRaw, locale, todayLabel) {
     var minDate = parseDateValue(minDateRaw);
     var maxDate = parseDateValue(maxDateRaw);
     if (!minDate || !maxDate || minDate > maxDate) {
@@ -1415,9 +1502,12 @@
 
     for (var cursor = new Date(maxDate); cursor >= minDate; cursor.setDate(cursor.getDate() - 1)) {
       var current = new Date(cursor);
+      var isToday = formatDateValue(current) === formatDateValue(maxDate);
       result.push({
         value: formatDateValue(current),
-        label: formatter.format(current)
+        label: isToday && todayLabel ? String(todayLabel) : formatter.format(current),
+        secondaryLabel: isToday ? formatter.format(current) : "",
+        isToday: isToday
       });
     }
     return result;
@@ -1982,6 +2072,7 @@
     var notesEmpty = root.querySelector("[data-dashboard-notes-empty]");
 
     syncPeriodFieldsets(root, isPeriod);
+    syncPeriodToggleLabels(root, isPeriod);
 
     if (!preview) {
       return;
@@ -2011,6 +2102,62 @@
     setNodeHidden(notesEmpty, hasNotes);
   }
 
+  function syncPeriodToggleLabels(root, isPeriod) {
+    if (!root || !root.querySelectorAll) {
+      return;
+    }
+
+    var labels = root.querySelectorAll("[data-period-toggle-label]");
+    for (var index = 0; index < labels.length; index++) {
+      var label = labels[index];
+      var onText = String(label.getAttribute("data-period-label-on") || "");
+      var offText = String(label.getAttribute("data-period-label-off") || "");
+      var prefix = label.textContent && label.textContent.indexOf("🩸") === 0 ? "🩸 " : "";
+      label.textContent = prefix + (isPeriod ? onText : offText);
+    }
+  }
+
+  function syncNoteDisclosure(root) {
+    if (!root || !root.querySelectorAll) {
+      return;
+    }
+
+    var disclosures = root.querySelectorAll("[data-note-disclosure]");
+    for (var index = 0; index < disclosures.length; index++) {
+      var disclosure = disclosures[index];
+      var label = disclosure.querySelector("[data-note-disclosure-label]");
+      var notesField = disclosure.querySelector("[data-dashboard-notes]");
+      var openText = String(disclosure.getAttribute("data-note-open-text") || "");
+      var emptyText = String(disclosure.getAttribute("data-note-empty-text") || "");
+      var filledText = String(disclosure.getAttribute("data-note-filled-text") || "");
+      var hasNotes = !!(notesField && String(notesField.value || "").trim());
+      if (!label) {
+        continue;
+      }
+      label.textContent = disclosure.hasAttribute("open")
+        ? openText
+        : (hasNotes ? filledText : emptyText);
+    }
+  }
+
+  function bindNoteDisclosures(root) {
+    if (!root || !root.querySelectorAll) {
+      return;
+    }
+
+    var disclosures = root.querySelectorAll("[data-note-disclosure]");
+    for (var index = 0; index < disclosures.length; index++) {
+      var disclosure = disclosures[index];
+      if (disclosure.dataset.noteDisclosureBound === "1") {
+        continue;
+      }
+      disclosure.dataset.noteDisclosureBound = "1";
+      disclosure.addEventListener("toggle", function () {
+        syncNoteDisclosure(root);
+      });
+    }
+  }
+
   function bindDashboardEditors() {
     var roots = document.querySelectorAll("[data-dashboard-editor]");
     for (var index = 0; index < roots.length; index++) {
@@ -2020,7 +2167,7 @@
 
         root.addEventListener("change", function (event) {
           var periodToggle = event.target && event.target.matches && event.target.matches("[data-period-toggle]") ? event.target : null;
-          if (periodToggle || (event.target && event.target.name === "symptom_ids")) {
+          if (periodToggle || (event.target && (event.target.name === "symptom_ids" || event.target.name === "mood"))) {
             syncDashboardPreview(this);
           }
         });
@@ -2028,17 +2175,24 @@
         root.addEventListener("input", function (event) {
           if (event.target && event.target.matches && event.target.matches("[data-dashboard-notes]")) {
             syncDashboardPreview(this);
+            syncNoteDisclosure(this);
           }
         });
+
       }
 
+      bindNoteDisclosures(root);
       syncDashboardPreview(root);
+      syncNoteDisclosure(root);
     }
   }
 
   function syncDayEditorForm(form) {
     var periodToggle = form.querySelector("[data-period-toggle]");
-    syncPeriodFieldsets(form, !!(periodToggle && periodToggle.checked));
+    var isPeriod = !!(periodToggle && periodToggle.checked);
+    syncPeriodFieldsets(form, isPeriod);
+    syncPeriodToggleLabels(form, isPeriod);
+    syncNoteDisclosure(form);
   }
 
   function bindDayEditorForms() {
@@ -2057,6 +2211,7 @@
         });
       }
 
+      bindNoteDisclosures(form);
       syncDayEditorForm(form);
     }
   }
@@ -2299,14 +2454,33 @@
     for (var index = 0; index < state.dayOptions.length; index++) {
       var day = state.dayOptions[index];
       var button = document.createElement("button");
+      var title;
       button.type = "button";
-      button.className = "check-chip check-chip-sm justify-center";
+      button.className = "check-chip check-chip-sm justify-center onboarding-day-chip";
       button.setAttribute("data-onboarding-day-option", "true");
       button.setAttribute("data-onboarding-day-value", day.value);
+      button.setAttribute("aria-pressed", state.selectedDate === day.value ? "true" : "false");
+      title = day.secondaryLabel ? day.label + " " + day.secondaryLabel : day.label;
+      button.setAttribute("title", title);
+      if (day.isToday) {
+        button.classList.add("onboarding-day-chip-today");
+      }
       if (state.selectedDate === day.value) {
         button.classList.add("choice-chip-active");
       }
-      button.textContent = day.label;
+      if (day.secondaryLabel) {
+        var primary = document.createElement("span");
+        primary.className = "onboarding-day-chip-primary";
+        primary.textContent = day.label;
+        button.appendChild(primary);
+
+        var secondary = document.createElement("span");
+        secondary.className = "onboarding-day-chip-secondary";
+        secondary.textContent = day.secondaryLabel;
+        button.appendChild(secondary);
+      } else {
+        button.textContent = day.label;
+      }
       container.appendChild(button);
     }
   }
@@ -2413,6 +2587,7 @@
           cycleLength: clampInteger(root.getAttribute("data-cycle-length"), 28, 15, 90),
           periodLength: clampInteger(root.getAttribute("data-period-length"), 5, 1, 14),
           periodExceedsCycleMessage: String(root.getAttribute("data-period-exceeds-cycle-message") || "Period length must not exceed cycle length."),
+          todayLabel: String(root.getAttribute("data-today-label") || "Today"),
           lang: String(root.getAttribute("data-lang") || "en"),
           progress: root.querySelector("[data-onboarding-progress]"),
           progressBar: root.querySelector("[data-onboarding-progress-bar]"),
@@ -2447,7 +2622,7 @@
           },
           dayOptions: []
         };
-        state.dayOptions = buildDayOptions(state.minDate, state.maxDate, state.lang);
+        state.dayOptions = buildDayOptions(state.minDate, state.maxDate, state.lang, state.todayLabel);
         root.__ovumcyOnboardingState = state;
 
         root.addEventListener("click", function (event) {
@@ -2664,6 +2839,38 @@
     }
   }
 
+  function syncRecoveryCodeConfirmForm(form) {
+    if (!form || !form.querySelector) {
+      return;
+    }
+
+    var checkbox = form.querySelector("#recovery-code-saved");
+    var submit = form.querySelector("[data-recovery-code-submit]");
+    var enabled = !!(checkbox && checkbox.checked);
+    if (!submit) {
+      return;
+    }
+
+    submit.disabled = !enabled;
+    submit.classList.toggle("btn--disabled", !enabled);
+  }
+
+  function bindRecoveryCodeConfirmForms() {
+    var forms = document.querySelectorAll("[data-recovery-code-confirm]");
+    for (var index = 0; index < forms.length; index++) {
+      var form = forms[index];
+      if (form.dataset.recoveryConfirmBound !== "1") {
+        form.dataset.recoveryConfirmBound = "1";
+        form.addEventListener("change", function (event) {
+          if (event.target && event.target.id === "recovery-code-saved") {
+            syncRecoveryCodeConfirmForm(this);
+          }
+        });
+      }
+      syncRecoveryCodeConfirmForm(form);
+    }
+  }
+
   function initCSPFriendlyComponents() {
     bindThemeToggleButtons();
     bindMobileMenu();
@@ -2678,6 +2885,7 @@
     bindCalendarViews();
     bindOnboardingFlows();
     bindRecoveryCodeTools();
+    bindRecoveryCodeConfirmForms();
   }
 
   function configureHTMXForCSP() {

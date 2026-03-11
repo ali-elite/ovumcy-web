@@ -55,7 +55,7 @@ func TestLocalizedMonthYear(t *testing.T) {
 func TestLocalizedDateLabel(t *testing.T) {
 	value := time.Date(2026, time.February, 18, 0, 0, 0, 0, time.UTC)
 
-	if got := LocalizedDateLabel("ru", value); got != "Ср, Фев 18" {
+	if got := LocalizedDateLabel("ru", value); got != "Ср, 18 февраля" {
 		t.Fatalf("expected russian date label, got %q", got)
 	}
 	if got := LocalizedDateLabel("en", value); got != "Wed, Feb 18" {

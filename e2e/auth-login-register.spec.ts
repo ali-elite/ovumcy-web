@@ -72,6 +72,7 @@ test.describe('Auth: register, login, logout', () => {
   test('register form rejects invalid email via browser validation', async ({ page }) => {
     await page.goto('/register');
     await expect(page).toHaveURL(/\/register(?:\?.*)?$/);
+    await expect(page.locator('#register-form')).toHaveAttribute('novalidate', '');
 
     await page.locator('#register-email').fill('not-an-email');
     await page.locator('#register-password').fill('StrongPass1');
@@ -85,6 +86,33 @@ test.describe('Auth: register, login, logout', () => {
 
     await page.locator('form[action="/api/auth/register"] button[type="submit"]').click();
     await expect(page).toHaveURL(/\/register(?:\?.*)?$/);
+    await expect(page.locator('#register-client-status .status-error')).toBeVisible();
+  });
+
+  test('login form uses custom validation and clears invalid-credentials banner on input', async ({
+    page,
+  }) => {
+    const creds = createCredentials('auth-login-banner-clear');
+
+    await registerOwnerViaUI(page, creds);
+    await expectInlineRegisterRecoveryStep(page);
+    await logoutViaAPI(page);
+
+    await page.goto('/login');
+    await expect(page.locator('#login-form')).toHaveAttribute('novalidate', '');
+
+    await page.locator('form[action="/api/auth/login"] button[type="submit"]').click();
+    await expect(page.locator('#login-client-status .status-error')).toBeVisible();
+
+    await page.locator('#login-email').fill(creds.email);
+    await page.locator('#login-password').fill('WrongPass1');
+    await page.locator('form[action="/api/auth/login"] button[type="submit"]').click();
+
+    const serverError = page.locator('[data-auth-server-error]');
+    await expect(serverError).toBeVisible();
+
+    await page.locator('#login-password').fill('StillWrong2');
+    await expect(serverError).toHaveCount(0);
   });
 
   test('login wrong password and unknown email return same generic error message', async ({ page }) => {

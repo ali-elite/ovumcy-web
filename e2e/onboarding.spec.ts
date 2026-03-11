@@ -110,12 +110,14 @@ test.describe('Onboarding flow', () => {
     }
 
     const quickPickButtons = page.locator(
-      'form[hx-post="/onboarding/step1"] .grid button.check-chip.check-chip-sm'
+      'form[hx-post="/onboarding/step1"] .grid button[data-onboarding-day-option]'
     );
     await expect(quickPickButtons.first()).toBeVisible();
+    await expect(quickPickButtons.first()).toContainText(/Today/i);
     await quickPickButtons.first().click();
 
     await expect(dateInput).toHaveValue(/\d{4}-\d{2}-\d{2}/);
+    await expect(quickPickButtons.first()).toHaveClass(/choice-chip-active/);
     await page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]').click();
     await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
   });
@@ -147,6 +149,7 @@ test.describe('Onboarding flow', () => {
     const cycleSlider = page.locator('#cycle-length');
     const periodSlider = page.locator('#period-length');
     const autoFillCheckbox = page.locator('form[hx-post="/onboarding/step2"] input[name="auto_period_fill"]');
+    const irregularCheckbox = page.locator('form[hx-post="/onboarding/step2"] input[name="irregular_cycle"]');
 
     await setRangeValue(cycleSlider, 35);
     await setRangeValue(periodSlider, 6);
@@ -155,6 +158,7 @@ test.describe('Onboarding flow', () => {
     await expect(cycleSlider).toHaveValue('35');
     await expect(periodSlider).toHaveValue('6');
     await expect(autoFillCheckbox).not.toBeChecked();
+    await expect(irregularCheckbox).not.toBeChecked();
 
     await page.locator('form[hx-post="/onboarding/step2"] button.btn-secondary[type="button"]').click();
 

@@ -12,18 +12,18 @@
       <span class="dashboard-status-item">{{t .Messages "dashboard.next_period"}}:
         <span data-dashboard-next-period>
           {{if .DisplayNextPeriodUseRange}}
-            {{printf (t .Messages "dashboard.next_period_range") (formatLocalizedDate .Lang .DisplayNextPeriodRangeStart "short") (formatLocalizedDate .Lang .DisplayNextPeriodRangeEnd "short")}}
+            {{printf (t .Messages "dashboard.next_period_range") (formatLocalizedDate .Lang .DisplayNextPeriodRangeStart "display") (formatLocalizedDate .Lang .DisplayNextPeriodRangeEnd "display")}}
           {{else if .DisplayNextPeriodDelayed}}
             {{t .Messages "dashboard.next_period_delayed"}}
           {{else if .DisplayNextPeriodStart.IsZero}}
             {{.NoDataLabel}}
           {{else}}
-            {{formatLocalizedDate .Lang .DisplayNextPeriodStart "short"}}
+            {{formatLocalizedDate .Lang .DisplayNextPeriodStart "display"}}
           {{end}}
         </span>
       </span>
       <span class="dashboard-status-separator" aria-hidden="true">·</span>
-      <span class="dashboard-status-item">{{t .Messages "dashboard.ovulation"}}: {{if .DisplayOvulationImpossible}}{{t .Messages "dashboard.ovulation_unavailable"}}{{else if .DisplayOvulationDate.IsZero}}{{.NoDataLabel}}{{else}}{{formatLocalizedDate .Lang .DisplayOvulationDate "short"}}{{end}}</span>
+      <span class="dashboard-status-item">{{t .Messages "dashboard.ovulation"}}: {{if .DisplayOvulationImpossible}}{{t .Messages "dashboard.ovulation_unavailable"}}{{else if .DisplayOvulationDate.IsZero}}{{.NoDataLabel}}{{else}}{{formatLocalizedDate .Lang .DisplayOvulationDate "display"}}{{end}}</span>
     </div>
 
     {{if or .CycleDataStale .CycleDayWarning .NextPeriodInPast .OvulationInPast}}
@@ -61,7 +61,10 @@
 
         <label class="period-toggle">
           <input type="checkbox" name="is_period" value="true" data-period-toggle {{if .TodayEntry.IsPeriod}}checked{{end}}>
-          <span>🩸 {{t .Messages "dashboard.period_day"}}</span>
+          <span
+            data-period-toggle-label
+            data-period-label-on="{{t .Messages "dashboard.period_day"}}"
+            data-period-label-off="{{t .Messages "dashboard.period_day_action"}}">🩸 {{if .TodayEntry.IsPeriod}}{{t .Messages "dashboard.period_day"}}{{else}}{{t .Messages "dashboard.period_day_action"}}{{end}}</span>
         </label>
 
         <fieldset class="space-y-3">
@@ -101,29 +104,37 @@
         </fieldset>
         {{end}}
 
-        <details class="note-disclosure" {{if ne .TodayEntry.Notes ""}}open{{end}}>
-          <summary class="inline-link text-sm">{{if ne .TodayEntry.Notes ""}}{{t .Messages "dashboard.edit_note"}}{{else}}{{t .Messages "dashboard.add_note"}}{{end}}</summary>
+        <details
+          class="note-disclosure"
+          data-note-disclosure
+          data-note-open-text="{{t .Messages "dashboard.hide_note"}}"
+          data-note-empty-text="{{t .Messages "dashboard.add_note"}}"
+          data-note-filled-text="{{t .Messages "dashboard.edit_note"}}"
+          {{if ne .TodayEntry.Notes ""}}open{{end}}>
+          <summary class="inline-link text-sm"><span data-note-disclosure-label>{{if ne .TodayEntry.Notes ""}}{{t .Messages "dashboard.hide_note"}}{{else}}{{t .Messages "dashboard.add_note"}}{{end}}</span></summary>
           <div class="mt-3 space-y-2">
             <label class="field-label" for="today-notes">{{t .Messages "dashboard.notes"}}</label>
-            <textarea id="today-notes" name="notes" rows="3" maxlength="2000" class="textarea-field">{{.TodayEntry.Notes}}</textarea>
+            <textarea id="today-notes" name="notes" rows="3" maxlength="2000" class="textarea-field" data-dashboard-notes>{{.TodayEntry.Notes}}</textarea>
           </div>
         </details>
 
         <div class="flex flex-wrap items-center gap-3">
           <button type="submit" class="btn-primary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{if .TodayEntryExists}}{{t .Messages "dashboard.update_entry"}}{{else}}{{t .Messages "dashboard.save_today"}}{{end}}</button>
-          <div id="save-status" class="save-status text-sm"></div>
+          <div id="save-status" class="save-status text-sm" data-success-toast="true"></div>
         </div>
 
         {{if .TodayHasData}}
-        <button
-          type="button"
-          hx-delete="/api/log/delete?date={{.Today}}&source=dashboard"
-          hx-swap="none"
-          hx-confirm="{{t .Messages "confirm.delete_entry"}}"
-          data-confirm-accept="{{t .Messages "confirm.yes"}}"
-          class="btn-danger">
-          {{t .Messages "dashboard.clear_today"}}
-        </button>
+        <div class="dashboard-danger-actions">
+          <button
+            type="button"
+            hx-delete="/api/log/delete?date={{.Today}}&source=dashboard"
+            hx-swap="none"
+            hx-confirm="{{t .Messages "confirm.delete_entry"}}"
+            data-confirm-accept="{{t .Messages "confirm.yes"}}"
+            class="btn-danger">
+            {{t .Messages "dashboard.clear_today"}}
+          </button>
+        </div>
         {{end}}
       </form>
       <form
