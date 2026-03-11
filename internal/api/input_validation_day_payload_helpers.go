@@ -17,10 +17,17 @@ func parseDayPayload(c *fiber.Ctx) (dayPayload, error) {
 			return payload, err
 		}
 	} else {
+		var err error
 		payload.IsPeriod = services.ParseBoolLike(c.FormValue("is_period"))
 		payload.Flow = strings.ToLower(strings.TrimSpace(c.FormValue("flow")))
 		payload.Mood = clampFormIntValue(c.FormValue("mood"))
+		payload.SexActivity = strings.ToLower(strings.TrimSpace(c.FormValue("sex_activity")))
+		payload.CervicalMucus = strings.ToLower(strings.TrimSpace(c.FormValue("cervical_mucus")))
 		payload.Notes = strings.TrimSpace(c.FormValue("notes"))
+		payload.BBT, err = services.ParseDayBBTRaw(c.FormValue("bbt"))
+		if err != nil {
+			return payload, err
+		}
 
 		symptomRaw := c.Context().PostArgs().PeekMulti("symptom_ids")
 		for _, value := range symptomRaw {
@@ -35,6 +42,8 @@ func parseDayPayload(c *fiber.Ctx) (dayPayload, error) {
 	if payload.Flow == "" {
 		payload.Flow = models.FlowNone
 	}
+	payload.SexActivity = services.NormalizeDaySexActivity(payload.SexActivity)
+	payload.CervicalMucus = services.NormalizeDayCervicalMucus(payload.CervicalMucus)
 	payload.Notes = strings.TrimSpace(payload.Notes)
 
 	return payload, nil

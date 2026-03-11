@@ -17,6 +17,7 @@ type CalendarDayState struct {
 	IsFertility bool
 	IsOvulation bool
 	HasData     bool
+	HasSex      bool
 }
 
 func CalendarLogRange(monthStart time.Time) (time.Time, time.Time) {
@@ -132,5 +133,6 @@ func buildCalendarDayState(day time.Time, monthStart time.Time, todayKey string,
 		IsFertility: fertilityMap[key] && !isOvulation,
 		IsOvulation: isOvulation,
 		HasData:     hasDataMap[key],
+		HasSex:      hasEntry && NormalizeDaySexActivity(entry.SexActivity) != models.SexActivityNone,
 	}
 }

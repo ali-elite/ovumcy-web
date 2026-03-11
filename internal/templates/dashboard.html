@@ -65,7 +65,29 @@
         <fieldset class="space-y-3">
           <legend class="field-label">{{t .Messages "dashboard.symptoms"}}</legend>
           {{template "symptom_options" (dict "Messages" .Messages "PrimarySymptoms" .PrimarySymptoms "ExtraSymptoms" .ExtraSymptoms "HasExtraSymptoms" .HasExtraSymptoms "SelectedSymptomID" .SelectedSymptomID "Lang" .Lang "Compact" false "IncludePreviewHooks" false)}}
+          {{if .ShowSexChip}}
+          <div class="pt-2">
+            {{template "sex_activity_field" (dict "Messages" .Messages "SelectedSexActivity" .TodayEntry.SexActivity "Compact" false)}}
+          </div>
+          {{end}}
         </fieldset>
+
+        {{if .ShowBBTField}}
+        <fieldset class="space-y-2">
+          <legend class="field-label">{{t .Messages "dashboard.bbt"}}</legend>
+          <div class="flex items-center gap-3">
+            <input type="number" name="bbt" value="{{if hasBBT .TodayEntry.BBT}}{{printf "%.2f" .TodayEntry.BBT}}{{end}}" step="0.01" min="34" max="43" inputmode="decimal" class="input-field max-w-[10rem]">
+            <span class="journal-muted text-sm">°C</span>
+          </div>
+        </fieldset>
+        {{end}}
+
+        {{if .ShowCervicalMucus}}
+        <fieldset class="space-y-3">
+          <legend class="field-label">{{t .Messages "dashboard.cervical_mucus"}}</legend>
+          {{template "cervical_mucus_options" (dict "Messages" .Messages "SelectedCervicalMucus" .TodayEntry.CervicalMucus "Compact" false)}}
+        </fieldset>
+        {{end}}
 
         <details class="note-disclosure" {{if ne .TodayEntry.Notes ""}}open{{end}}>
           <summary class="inline-link text-sm">{{if ne .TodayEntry.Notes ""}}{{t .Messages "dashboard.edit_note"}}{{else}}{{t .Messages "dashboard.add_note"}}{{end}}</summary>

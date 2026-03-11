@@ -65,7 +65,21 @@ func (repo *DailyLogRepository) ListPeriodDays(userID uint) ([]models.DailyLog, 
 func (repo *DailyLogRepository) FindByUserAndDayRange(userID uint, dayStart time.Time, dayEnd time.Time) (models.DailyLog, bool, error) {
 	entry := models.DailyLog{}
 	result := repo.database.
-		Select("id", "user_id", "date", "is_period", "flow", "mood", "symptom_ids", "notes", "created_at", "updated_at").
+		Select(
+			"id",
+			"user_id",
+			"date",
+			"is_period",
+			"flow",
+			"mood",
+			"sex_activity",
+			"bbt",
+			"cervical_mucus",
+			"symptom_ids",
+			"notes",
+			"created_at",
+			"updated_at",
+		).
 		Where("user_id = ? AND date >= ? AND date < ?", userID, dayStart, dayEnd).
 		Order("date DESC, id DESC").
 		Limit(1).

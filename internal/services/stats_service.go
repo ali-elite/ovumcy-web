@@ -13,6 +13,7 @@ type StatsDayReader interface {
 
 type StatsSymptomReader interface {
 	CalculateFrequencies(userID uint, logs []models.DailyLog) ([]SymptomFrequency, error)
+	FetchSymptoms(userID uint) ([]models.SymptomType, error)
 }
 
 type StatsService struct {

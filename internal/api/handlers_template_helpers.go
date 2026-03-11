@@ -21,6 +21,12 @@ func newTemplateFuncMap() template.FuncMap {
 		"flowLabel": func(messages map[string]string, flow string) string {
 			return translateMessage(messages, services.FlowTranslationKey(flow))
 		},
+		"sexActivityLabel": func(messages map[string]string, value string) string {
+			return translateMessage(messages, services.SexActivityTranslationKey(value))
+		},
+		"cervicalMucusLabel": func(messages map[string]string, value string) string {
+			return translateMessage(messages, services.CervicalMucusTranslationKey(value))
+		},
 		"symptomLabel": func(messages map[string]string, name string) string {
 			key := services.BuiltinSymptomTranslationKey(name)
 			if key == "" {
@@ -33,6 +39,9 @@ func newTemplateFuncMap() template.FuncMap {
 			return translateMessage(messages, services.RoleTranslationKey(role))
 		},
 		"moodEmoji":      services.MoodEmoji,
+		"hasBBT": func(value float64) bool {
+			return services.IsValidDayBBT(value) && value > 0
+		},
 		"userIdentity":   templateUserIdentity,
 		"hasDisplayName": templateHasDisplayName,
 		"isActiveRoute":  isActiveTemplateRoute,

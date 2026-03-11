@@ -29,13 +29,17 @@ type StatsSymptomCountViewData struct {
 }
 
 type StatsPageViewData struct {
-	Stats           CycleStats
-	ChartData       StatsChartViewData
-	ChartBaseline   int
-	TrendPointCount int
-	Flags           StatsFlags
-	SymptomCounts   []StatsSymptomCountViewData
-	IsOwner         bool
+	Stats                   CycleStats
+	ChartData               StatsChartViewData
+	ChartBaseline           int
+	TrendPointCount         int
+	Flags                   StatsFlags
+	SymptomCounts           []StatsSymptomCountViewData
+	PhaseMoodInsights       []StatsPhaseMoodInsight
+	PhaseSymptomInsights    []StatsPhaseSymptomInsight
+	HasPhaseMoodInsights    bool
+	HasPhaseSymptomInsights bool
+	IsOwner                 bool
 }
 
 func (service *StatsService) BuildStatsPageViewData(user *models.User, language string, cycleLabelPattern string, now time.Time, location *time.Location, maxTrendPoints int) (StatsPageViewData, error) {
@@ -49,6 +53,11 @@ func (service *StatsService) BuildStatsPageViewData(user *models.User, language 
 	flags := service.BuildFlags(user, logs, stats, now, location, trendPointCount)
 
 	frequencies, err := service.BuildSymptomFrequenciesForUser(user)
+	if err != nil {
+		return StatsPageViewData{}, fmt.Errorf("%w: %v", ErrStatsPageViewLoadSymptoms, err)
+	}
+	phaseMoodInsights, hasPhaseMoodInsights := service.BuildPhaseMoodInsights(user, logs, location)
+	phaseSymptomInsights, hasPhaseSymptomInsights, err := service.BuildPhaseSymptomInsights(user, logs, location)
 	if err != nil {
 		return StatsPageViewData{}, fmt.Errorf("%w: %v", ErrStatsPageViewLoadSymptoms, err)
 	}
@@ -74,12 +83,16 @@ func (service *StatsService) BuildStatsPageViewData(user *models.User, language 
 	}
 
 	return StatsPageViewData{
-		Stats:           stats,
-		ChartData:       chartData,
-		ChartBaseline:   baselineCycleLength,
-		TrendPointCount: trendPointCount,
-		Flags:           flags,
-		SymptomCounts:   symptomCounts,
-		IsOwner:         IsOwnerUser(user),
+		Stats:                   stats,
+		ChartData:               chartData,
+		ChartBaseline:           baselineCycleLength,
+		TrendPointCount:         trendPointCount,
+		Flags:                   flags,
+		SymptomCounts:           symptomCounts,
+		PhaseMoodInsights:       phaseMoodInsights,
+		PhaseSymptomInsights:    phaseSymptomInsights,
+		HasPhaseMoodInsights:    hasPhaseMoodInsights,
+		HasPhaseSymptomInsights: hasPhaseSymptomInsights,
+		IsOwner:                 IsOwnerUser(user),
 	}, nil
 }

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/glebarez/sqlite"
+	"github.com/terraincognita07/ovumcy/internal/models"
 	embeddedmigrations "github.com/terraincognita07/ovumcy/migrations"
 	"gorm.io/gorm"
 )
@@ -43,10 +44,23 @@ func TestOpenSQLiteUpgradesLegacyInitSchema(t *testing.T) {
 		CycleLength         int    `gorm:"column:cycle_length"`
 		PeriodLength        int    `gorm:"column:period_length"`
 		AutoPeriodFill      bool   `gorm:"column:auto_period_fill"`
+		TrackBBT            bool   `gorm:"column:track_bbt"`
+		TrackCervicalMucus  bool   `gorm:"column:track_cervical_mucus"`
+		HideSexChip         bool   `gorm:"column:hide_sex_chip"`
 	}
 	if err := database.
 		Table("users").
-		Select("email", "display_name", "onboarding_completed", "cycle_length", "period_length", "auto_period_fill").
+		Select(
+			"email",
+			"display_name",
+			"onboarding_completed",
+			"cycle_length",
+			"period_length",
+			"auto_period_fill",
+			"track_bbt",
+			"track_cervical_mucus",
+			"hide_sex_chip",
+		).
 		Where("email = ?", "legacy@example.com").
 		First(&migratedUser).Error; err != nil {
 		t.Fatalf("load migrated legacy user: %v", err)
@@ -67,16 +81,28 @@ func TestOpenSQLiteUpgradesLegacyInitSchema(t *testing.T) {
 	if !migratedUser.AutoPeriodFill {
 		t.Fatal("expected auto_period_fill default to be true")
 	}
+	if migratedUser.TrackBBT {
+		t.Fatal("expected track_bbt default to be false")
+	}
+	if migratedUser.TrackCervicalMucus {
+		t.Fatal("expected track_cervical_mucus default to be false")
+	}
+	if migratedUser.HideSexChip {
+		t.Fatal("expected hide_sex_chip default to be false")
+	}
 
 	var migratedLog struct {
-		Flow       string  `gorm:"column:flow"`
-		Mood       int     `gorm:"column:mood"`
-		SymptomIDs *string `gorm:"column:symptom_ids"`
-		Notes      string  `gorm:"column:notes"`
+		Flow          string  `gorm:"column:flow"`
+		Mood          int     `gorm:"column:mood"`
+		SexActivity   string  `gorm:"column:sex_activity"`
+		BBT           float64 `gorm:"column:bbt"`
+		CervicalMucus string  `gorm:"column:cervical_mucus"`
+		SymptomIDs    *string `gorm:"column:symptom_ids"`
+		Notes         string  `gorm:"column:notes"`
 	}
 	if err := database.
 		Table("daily_logs").
-		Select("flow", "mood", "symptom_ids", "notes").
+		Select("flow", "mood", "sex_activity", "bbt", "cervical_mucus", "symptom_ids", "notes").
 		Where("notes = ?", "legacy-log").
 		First(&migratedLog).Error; err != nil {
 		t.Fatalf("load migrated legacy daily log: %v", err)
@@ -87,6 +113,15 @@ func TestOpenSQLiteUpgradesLegacyInitSchema(t *testing.T) {
 	}
 	if migratedLog.Mood != 0 {
 		t.Fatalf("expected migrated mood default to be 0, got %d", migratedLog.Mood)
+	}
+	if migratedLog.SexActivity != models.SexActivityNone {
+		t.Fatalf("expected migrated sex_activity default to be %q, got %q", models.SexActivityNone, migratedLog.SexActivity)
+	}
+	if migratedLog.BBT != 0 {
+		t.Fatalf("expected migrated bbt default to be 0, got %v", migratedLog.BBT)
+	}
+	if migratedLog.CervicalMucus != models.CervicalMucusNone {
+		t.Fatalf("expected migrated cervical_mucus default to be %q, got %q", models.CervicalMucusNone, migratedLog.CervicalMucus)
 	}
 	if migratedLog.SymptomIDs == nil || strings.TrimSpace(*migratedLog.SymptomIDs) != "[1,2]" {
 		t.Fatalf("expected migrated symptom_ids to remain [1,2], got %v", migratedLog.SymptomIDs)
@@ -207,6 +242,9 @@ func assertUsersSchemaReconciled(t *testing.T, database *gorm.DB) {
 		"cycle_length",
 		"period_length",
 		"auto_period_fill",
+		"track_bbt",
+		"track_cervical_mucus",
+		"hide_sex_chip",
 		"last_period_start",
 	}
 
@@ -231,6 +269,15 @@ func assertDailyLogsSchemaReconciled(t *testing.T, database *gorm.DB) {
 	columns := loadTableColumns(t, database, "daily_logs")
 	if _, exists := columns["mood"]; !exists {
 		t.Fatal("expected daily_logs.mood column to exist after migrations")
+	}
+	if _, exists := columns["sex_activity"]; !exists {
+		t.Fatal("expected daily_logs.sex_activity column to exist after migrations")
+	}
+	if _, exists := columns["bbt"]; !exists {
+		t.Fatal("expected daily_logs.bbt column to exist after migrations")
+	}
+	if _, exists := columns["cervical_mucus"]; !exists {
+		t.Fatal("expected daily_logs.cervical_mucus column to exist after migrations")
 	}
 	if _, exists := columns["symptom_ids"]; !exists {
 		t.Fatal("expected daily_logs.symptom_ids column to exist after migrations")

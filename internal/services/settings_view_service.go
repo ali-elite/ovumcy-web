@@ -56,6 +56,9 @@ type SettingsPageViewData struct {
 	CycleLength             int
 	PeriodLength            int
 	AutoPeriodFill          bool
+	TrackBBT                bool
+	TrackCervicalMucus      bool
+	HideSexChip             bool
 	LastPeriodStart         string
 	TodayISO                string
 	CycleStartMinISO        string
@@ -113,6 +116,9 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 	resolvedUser.CycleLength = cycleLength
 	resolvedUser.PeriodLength = periodLength
 	resolvedUser.AutoPeriodFill = autoPeriodFill
+	resolvedUser.TrackBBT = persisted.TrackBBT
+	resolvedUser.TrackCervicalMucus = persisted.TrackCervicalMucus
+	resolvedUser.HideSexChip = persisted.HideSexChip
 	resolvedUser.LastPeriodStart = persisted.LastPeriodStart
 
 	lastPeriodStart := ""
@@ -129,6 +135,9 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 		CycleLength:            cycleLength,
 		PeriodLength:           periodLength,
 		AutoPeriodFill:         autoPeriodFill,
+		TrackBBT:               resolvedUser.TrackBBT,
+		TrackCervicalMucus:     resolvedUser.TrackCervicalMucus,
+		HideSexChip:            resolvedUser.HideSexChip,
 		LastPeriodStart:        lastPeriodStart,
 		TodayISO:               today.Format("2006-01-02"),
 		CycleStartMinISO:       minCycleStart.Format("2006-01-02"),

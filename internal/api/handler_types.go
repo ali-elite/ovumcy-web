@@ -52,6 +52,7 @@ type CalendarDay struct {
 	IsFertility  bool
 	IsOvulation  bool
 	HasData      bool
+	HasSex       bool
 	CellClass    string
 	TextClass    string
 	BadgeClass   string

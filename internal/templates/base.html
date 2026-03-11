@@ -305,6 +305,20 @@
     <p class="mt-2" {{if gt (len .Log.SymptomIDs) 0}}hidden{{end}}>{{.NoDataLabel}}</p>
   </div>
 
+  {{if or (ne .Log.SexActivity "none") (hasBBT .Log.BBT) (ne .Log.CervicalMucus "none")}}
+  <div class="grid gap-3 sm:grid-cols-2">
+    {{if ne .Log.SexActivity "none"}}
+    <p><span class="journal-muted">{{t .Messages "dashboard.sex"}}:</span> {{sexActivityLabel .Messages .Log.SexActivity}}</p>
+    {{end}}
+    {{if hasBBT .Log.BBT}}
+    <p><span class="journal-muted">{{t .Messages "dashboard.bbt"}}:</span> {{printf "%.2f" .Log.BBT}} °C</p>
+    {{end}}
+    {{if ne .Log.CervicalMucus "none"}}
+    <p><span class="journal-muted">{{t .Messages "dashboard.cervical_mucus"}}:</span> {{cervicalMucusLabel .Messages .Log.CervicalMucus}}</p>
+    {{end}}
+  </div>
+  {{end}}
+
   <div>
     <p class="journal-muted">{{t .Messages "dashboard.notes"}}</p>
     <p class="mt-2 whitespace-pre-wrap break-words">{{if ne .Log.Notes ""}}{{.Log.Notes}}{{else}}{{.NoDataLabel}}{{end}}</p>
@@ -354,6 +368,59 @@
   {{template "mood_option" (dict "SelectedMood" .SelectedMood "Value" 3 "Compact" .Compact)}}
   {{template "mood_option" (dict "SelectedMood" .SelectedMood "Value" 4 "Compact" .Compact)}}
   {{template "mood_option" (dict "SelectedMood" .SelectedMood "Value" 5 "Compact" .Compact)}}
+</div>
+{{end}}
+{{define "sex_activity_option"}}
+<label class="choice-option">
+  <input
+    type="radio"
+    name="sex_activity"
+    value="{{.Value}}"
+    class="choice-input"
+    {{if eq .SelectedSexActivity .Value}}checked{{end}}>
+  <span class="{{if .Compact}}radio-tile radio-tile-sm{{else}}radio-tile{{end}}">
+    <span>{{sexActivityLabel .Messages .Value}}</span>
+  </span>
+</label>
+{{end}}
+{{define "sex_activity_field"}}
+<details class="sex-activity-details" {{if ne .SelectedSexActivity "none"}}open{{end}}>
+  <summary class="sex-chip-summary">
+    <span class="{{if .Compact}}check-chip check-chip-sm check-chip-static{{else}}check-chip check-chip-static{{end}}{{if ne .SelectedSexActivity "none"}} choice-chip-active{{end}}">
+      <span class="symptom-icon">◦</span>
+      <span class="symptom-label">{{t .Messages "dashboard.sex"}}</span>
+      {{if ne .SelectedSexActivity "none"}}
+      <span class="journal-muted text-[11px]">{{sexActivityLabel .Messages .SelectedSexActivity}}</span>
+      {{end}}
+    </span>
+  </summary>
+  <div class="mt-3 {{if .Compact}}flow-radio-row flow-radio-row-compact{{else}}flow-radio-row{{end}}">
+    {{template "sex_activity_option" (dict "Messages" .Messages "SelectedSexActivity" .SelectedSexActivity "Value" "none" "Compact" .Compact)}}
+    {{template "sex_activity_option" (dict "Messages" .Messages "SelectedSexActivity" .SelectedSexActivity "Value" "protected" "Compact" .Compact)}}
+    {{template "sex_activity_option" (dict "Messages" .Messages "SelectedSexActivity" .SelectedSexActivity "Value" "unprotected" "Compact" .Compact)}}
+  </div>
+</details>
+{{end}}
+{{define "cervical_mucus_option"}}
+<label class="choice-option">
+  <input
+    type="radio"
+    name="cervical_mucus"
+    value="{{.Value}}"
+    class="choice-input"
+    {{if eq .SelectedCervicalMucus .Value}}checked{{end}}>
+  <span class="{{if .Compact}}radio-tile radio-tile-sm{{else}}radio-tile{{end}}">
+    <span>{{cervicalMucusLabel .Messages .Value}}</span>
+  </span>
+</label>
+{{end}}
+{{define "cervical_mucus_options"}}
+<div class="{{if .Compact}}flow-radio-row flow-radio-row-compact{{else}}flow-radio-row{{end}}">
+  {{template "cervical_mucus_option" (dict "Messages" .Messages "SelectedCervicalMucus" .SelectedCervicalMucus "Value" "none" "Compact" .Compact)}}
+  {{template "cervical_mucus_option" (dict "Messages" .Messages "SelectedCervicalMucus" .SelectedCervicalMucus "Value" "dry" "Compact" .Compact)}}
+  {{template "cervical_mucus_option" (dict "Messages" .Messages "SelectedCervicalMucus" .SelectedCervicalMucus "Value" "moist" "Compact" .Compact)}}
+  {{template "cervical_mucus_option" (dict "Messages" .Messages "SelectedCervicalMucus" .SelectedCervicalMucus "Value" "creamy" "Compact" .Compact)}}
+  {{template "cervical_mucus_option" (dict "Messages" .Messages "SelectedCervicalMucus" .SelectedCervicalMucus "Value" "eggwhite" "Compact" .Compact)}}
 </div>
 {{end}}
 {{define "symptom_option_item"}}

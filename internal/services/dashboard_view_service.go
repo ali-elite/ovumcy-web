@@ -51,6 +51,9 @@ type DashboardViewData struct {
 	HasExtraSymptoms  bool
 	SelectedSymptomID map[uint]bool
 	ShowYesterdayJump bool
+	ShowSexChip       bool
+	ShowBBTField      bool
+	ShowCervicalMucus bool
 	IsOwner           bool
 }
 
@@ -66,6 +69,9 @@ type DayEditorViewData struct {
 	HasExtraSymptoms  bool
 	SelectedSymptomID map[uint]bool
 	HasDayData        bool
+	ShowSexChip       bool
+	ShowBBTField      bool
+	ShowCervicalMucus bool
 	IsOwner           bool
 }
 
@@ -119,6 +125,9 @@ func (service *DashboardViewService) BuildDashboardViewData(user *models.User, l
 		HasExtraSymptoms:  len(extraSymptoms) > 0,
 		SelectedSymptomID: selectedSymptomID,
 		ShowYesterdayJump: !yesterdayHasData,
+		ShowSexChip:       IsOwnerUser(user) && !user.HideSexChip,
+		ShowBBTField:      IsOwnerUser(user) && user.TrackBBT,
+		ShowCervicalMucus: IsOwnerUser(user) && user.TrackCervicalMucus,
 		IsOwner:           IsOwnerUser(user),
 	}, nil
 }
@@ -152,6 +161,9 @@ func (service *DashboardViewService) BuildDayEditorViewData(user *models.User, l
 		HasExtraSymptoms:  len(extraSymptoms) > 0,
 		SelectedSymptomID: selectedSymptomID,
 		HasDayData:        hasDayData,
+		ShowSexChip:       IsOwnerUser(user) && !user.HideSexChip,
+		ShowBBTField:      IsOwnerUser(user) && user.TrackBBT,
+		ShowCervicalMucus: IsOwnerUser(user) && user.TrackCervicalMucus,
 		IsOwner:           IsOwnerUser(user),
 	}, nil
 }

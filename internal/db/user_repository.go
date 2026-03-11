@@ -103,7 +103,15 @@ func (repo *UserRepository) UpdateByID(userID uint, updates map[string]any) erro
 func (repo *UserRepository) LoadSettingsByID(userID uint) (models.User, error) {
 	var user models.User
 	if err := repo.database.
-		Select("cycle_length", "period_length", "auto_period_fill", "last_period_start").
+		Select(
+			"cycle_length",
+			"period_length",
+			"auto_period_fill",
+			"track_bbt",
+			"track_cervical_mucus",
+			"hide_sex_chip",
+			"last_period_start",
+		).
 		First(&user, userID).Error; err != nil {
 		return models.User{}, err
 	}
@@ -141,10 +149,13 @@ func (repo *UserRepository) ClearAllDataAndResetSettings(userID uint) error {
 			return err
 		}
 		return tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]any{
-			"cycle_length":      models.DefaultCycleLength,
-			"period_length":     models.DefaultPeriodLength,
-			"auto_period_fill":  true,
-			"last_period_start": nil,
+			"cycle_length":         models.DefaultCycleLength,
+			"period_length":        models.DefaultPeriodLength,
+			"auto_period_fill":     true,
+			"track_bbt":            false,
+			"track_cervical_mucus": false,
+			"hide_sex_chip":        false,
+			"last_period_start":    nil,
 		}).Error
 	})
 }
@@ -182,11 +193,13 @@ func (repo *UserRepository) CompleteOnboarding(userID uint, startDay time.Time, 
 				First(&entry)
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 				entry = models.DailyLog{
-					UserID:     userID,
-					Date:       dayStart,
-					IsPeriod:   true,
-					Flow:       models.FlowNone,
-					SymptomIDs: []uint{},
+					UserID:        userID,
+					Date:          dayStart,
+					IsPeriod:      true,
+					Flow:          models.FlowNone,
+					SexActivity:   models.SexActivityNone,
+					CervicalMucus: models.CervicalMucusNone,
+					SymptomIDs:    []uint{},
 				}
 				if err := tx.Create(&entry).Error; err != nil {
 					return err

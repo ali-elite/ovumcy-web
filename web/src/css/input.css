@@ -959,6 +959,20 @@
     display: none;
   }
 
+  .sex-activity-details {
+    border-top: 1px dashed rgba(172, 136, 96, 0.34);
+    padding-top: 0.75rem;
+  }
+
+  .sex-chip-summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .sex-chip-summary::-webkit-details-marker {
+    display: none;
+  }
+
   .symptom-group-panel .symptom-grid {
     margin-top: 0.46rem;
   }
@@ -1211,6 +1225,7 @@
     display: flex;
     min-height: 0.8rem;
     align-items: center;
+    gap: 0.3rem;
     justify-content: flex-end;
   }
 
@@ -1221,6 +1236,16 @@
     border-radius: 999px;
     background: var(--ovulation-color);
     box-shadow: 0 0 0 2px rgba(244, 213, 141, 0.22);
+  }
+
+  .calendar-sex-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0.6rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1;
   }
 
   .check-chip-static {
@@ -1517,6 +1542,31 @@
 
   .stats-legend-baseline-line {
     border-color: var(--chart-baseline, #9f8a75);
+  }
+
+  .phase-mood-card,
+  .phase-symptom-card {
+    min-height: 0;
+  }
+
+  .phase-mood-meter {
+    height: 0.55rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(232, 196, 168, 0.32);
+  }
+
+  .phase-mood-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #d4a574, #e8c4a8);
+  }
+
+  .phase-symptom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
   }
 
   .export-link-disabled {

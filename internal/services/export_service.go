@@ -16,6 +16,9 @@ var ExportCSVHeaders = []string{
 	"Period",
 	"Flow",
 	"Mood rating",
+	"Sex activity",
+	"BBT (C)",
+	"Cervical mucus",
 	"Cramps",
 	"Headache",
 	"Acne",
@@ -145,6 +148,9 @@ type ExportJSONEntry struct {
 	Period        bool               `json:"period"`
 	Flow          string             `json:"flow"`
 	MoodRating    int                `json:"mood_rating"`
+	SexActivity   string             `json:"sex_activity"`
+	BBT           float64            `json:"bbt"`
+	CervicalMucus string             `json:"cervical_mucus"`
 	Symptoms      ExportSymptomFlags `json:"symptoms"`
 	OtherSymptoms []string           `json:"other_symptoms"`
 	Notes         string             `json:"notes"`
@@ -155,6 +161,9 @@ type ExportCSVRow struct {
 	Period        bool
 	Flow          string
 	MoodRating    int
+	SexActivity   string
+	BBT           float64
+	CervicalMucus string
 	Symptoms      ExportSymptomFlags
 	OtherSymptoms []string
 	Notes         string
@@ -228,6 +237,9 @@ func (service *ExportService) BuildJSONEntries(userID uint, from *time.Time, to 
 			Period:        logEntry.IsPeriod,
 			Flow:          normalizeExportFlow(logEntry.Flow),
 			MoodRating:    normalizeExportMood(logEntry.Mood),
+			SexActivity:   normalizeExportSexActivity(logEntry.SexActivity),
+			BBT:           normalizeExportBBT(logEntry.BBT),
+			CervicalMucus: normalizeExportCervicalMucus(logEntry.CervicalMucus),
 			Symptoms:      flags,
 			OtherSymptoms: other,
 			Notes:         logEntry.Notes,
@@ -250,6 +262,9 @@ func (service *ExportService) BuildCSVRows(userID uint, from *time.Time, to *tim
 			Period:        logEntry.IsPeriod,
 			Flow:          csvFlowLabel(logEntry.Flow),
 			MoodRating:    normalizeExportMood(logEntry.Mood),
+			SexActivity:   csvSexActivityLabel(logEntry.SexActivity),
+			BBT:           normalizeExportBBT(logEntry.BBT),
+			CervicalMucus: csvCervicalMucusLabel(logEntry.CervicalMucus),
 			Symptoms:      flags,
 			OtherSymptoms: other,
 			Notes:         logEntry.Notes,
@@ -264,6 +279,9 @@ func (row ExportCSVRow) Columns() []string {
 		csvYesNo(row.Period),
 		row.Flow,
 		csvMoodRating(row.MoodRating),
+		row.SexActivity,
+		csvBBTValue(row.BBT),
+		row.CervicalMucus,
 		csvYesNo(row.Symptoms.Cramps),
 		csvYesNo(row.Symptoms.Headache),
 		csvYesNo(row.Symptoms.Acne),
@@ -370,9 +388,58 @@ func normalizeExportMood(value int) int {
 	return 0
 }
 
+func normalizeExportSexActivity(value string) string {
+	return NormalizeDaySexActivity(value)
+}
+
+func normalizeExportBBT(value float64) float64 {
+	if IsValidDayBBT(value) {
+		return value
+	}
+	return 0
+}
+
+func normalizeExportCervicalMucus(value string) string {
+	return NormalizeDayCervicalMucus(value)
+}
+
 func csvMoodRating(value int) string {
 	if value <= 0 {
 		return ""
 	}
 	return fmt.Sprintf("%d", value)
+}
+
+func csvSexActivityLabel(value string) string {
+	switch NormalizeDaySexActivity(value) {
+	case models.SexActivityProtected:
+		return "Protected"
+	case models.SexActivityUnprotected:
+		return "Unprotected"
+	default:
+		return "None"
+	}
+}
+
+func csvBBTValue(value float64) string {
+	normalized := normalizeExportBBT(value)
+	if normalized <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", normalized)
+}
+
+func csvCervicalMucusLabel(value string) string {
+	switch NormalizeDayCervicalMucus(value) {
+	case models.CervicalMucusDry:
+		return "Dry"
+	case models.CervicalMucusMoist:
+		return "Moist"
+	case models.CervicalMucusCreamy:
+		return "Creamy"
+	case models.CervicalMucusEggWhite:
+		return "Egg white"
+	default:
+		return "None"
+	}
 }

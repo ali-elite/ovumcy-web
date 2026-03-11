@@ -12,6 +12,9 @@ func IsPartnerUser(user *models.User) bool {
 
 func SanitizeLogForPartner(entry models.DailyLog) models.DailyLog {
 	entry.Mood = 0
+	entry.SexActivity = models.SexActivityNone
+	entry.BBT = 0
+	entry.CervicalMucus = models.CervicalMucusNone
 	entry.Notes = ""
 	entry.SymptomIDs = []uint{}
 	return entry

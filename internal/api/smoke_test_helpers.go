@@ -21,13 +21,12 @@ func smokeGET(t *testing.T, app *fiber.App, authCookie string, path string, expe
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode != expectedStatus {
-		t.Fatalf("GET %s expected status %d, got %d", path, expectedStatus, response.StatusCode)
-	}
-
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatalf("GET %s read body failed: %v", path, err)
+	}
+	if response.StatusCode != expectedStatus {
+		t.Fatalf("GET %s expected status %d, got %d body=%s", path, expectedStatus, response.StatusCode, string(body))
 	}
 	return string(body)
 }

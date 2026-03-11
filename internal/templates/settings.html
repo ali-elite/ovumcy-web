@@ -109,6 +109,44 @@
   {{template "settings_symptoms_section_content" .}}
   {{end}}
 
+  {{if eq .CurrentUser.Role "owner"}}
+  <section class="journal-card p-5 sm:p-6 space-y-5" id="settings-tracking">
+    <div>
+      <h2 class="journal-subtitle">🧪 {{t .Messages "settings.tracking.title"}}</h2>
+      <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.tracking.subtitle"}}</p>
+    </div>
+
+    <form
+      action="/api/settings/tracking"
+      method="post"
+      hx-post="/api/settings/tracking"
+      hx-target="#settings-tracking-status"
+      hx-swap="innerHTML"
+      class="space-y-4"
+      data-save-feedback>
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      <label class="period-toggle">
+        <input type="checkbox" name="track_bbt" value="true" {{if .TrackBBT}}checked{{end}}>
+        <span>🌡️ {{t .Messages "settings.tracking.track_bbt"}}</span>
+      </label>
+
+      <label class="period-toggle">
+        <input type="checkbox" name="track_cervical_mucus" value="true" {{if .TrackCervicalMucus}}checked{{end}}>
+        <span>💧 {{t .Messages "settings.tracking.track_cervical_mucus"}}</span>
+      </label>
+
+      <label class="period-toggle">
+        <input type="checkbox" name="hide_sex_chip" value="true" {{if .HideSexChip}}checked{{end}}>
+        <span>◦ {{t .Messages "settings.tracking.hide_sex_chip"}}</span>
+      </label>
+
+      <button type="submit" class="btn-secondary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{t .Messages "settings.tracking.save"}}</button>
+      <div id="settings-tracking-status" class="save-status text-sm"></div>
+    </form>
+  </section>
+  {{end}}
+
   <section class="journal-card p-5 sm:p-6 space-y-5" id="settings-interface">
     <div>
       <h2 class="journal-subtitle">🎛️ {{t .Messages "settings.interface.title"}}</h2>
@@ -257,7 +295,7 @@
     id="settings-data">
     <div>
       <h2 class="journal-subtitle">🗂️ {{t .Messages "settings.data.title"}}</h2>
-      <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.data.subtitle"}}</p>
+      <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.data.storage_copy"}}</p>
     </div>
     <div class="grid gap-3 sm:grid-cols-2">
       <div class="space-y-1">
@@ -334,6 +372,7 @@
     <div class="flex flex-wrap gap-2">
       <a href="/api/export/csv" data-export-link data-export-type="csv" class="btn-secondary inline-flex items-center justify-center"><span class="mr-2" aria-hidden="true">📊</span><span>{{t .Messages "settings.export_csv"}}</span></a>
       <a href="/api/export/json" data-export-link data-export-type="json" class="btn-secondary inline-flex items-center justify-center"><span class="mr-2" aria-hidden="true">🧾</span><span>{{t .Messages "settings.export_json"}}</span></a>
+      <a href="/api/export/pdf" data-export-link data-export-type="pdf" class="btn-secondary inline-flex items-center justify-center"><span class="mr-2" aria-hidden="true">📄</span><span>{{t .Messages "settings.export_pdf"}}</span></a>
     </div>
     <p class="journal-muted text-sm" data-export-summary-total>{{printf (t .Messages "settings.export_summary_total") .ExportTotalEntries}}</p>
     <p class="journal-muted text-sm" data-export-summary-range>

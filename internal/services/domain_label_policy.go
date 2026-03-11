@@ -36,6 +36,32 @@ func FlowTranslationKey(flow string) string {
 	}
 }
 
+func SexActivityTranslationKey(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case models.SexActivityProtected:
+		return "dashboard.sex.protected"
+	case models.SexActivityUnprotected:
+		return "dashboard.sex.unprotected"
+	default:
+		return "dashboard.sex.none"
+	}
+}
+
+func CervicalMucusTranslationKey(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case models.CervicalMucusDry:
+		return "dashboard.cervical_mucus.dry"
+	case models.CervicalMucusMoist:
+		return "dashboard.cervical_mucus.moist"
+	case models.CervicalMucusCreamy:
+		return "dashboard.cervical_mucus.creamy"
+	case models.CervicalMucusEggWhite:
+		return "dashboard.cervical_mucus.eggwhite"
+	default:
+		return "dashboard.cervical_mucus.none"
+	}
+}
+
 func RoleTranslationKey(role string) string {
 	switch strings.ToLower(strings.TrimSpace(role)) {
 	case models.RoleOwner:

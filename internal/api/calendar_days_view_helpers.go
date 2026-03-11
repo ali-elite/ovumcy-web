@@ -42,6 +42,7 @@ func (handler *Handler) buildCalendarDays(states []services.CalendarDayState) []
 			IsFertility:  state.IsFertility,
 			IsOvulation:  state.IsOvulation,
 			HasData:      state.HasData,
+			HasSex:       state.HasSex,
 			CellClass:    cellClass,
 			TextClass:    textClass,
 			BadgeClass:   badgeClass,

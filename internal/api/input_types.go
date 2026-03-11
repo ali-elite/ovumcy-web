@@ -8,11 +8,14 @@ type credentialsInput struct {
 }
 
 type dayPayload struct {
-	IsPeriod   bool   `json:"is_period"`
-	Flow       string `json:"flow"`
-	Mood       int    `json:"mood"`
-	SymptomIDs []uint `json:"symptom_ids"`
-	Notes      string `json:"notes"`
+	IsPeriod      bool    `json:"is_period"`
+	Flow          string  `json:"flow"`
+	Mood          int     `json:"mood"`
+	SexActivity   string  `json:"sex_activity"`
+	BBT           float64 `json:"bbt"`
+	CervicalMucus string  `json:"cervical_mucus"`
+	SymptomIDs    []uint  `json:"symptom_ids"`
+	Notes         string  `json:"notes"`
 }
 
 type symptomPayload struct {
@@ -47,6 +50,12 @@ type cycleSettingsInput struct {
 
 type profileSettingsInput struct {
 	DisplayName string `json:"display_name" form:"display_name"`
+}
+
+type trackingSettingsInput struct {
+	TrackBBT           bool `json:"track_bbt" form:"track_bbt"`
+	TrackCervicalMucus bool `json:"track_cervical_mucus" form:"track_cervical_mucus"`
+	HideSexChip        bool `json:"hide_sex_chip" form:"hide_sex_chip"`
 }
 
 type deleteAccountInput struct {

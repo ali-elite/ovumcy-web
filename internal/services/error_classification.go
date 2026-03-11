@@ -152,6 +152,9 @@ const (
 	DayUpsertErrorUnknown DayUpsertErrorKind = iota
 	DayUpsertErrorInvalidFlow
 	DayUpsertErrorInvalidMood
+	DayUpsertErrorInvalidSexActivity
+	DayUpsertErrorInvalidBBT
+	DayUpsertErrorInvalidCervicalMucus
 	DayUpsertErrorLoadFailed
 	DayUpsertErrorCreateFailed
 	DayUpsertErrorUpdateFailed
@@ -164,6 +167,12 @@ func ClassifyDayUpsertError(err error) DayUpsertErrorKind {
 		return DayUpsertErrorInvalidFlow
 	case errors.Is(err, ErrInvalidDayMood):
 		return DayUpsertErrorInvalidMood
+	case errors.Is(err, ErrInvalidDaySexActivity):
+		return DayUpsertErrorInvalidSexActivity
+	case errors.Is(err, ErrInvalidDayBBT):
+		return DayUpsertErrorInvalidBBT
+	case errors.Is(err, ErrInvalidDayCervicalMucus):
+		return DayUpsertErrorInvalidCervicalMucus
 	case errors.Is(err, ErrDayAutoFillLoadFailed),
 		errors.Is(err, ErrDayAutoFillCheckFailed),
 		errors.Is(err, ErrDayEntryLoadFailed):

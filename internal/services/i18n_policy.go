@@ -44,6 +44,9 @@ var authErrorTranslationKeys = map[string]string{
 	"failed to restore symptom":                       "settings.symptoms.error.restore_failed",
 	"period flow is required":                         "calendar.error.period_flow_required",
 	"invalid mood value":                              "dashboard.error.invalid_mood",
+	"invalid sex activity value":                      "dashboard.error.invalid_sex_activity",
+	"invalid bbt value":                               "dashboard.error.invalid_bbt",
+	"invalid cervical mucus value":                    "dashboard.error.invalid_cervical_mucus",
 	"date is required":                                "onboarding.error.date_required",
 	"invalid last period start":                       "onboarding.error.invalid_last_period_start",
 	"last period start must be within last 60 days":   "onboarding.error.last_period_range",
@@ -58,6 +61,7 @@ var authErrorTranslationKeys = map[string]string{
 var settingsStatusTranslationKeys = map[string]string{
 	"password_changed":     "settings.success.password_changed",
 	"cycle_updated":        "settings.success.cycle_updated",
+	"tracking_updated":     "settings.success.tracking_updated",
 	"profile_updated":      "settings.success.profile_updated",
 	"profile_name_cleared": "settings.success.profile_name_cleared",
 	"data_cleared":         "settings.success.data_cleared",

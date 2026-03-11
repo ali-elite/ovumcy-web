@@ -24,6 +24,12 @@ func mapDayUpsertError(err error) APIErrorSpec {
 		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid flow value")
 	case services.DayUpsertErrorInvalidMood:
 		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid mood value")
+	case services.DayUpsertErrorInvalidSexActivity:
+		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid sex activity value")
+	case services.DayUpsertErrorInvalidBBT:
+		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid bbt value")
+	case services.DayUpsertErrorInvalidCervicalMucus:
+		return globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid cervical mucus value")
 	case services.DayUpsertErrorLoadFailed:
 		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load day")
 	case services.DayUpsertErrorCreateFailed:

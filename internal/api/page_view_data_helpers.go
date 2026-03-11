@@ -40,6 +40,9 @@ func (handler *Handler) buildDashboardViewData(user *models.User, language strin
 		"HasExtraSymptoms":           viewData.HasExtraSymptoms,
 		"SelectedSymptomID":          viewData.SelectedSymptomID,
 		"ShowYesterdayJump":          viewData.ShowYesterdayJump,
+		"ShowSexChip":                viewData.ShowSexChip,
+		"ShowBBTField":               viewData.ShowBBTField,
+		"ShowCervicalMucus":          viewData.ShowCervicalMucus,
 		"IsOwner":                    viewData.IsOwner,
 	}
 	return data, nil
@@ -64,6 +67,9 @@ func (handler *Handler) buildDayEditorPartialData(user *models.User, language st
 		"HasExtraSymptoms":  viewData.HasExtraSymptoms,
 		"SelectedSymptomID": viewData.SelectedSymptomID,
 		"HasDayData":        viewData.HasDayData,
+		"ShowSexChip":       viewData.ShowSexChip,
+		"ShowBBTField":      viewData.ShowBBTField,
+		"ShowCervicalMucus": viewData.ShowCervicalMucus,
 		"EditMode":          editMode,
 		"IsOwner":           viewData.IsOwner,
 	}

@@ -20,11 +20,14 @@ var (
 )
 
 type DayEntryInput struct {
-	IsPeriod   bool
-	Flow       string
-	Mood       int
-	Notes      string
-	SymptomIDs []uint
+	IsPeriod      bool
+	Flow          string
+	Mood          int
+	SexActivity   string
+	BBT           float64
+	CervicalMucus string
+	Notes         string
+	SymptomIDs    []uint
 }
 
 type DayLogRepository interface {
@@ -87,12 +90,19 @@ func (service *DayService) FetchLogByDate(userID uint, day time.Time, location *
 	}
 	if !found {
 		return models.DailyLog{
-			UserID:     userID,
-			Date:       dayStart,
-			Flow:       models.FlowNone,
-			Mood:       0,
-			SymptomIDs: []uint{},
+			UserID:        userID,
+			Date:          dayStart,
+			Flow:          models.FlowNone,
+			Mood:          0,
+			SexActivity:   models.SexActivityNone,
+			CervicalMucus: models.CervicalMucusNone,
+			SymptomIDs:    []uint{},
 		}, nil
+	}
+	entry.SexActivity = NormalizeDaySexActivity(entry.SexActivity)
+	entry.CervicalMucus = NormalizeDayCervicalMucus(entry.CervicalMucus)
+	if !IsValidDayBBT(entry.BBT) {
+		entry.BBT = 0
 	}
 	return entry, nil
 }
@@ -124,6 +134,9 @@ func (service *DayService) UpsertDayEntry(userID uint, dayStart time.Time, paylo
 		entry.IsPeriod = payload.IsPeriod
 		entry.Flow = payload.Flow
 		entry.Mood = payload.Mood
+		entry.SexActivity = payload.SexActivity
+		entry.BBT = payload.BBT
+		entry.CervicalMucus = payload.CervicalMucus
 		entry.SymptomIDs = payload.SymptomIDs
 		entry.Notes = payload.Notes
 		if err := service.logs.Save(&entry); err != nil {
@@ -133,13 +146,16 @@ func (service *DayService) UpsertDayEntry(userID uint, dayStart time.Time, paylo
 	}
 
 	entry = models.DailyLog{
-		UserID:     userID,
-		Date:       dayStart,
-		IsPeriod:   payload.IsPeriod,
-		Flow:       payload.Flow,
-		Mood:       payload.Mood,
-		Notes:      payload.Notes,
-		SymptomIDs: payload.SymptomIDs,
+		UserID:        userID,
+		Date:          dayStart,
+		IsPeriod:      payload.IsPeriod,
+		Flow:          payload.Flow,
+		Mood:          payload.Mood,
+		SexActivity:   payload.SexActivity,
+		BBT:           payload.BBT,
+		CervicalMucus: payload.CervicalMucus,
+		Notes:         payload.Notes,
+		SymptomIDs:    payload.SymptomIDs,
 	}
 	if err := service.logs.Create(&entry); err != nil {
 		return models.DailyLog{}, false, ErrDayEntryCreateFailed
@@ -275,11 +291,13 @@ func (service *DayService) AutoFillFollowingPeriodDays(userID uint, startDay tim
 		}
 
 		newEntry := models.DailyLog{
-			UserID:     userID,
-			Date:       targetDay,
-			IsPeriod:   true,
-			Flow:       flow,
-			SymptomIDs: []uint{},
+			UserID:        userID,
+			Date:          targetDay,
+			IsPeriod:      true,
+			Flow:          flow,
+			SexActivity:   models.SexActivityNone,
+			CervicalMucus: models.CervicalMucusNone,
+			SymptomIDs:    []uint{},
 		}
 		if err := service.logs.Create(&newEntry); err != nil {
 			return err

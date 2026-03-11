@@ -47,6 +47,15 @@ func DayHasData(entry models.DailyLog) bool {
 	if entry.Mood >= MinDayMood && entry.Mood <= MaxDayMood {
 		return true
 	}
+	if NormalizeDaySexActivity(entry.SexActivity) != models.SexActivityNone {
+		return true
+	}
+	if IsValidDayBBT(entry.BBT) && entry.BBT > 0 {
+		return true
+	}
+	if NormalizeDayCervicalMucus(entry.CervicalMucus) != models.CervicalMucusNone {
+		return true
+	}
 	if len(entry.SymptomIDs) > 0 {
 		return true
 	}

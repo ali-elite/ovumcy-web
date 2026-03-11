@@ -41,6 +41,7 @@ func (stub *stubStatsDayReader) FetchAllLogsForUser(uint) ([]models.DailyLog, er
 
 type stubStatsSymptomReader struct {
 	frequencies []SymptomFrequency
+	symptoms    []models.SymptomType
 	err         error
 }
 
@@ -50,6 +51,15 @@ func (stub *stubStatsSymptomReader) CalculateFrequencies(uint, []models.DailyLog
 	}
 	result := make([]SymptomFrequency, len(stub.frequencies))
 	copy(result, stub.frequencies)
+	return result, nil
+}
+
+func (stub *stubStatsSymptomReader) FetchSymptoms(uint) ([]models.SymptomType, error) {
+	if stub.err != nil {
+		return nil, stub.err
+	}
+	result := make([]models.SymptomType, len(stub.symptoms))
+	copy(result, stub.symptoms)
 	return result, nil
 }
 

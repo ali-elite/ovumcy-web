@@ -79,6 +79,14 @@ func (service *SettingsService) SaveCycleSettings(userID uint, settings CycleSet
 	return service.users.UpdateByID(userID, updates)
 }
 
+func (service *SettingsService) SaveTrackingSettings(userID uint, settings TrackingSettingsUpdate) error {
+	return service.users.UpdateByID(userID, map[string]any{
+		"track_bbt":            settings.TrackBBT,
+		"track_cervical_mucus": settings.TrackCervicalMucus,
+		"hide_sex_chip":        settings.HideSexChip,
+	})
+}
+
 func (service *SettingsService) LoadSettings(userID uint) (models.User, error) {
 	return service.users.LoadSettingsByID(userID)
 }
