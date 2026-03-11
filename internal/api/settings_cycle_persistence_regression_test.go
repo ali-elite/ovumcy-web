@@ -19,6 +19,7 @@ func TestSettingsCycleUpdatePersistsAndRendersAfterReload(t *testing.T) {
 		"cycle_length":     15,
 		"period_length":    5,
 		"auto_period_fill": false,
+		"irregular_cycle":  false,
 	}).Error; err != nil {
 		t.Fatalf("set initial cycle values: %v", err)
 	}
@@ -29,6 +30,7 @@ func TestSettingsCycleUpdatePersistsAndRendersAfterReload(t *testing.T) {
 		"cycle_length":      {"28"},
 		"period_length":     {"6"},
 		"auto_period_fill":  {"true"},
+		"irregular_cycle":   {"true"},
 		"last_period_start": {"2026-02-10"},
 	}
 	updateBody := submitSettingsCycleUpdate(t, app, authCookie, form)
@@ -37,7 +39,7 @@ func TestSettingsCycleUpdatePersistsAndRendersAfterReload(t *testing.T) {
 	}
 
 	persisted := models.User{}
-	if err := database.Select("cycle_length", "period_length", "auto_period_fill", "last_period_start").First(&persisted, user.ID).Error; err != nil {
+	if err := database.Select("cycle_length", "period_length", "auto_period_fill", "irregular_cycle", "last_period_start").First(&persisted, user.ID).Error; err != nil {
 		t.Fatalf("load persisted user cycle values: %v", err)
 	}
 	if persisted.CycleLength != 28 {
@@ -48,6 +50,9 @@ func TestSettingsCycleUpdatePersistsAndRendersAfterReload(t *testing.T) {
 	}
 	if !persisted.AutoPeriodFill {
 		t.Fatalf("expected persisted auto_period_fill=true")
+	}
+	if !persisted.IrregularCycle {
+		t.Fatalf("expected persisted irregular_cycle=true")
 	}
 	if persisted.LastPeriodStart == nil || persisted.LastPeriodStart.Format("2006-01-02") != "2026-02-10" {
 		t.Fatalf("expected persisted last_period_start=2026-02-10, got %v", persisted.LastPeriodStart)
@@ -65,6 +70,10 @@ func TestSettingsCycleUpdatePersistsAndRendersAfterReload(t *testing.T) {
 	lastPeriodInputPattern := regexp.MustCompile(`(?s)name="last_period_start".*?value="2026-02-10"`)
 	if !lastPeriodInputPattern.MatchString(rendered) {
 		t.Fatalf("expected last_period_start date input to render persisted value")
+	}
+	irregularTogglePattern := regexp.MustCompile(`(?s)name="irregular_cycle".*?checked`)
+	if !irregularTogglePattern.MatchString(rendered) {
+		t.Fatalf("expected irregular_cycle toggle to render checked state")
 	}
 }
 

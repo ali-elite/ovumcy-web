@@ -52,6 +52,10 @@ async function saveToday(page: Page): Promise<void> {
   await expect(page.locator('#save-status .status-ok')).toBeVisible();
 }
 
+function todaySaveForm(page: Page) {
+  return page.locator('form[data-save-feedback][hx-post^="/api/days/"]');
+}
+
 async function openTodayNotes(page: Page): Promise<void> {
   const disclosure = page.locator('details.note-disclosure');
   const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
@@ -75,7 +79,7 @@ test.describe('Dashboard: today editor', () => {
   test('uses request-local timezone date in today save endpoint', async ({ page }) => {
     await registerOwnerOnDashboard(page, 'dashboard-timezone');
 
-    const todayForm = page.locator('form[hx-post^="/api/days/"]');
+    const todayForm = todaySaveForm(page);
     await expect(todayForm).toBeVisible();
 
     const action = await todayForm.getAttribute('hx-post');
@@ -207,7 +211,7 @@ test.describe('Dashboard: today editor', () => {
   test('saved dashboard entry is reflected in calendar day panel', async ({ page }) => {
     await registerOwnerOnDashboard(page, 'dashboard-calendar-sync');
 
-    const todayForm = page.locator('form[hx-post^="/api/days/"]').first();
+    const todayForm = todaySaveForm(page).first();
     const todayAction = await todayForm.getAttribute('hx-post');
     expect(todayAction).toMatch(/^\/api\/days\/\d{4}-\d{2}-\d{2}$/);
 
@@ -232,5 +236,23 @@ test.describe('Dashboard: today editor', () => {
     await expect(dayEditorForm.locator('input[name="is_period"]')).toBeChecked();
     await expect(dayEditorForm.locator('input[name="flow"][value="medium"]')).toBeChecked();
     await expect(dayEditorForm.locator('#calendar-notes')).toHaveValue(noteText);
+  });
+
+  test('manual cycle start on dashboard marks today as period and survives reload', async ({ page }) => {
+    await registerOwnerOnDashboard(page, 'dashboard-manual-cycle-start');
+
+    const manualStartButton = page.locator('form[hx-post*="/cycle-start?source=dashboard"] button');
+    await expect(manualStartButton).toBeVisible();
+    await Promise.all([
+      page.waitForLoadState('domcontentloaded'),
+      manualStartButton.click(),
+    ]);
+
+    const periodToggle = page.locator('input[name="is_period"]');
+    await expect(periodToggle).toBeChecked();
+
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(periodToggle).toBeChecked();
   });
 });

@@ -135,14 +135,14 @@ func TestResolveCycleAndPeriodDefaults(t *testing.T) {
 func TestParseAndNormalizeStep2Input(t *testing.T) {
 	service := NewOnboardingService(nil)
 
-	if _, _, _, err := service.ParseAndNormalizeStep2Input("invalid", "5", true); !errors.Is(err, ErrOnboardingStep2InputInvalid) {
+	if _, _, _, _, err := service.ParseAndNormalizeStep2Input("invalid", "5", true, false); !errors.Is(err, ErrOnboardingStep2InputInvalid) {
 		t.Fatalf("expected ErrOnboardingStep2InputInvalid for invalid cycle, got %v", err)
 	}
-	if _, _, _, err := service.ParseAndNormalizeStep2Input("28", "invalid", true); !errors.Is(err, ErrOnboardingStep2InputInvalid) {
+	if _, _, _, _, err := service.ParseAndNormalizeStep2Input("28", "invalid", true, false); !errors.Is(err, ErrOnboardingStep2InputInvalid) {
 		t.Fatalf("expected ErrOnboardingStep2InputInvalid for invalid period, got %v", err)
 	}
 
-	cycleLength, periodLength, autoPeriodFill, err := service.ParseAndNormalizeStep2Input("14", "20", true)
+	cycleLength, periodLength, autoPeriodFill, irregularCycle, err := service.ParseAndNormalizeStep2Input("14", "20", true, true)
 	if err != nil {
 		t.Fatalf("expected valid step2 input after normalize, got %v", err)
 	}
@@ -151,6 +151,9 @@ func TestParseAndNormalizeStep2Input(t *testing.T) {
 	}
 	if !autoPeriodFill {
 		t.Fatalf("expected autoPeriodFill=true")
+	}
+	if !irregularCycle {
+		t.Fatalf("expected irregularCycle=true")
 	}
 }
 

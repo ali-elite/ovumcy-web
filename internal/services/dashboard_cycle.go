@@ -7,26 +7,30 @@ import (
 )
 
 type DashboardCycleContext struct {
-	CycleDayReference          int
-	CycleDayWarning            bool
-	CycleDataStale             bool
-	DisplayNextPeriodStart     time.Time
-	DisplayOvulationDate       time.Time
-	DisplayOvulationExact      bool
-	DisplayOvulationImpossible bool
-	NextPeriodInPast           bool
-	OvulationInPast            bool
+	CycleDayReference           int
+	CycleDayWarning             bool
+	CycleDataStale              bool
+	DisplayNextPeriodStart      time.Time
+	DisplayNextPeriodRangeStart time.Time
+	DisplayNextPeriodRangeEnd   time.Time
+	DisplayNextPeriodUseRange   bool
+	DisplayNextPeriodDelayed    bool
+	DisplayOvulationDate        time.Time
+	DisplayOvulationExact       bool
+	DisplayOvulationImpossible  bool
+	NextPeriodInPast            bool
+	OvulationInPast             bool
 }
 
 func DashboardCycleReferenceLength(user *models.User, stats CycleStats) int {
-	if user != nil && IsValidOnboardingCycleLength(user.CycleLength) {
-		return user.CycleLength
+	if stats.AverageCycleLength > 0 {
+		return int(stats.AverageCycleLength + 0.5)
 	}
 	if stats.MedianCycleLength > 0 {
 		return stats.MedianCycleLength
 	}
-	if stats.AverageCycleLength > 0 {
-		return int(stats.AverageCycleLength + 0.5)
+	if user != nil && IsValidOnboardingCycleLength(user.CycleLength) {
+		return user.CycleLength
 	}
 	return models.DefaultCycleLength
 }
@@ -51,6 +55,40 @@ func DashboardCycleStaleAnchor(user *models.User, stats CycleStats, location *ti
 		return stats.LastPeriodStart
 	}
 	return DateAtLocation(*user.LastPeriodStart, location)
+}
+
+func DashboardPredictionRange(user *models.User, stats CycleStats, location *time.Location) (time.Time, time.Time, bool) {
+	if stats.LastPeriodStart.IsZero() {
+		return time.Time{}, time.Time{}, false
+	}
+
+	minCycleLength := stats.MinCycleLength
+	maxCycleLength := stats.MaxCycleLength
+	if minCycleLength <= 0 || maxCycleLength <= 0 || maxCycleLength < minCycleLength {
+		referenceLength := DashboardCycleReferenceLength(user, stats)
+		if referenceLength <= 0 {
+			return time.Time{}, time.Time{}, false
+		}
+		minCycleLength = referenceLength - irregularCycleFallbackSpan
+		if minCycleLength < 15 {
+			minCycleLength = 15
+		}
+		maxCycleLength = referenceLength + irregularCycleFallbackSpan
+		if maxCycleLength < minCycleLength {
+			maxCycleLength = minCycleLength
+		}
+	}
+
+	return DateAtLocation(stats.LastPeriodStart.AddDate(0, 0, minCycleLength), location),
+		DateAtLocation(stats.LastPeriodStart.AddDate(0, 0, maxCycleLength), location),
+		true
+}
+
+func DashboardShouldHideExactPrediction(currentCycleDay int, referenceLength int) bool {
+	if currentCycleDay <= 0 || referenceLength <= 0 {
+		return false
+	}
+	return currentCycleDay > referenceLength+7
 }
 
 func DashboardUpcomingPredictions(stats CycleStats, user *models.User, today time.Time, cycleLength int) (time.Time, time.Time, bool, bool) {
@@ -102,16 +140,34 @@ func BuildDashboardCycleContext(user *models.User, stats CycleStats, today time.
 		cycleDayReference,
 	)
 
+	displayNextPeriodRangeStart := time.Time{}
+	displayNextPeriodRangeEnd := time.Time{}
+	displayNextPeriodUseRange := false
+	displayNextPeriodDelayed := false
+
+	if user != nil && user.IrregularCycle {
+		displayNextPeriodRangeStart, displayNextPeriodRangeEnd, displayNextPeriodUseRange = DashboardPredictionRange(user, stats, location)
+	}
+
+	if !displayNextPeriodUseRange && DashboardShouldHideExactPrediction(stats.CurrentCycleDay, cycleDayReference) {
+		displayNextPeriodStart = time.Time{}
+		displayNextPeriodDelayed = true
+	}
+
 	return DashboardCycleContext{
-		CycleDayReference:          cycleDayReference,
-		CycleDayWarning:            cycleDayWarning,
-		CycleDataStale:             cycleDataStale,
-		DisplayNextPeriodStart:     displayNextPeriodStart,
-		DisplayOvulationDate:       displayOvulationDate,
-		DisplayOvulationExact:      displayOvulationExact,
-		DisplayOvulationImpossible: displayOvulationImpossible,
-		NextPeriodInPast:           !displayNextPeriodStart.IsZero() && displayNextPeriodStart.Before(today),
-		OvulationInPast:            !displayOvulationImpossible && !displayOvulationDate.IsZero() && displayOvulationDate.Before(today),
+		CycleDayReference:           cycleDayReference,
+		CycleDayWarning:             cycleDayWarning,
+		CycleDataStale:              cycleDataStale,
+		DisplayNextPeriodStart:      displayNextPeriodStart,
+		DisplayNextPeriodRangeStart: displayNextPeriodRangeStart,
+		DisplayNextPeriodRangeEnd:   displayNextPeriodRangeEnd,
+		DisplayNextPeriodUseRange:   displayNextPeriodUseRange,
+		DisplayNextPeriodDelayed:    displayNextPeriodDelayed,
+		DisplayOvulationDate:        displayOvulationDate,
+		DisplayOvulationExact:       displayOvulationExact,
+		DisplayOvulationImpossible:  displayOvulationImpossible,
+		NextPeriodInPast:            !displayNextPeriodUseRange && !displayNextPeriodStart.IsZero() && displayNextPeriodStart.Before(today),
+		OvulationInPast:             !displayOvulationImpossible && !displayOvulationDate.IsZero() && displayOvulationDate.Before(today),
 	}
 }
 

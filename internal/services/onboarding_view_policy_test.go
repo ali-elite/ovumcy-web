@@ -19,6 +19,7 @@ func TestBuildOnboardingViewStateUsesUserValues(t *testing.T) {
 		CycleLength:     31,
 		PeriodLength:    6,
 		AutoPeriodFill:  true,
+		IrregularCycle:  true,
 		LastPeriodStart: &rawLastPeriod,
 	}
 
@@ -48,6 +49,9 @@ func TestBuildOnboardingViewStateUsesUserValues(t *testing.T) {
 	}
 	if !state.AutoPeriodFill {
 		t.Fatal("expected auto period fill true")
+	}
+	if !state.IrregularCycle {
+		t.Fatal("expected irregular cycle true")
 	}
 }
 
@@ -80,5 +84,8 @@ func TestBuildOnboardingViewStateUsesDefaultsForNilUser(t *testing.T) {
 	}
 	if state.AutoPeriodFill {
 		t.Fatal("expected auto period fill false by default")
+	}
+	if state.IrregularCycle {
+		t.Fatal("expected irregular cycle false by default")
 	}
 }

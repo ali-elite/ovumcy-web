@@ -63,7 +63,8 @@
       return {
         labels: labels,
         values: values,
-        baseline: baseline
+        baseline: baseline,
+        kind: parsed.kind === "bar" ? "bar" : "line"
       };
     } catch {
       return null;
@@ -105,7 +106,7 @@
     };
   }
 
-  function createDomain(values, baseline) {
+  function createDomain(values, baseline, kind) {
     var rangeValues = values.slice();
     if (isFiniteNumber(baseline)) {
       rangeValues.push(baseline);
@@ -115,8 +116,12 @@
       return null;
     }
 
-    var minValue = Math.min.apply(null, rangeValues);
+    var minValue = kind === "bar" ? 0 : Math.min.apply(null, rangeValues);
     var maxValue = Math.max.apply(null, rangeValues);
+
+    if (kind === "bar" && maxValue <= 0) {
+      maxValue = 1;
+    }
 
     if (minValue === maxValue) {
       minValue -= 1;
@@ -205,6 +210,19 @@
     }
   }
 
+  function drawBars(context, values, getBarBox, fillColor) {
+    context.fillStyle = fillColor;
+
+    for (var index = 0; index < values.length; index++) {
+      var box = getBarBox(index, values[index]);
+      if (!box) {
+        continue;
+      }
+
+      context.fillRect(box.x, box.y, box.width, box.height);
+    }
+  }
+
   function drawXLabels(context, labels, xForIndex, canvasHeight, padding, color) {
     context.fillStyle = color;
     context.font = "12px Quicksand, Nunito, sans-serif";
@@ -273,7 +291,7 @@
     var padding = { top: 26, right: 22, bottom: 40, left: 46 };
     var innerWidth = size.width - padding.left - padding.right;
     var innerHeight = size.height - padding.top - padding.bottom;
-    var domain = createDomain(chartData.values, chartData.baseline);
+    var domain = createDomain(chartData.values, chartData.baseline, chartData.kind);
 
     if (!domain) {
       renderMessage(container, emptyText);
@@ -284,12 +302,31 @@
       if (chartData.values.length <= 1) {
         return padding.left + innerWidth / 2;
       }
+      if (chartData.kind === "bar") {
+        return padding.left + ((index + 0.5) * innerWidth) / chartData.values.length;
+      }
       return padding.left + (index * innerWidth) / (chartData.values.length - 1);
     };
 
     var yForValue = function (value) {
       var ratio = (value - domain.min) / (domain.max - domain.min);
       return padding.top + innerHeight - ratio * innerHeight;
+    };
+
+    var barBaseY = yForValue(Math.max(domain.min, 0));
+    var barSlotWidth = chartData.values.length > 0 ? innerWidth / chartData.values.length : innerWidth;
+    var barWidth = Math.min(36, Math.max(16, barSlotWidth * 0.62));
+    var getBarBox = function (index, value) {
+      var centerX = xForIndex(index);
+      var topY = yForValue(value);
+      var height = Math.max(4, barBaseY - topY);
+
+      return {
+        x: centerX - barWidth / 2,
+        y: barBaseY - height,
+        width: barWidth,
+        height: height
+      };
     };
 
     var colors = {
@@ -307,8 +344,12 @@
       drawBaseline(context, padding, innerWidth, yForValue, chartData.baseline, baselineLabel, daySuffix, colors.baseline);
     }
 
-    drawValueLine(context, chartData.values, xForIndex, yForValue, colors.line);
-    drawValuePoints(context, chartData.values, xForIndex, yForValue, colors.dot);
+    if (chartData.kind === "bar") {
+      drawBars(context, chartData.values, getBarBox, colors.dot);
+    } else {
+      drawValueLine(context, chartData.values, xForIndex, yForValue, colors.line);
+      drawValuePoints(context, chartData.values, xForIndex, yForValue, colors.dot);
+    }
     drawXLabels(context, chartData.labels, xForIndex, size.height, padding, colors.label);
     drawYLabels(context, domain, padding, innerHeight, daySuffix, colors.label);
   }

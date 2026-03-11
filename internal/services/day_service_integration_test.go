@@ -263,3 +263,56 @@ func TestDayServiceRefreshUserLastPeriodStart(t *testing.T) {
 		t.Fatalf("expected last_period_start to be cleared, got %v", updated.LastPeriodStart)
 	}
 }
+
+func TestDayServiceMarkCycleStartManuallyPreservesEntryAndUpdatesAnchor(t *testing.T) {
+	service, database := newDayServiceIntegration(t)
+	user := createDayServiceTestUser(t, database, "manual-cycle-start-service@example.com")
+
+	targetDay := time.Date(2026, time.February, 18, 0, 0, 0, 0, time.UTC)
+	entry := models.DailyLog{
+		UserID:        user.ID,
+		Date:          targetDay,
+		IsPeriod:      false,
+		Flow:          models.FlowHeavy,
+		Mood:          4,
+		SexActivity:   models.SexActivityProtected,
+		CervicalMucus: models.CervicalMucusCreamy,
+		Notes:         "keep this note",
+		SymptomIDs:    []uint{11, 22},
+	}
+	if err := database.Create(&entry).Error; err != nil {
+		t.Fatalf("create log: %v", err)
+	}
+
+	if err := service.MarkCycleStartManually(user.ID, targetDay, time.UTC); err != nil {
+		t.Fatalf("MarkCycleStartManually returned error: %v", err)
+	}
+
+	updatedEntry := models.DailyLog{}
+	if err := database.Where("user_id = ? AND date = ?", user.ID, targetDay).First(&updatedEntry).Error; err != nil {
+		t.Fatalf("load updated log: %v", err)
+	}
+	if !updatedEntry.IsPeriod {
+		t.Fatalf("expected selected day to become a period day")
+	}
+	if updatedEntry.Flow != models.FlowHeavy {
+		t.Fatalf("expected flow to be preserved, got %q", updatedEntry.Flow)
+	}
+	if updatedEntry.Notes != "keep this note" {
+		t.Fatalf("expected notes to be preserved, got %q", updatedEntry.Notes)
+	}
+	if len(updatedEntry.SymptomIDs) != 2 || updatedEntry.SymptomIDs[0] != 11 || updatedEntry.SymptomIDs[1] != 22 {
+		t.Fatalf("expected symptom ids to be preserved, got %#v", updatedEntry.SymptomIDs)
+	}
+
+	updatedUser := models.User{}
+	if err := database.First(&updatedUser, user.ID).Error; err != nil {
+		t.Fatalf("load updated user: %v", err)
+	}
+	if updatedUser.LastPeriodStart == nil {
+		t.Fatalf("expected last_period_start to be updated")
+	}
+	if got := updatedUser.LastPeriodStart.Format("2006-01-02"); got != "2026-02-18" {
+		t.Fatalf("expected last_period_start 2026-02-18, got %s", got)
+	}
+}

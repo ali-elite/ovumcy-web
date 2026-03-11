@@ -1,0 +1,116 @@
+package api
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/terraincognita07/ovumcy/internal/services"
+)
+
+func TestMarkCycleStartHTMXWithCSRFRefreshesAndPersists(t *testing.T) {
+	app, database := newOnboardingTestAppWithCSRF(t)
+	user := createOnboardingTestUser(t, database, "manual-cycle-start-ui@example.com", "StrongPass1", true)
+	authCookie := loginAndExtractAuthCookieWithCSRF(t, app, user.Email, "StrongPass1")
+	csrfCookie, csrfToken := loadManualCycleStartCSRFContext(t, app, authCookie)
+
+	targetDay := "2026-02-19"
+	if err := database.Create(&models.DailyLog{
+		UserID:   user.ID,
+		Date:     mustParseManualCycleStartDay(t, targetDay),
+		IsPeriod: false,
+		Flow:     models.FlowMedium,
+		Notes:    "keep me",
+	}).Error; err != nil {
+		t.Fatalf("create log: %v", err)
+	}
+
+	form := url.Values{"csrf_token": {csrfToken}}
+	request := httptest.NewRequest(http.MethodPost, "/api/days/"+targetDay+"/cycle-start?source=calendar", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("HX-Request", "true")
+	request.Header.Set("Cookie", joinCookieHeader(authCookie, cookiePair(csrfCookie)))
+
+	response := mustAppResponse(t, app, request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", response.StatusCode)
+	}
+	if got := response.Header.Get("HX-Trigger"); got != "calendar-day-updated" {
+		t.Fatalf("expected HX-Trigger calendar-day-updated, got %q", got)
+	}
+	if got := response.Header.Get("HX-Refresh"); got != "true" {
+		t.Fatalf("expected HX-Refresh=true, got %q", got)
+	}
+
+	day := mustParseManualCycleStartDay(t, targetDay)
+	entry, err := fetchLogByDateForTest(database, user.ID, day, time.UTC)
+	if err != nil {
+		t.Fatalf("load updated log: %v", err)
+	}
+	if !entry.IsPeriod {
+		t.Fatalf("expected selected day to persist as period day")
+	}
+	if entry.Notes != "keep me" {
+		t.Fatalf("expected existing notes to be preserved, got %q", entry.Notes)
+	}
+
+	persisted := models.User{}
+	if err := database.First(&persisted, user.ID).Error; err != nil {
+		t.Fatalf("load updated user: %v", err)
+	}
+	if persisted.LastPeriodStart == nil || persisted.LastPeriodStart.Format("2006-01-02") != targetDay {
+		t.Fatalf("expected last_period_start=%s, got %v", targetDay, persisted.LastPeriodStart)
+	}
+}
+
+func TestMarkCycleStartMissingCSRFRejectedByMiddleware(t *testing.T) {
+	app, database := newOnboardingTestAppWithCSRF(t)
+	user := createOnboardingTestUser(t, database, "manual-cycle-start-csrf@example.com", "StrongPass1", true)
+	authCookie := loginAndExtractAuthCookieWithCSRF(t, app, user.Email, "StrongPass1")
+
+	request := httptest.NewRequest(http.MethodPost, "/api/days/2026-02-19/cycle-start", strings.NewReader(url.Values{}.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Cookie", authCookie)
+
+	response := mustAppResponse(t, app, request)
+	if response.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected csrf middleware status 403, got %d", response.StatusCode)
+	}
+}
+
+func loadManualCycleStartCSRFContext(t *testing.T, app *fiber.App, authCookie string) (*http.Cookie, string) {
+	t.Helper()
+
+	request := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+	request.Header.Set("Accept-Language", "en")
+	request.Header.Set("Cookie", authCookie)
+
+	response := mustAppResponse(t, app, request)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected dashboard status 200 while preparing csrf context, got %d", response.StatusCode)
+	}
+
+	body := mustReadBodyString(t, response.Body)
+	csrfToken := extractCSRFTokenFromHTML(t, body)
+	csrfCookie := responseCookie(response.Cookies(), "ovumcy_csrf")
+	if csrfCookie == nil || strings.TrimSpace(csrfCookie.Value) == "" {
+		t.Fatalf("expected csrf cookie in dashboard response")
+	}
+
+	return csrfCookie, csrfToken
+}
+
+func mustParseManualCycleStartDay(t *testing.T, raw string) time.Time {
+	t.Helper()
+
+	day, err := services.ParseDayDate(raw, time.UTC)
+	if err != nil {
+		t.Fatalf("parse day %q: %v", raw, err)
+	}
+	return day
+}

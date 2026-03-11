@@ -189,6 +189,41 @@ func TestBuildTrendAndFlags(t *testing.T) {
 	}
 }
 
+func TestBuildFlagsUnlocksInsightsAfterOneCompletedCycle(t *testing.T) {
+	logs := []models.DailyLog{
+		{Date: mustParseStatsServiceDay(t, "2026-01-01"), IsPeriod: true},
+		{Date: mustParseStatsServiceDay(t, "2026-01-29"), IsPeriod: true},
+	}
+	service := NewStatsService(&stubStatsDayReader{}, &stubStatsSymptomReader{})
+	user := &models.User{Role: models.RoleOwner, CycleLength: 28}
+	now := mustParseStatsServiceDay(t, "2026-02-10")
+
+	stats := CycleStats{
+		LastPeriodStart:    mustParseStatsServiceDay(t, "2026-01-29"),
+		AverageCycleLength: 28,
+	}
+	flags := service.BuildFlags(user, logs, stats, now, time.UTC, 1)
+
+	if !flags.HasObservedCycleData {
+		t.Fatalf("expected HasObservedCycleData=true")
+	}
+	if !flags.HasTrendData {
+		t.Fatalf("expected HasTrendData=true")
+	}
+	if !flags.HasInsights {
+		t.Fatalf("expected HasInsights=true after one completed cycle")
+	}
+	if flags.CompletedCycleCount != 1 {
+		t.Fatalf("expected CompletedCycleCount=1, got %d", flags.CompletedCycleCount)
+	}
+	if flags.InsightProgress != 100 {
+		t.Fatalf("expected InsightProgress=100, got %d", flags.InsightProgress)
+	}
+	if flags.HasReliableTrend {
+		t.Fatalf("expected HasReliableTrend=false for one trend point")
+	}
+}
+
 func TestBuildSymptomFrequenciesForUserPartnerSkipsDataAccess(t *testing.T) {
 	dayReader := &stubStatsDayReader{}
 	service := NewStatsService(dayReader, &stubStatsSymptomReader{})

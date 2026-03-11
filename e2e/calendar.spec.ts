@@ -190,4 +190,21 @@ test.describe('Calendar page', () => {
     expect(currentURL.searchParams.get('day')).toBe(pastISO);
     await expect(page.locator(`#day-editor button[hx-get="/calendar/day/${pastISO}?mode=edit"]`)).toBeVisible();
   });
+
+  test('manual cycle start button in calendar creates a period entry for that day', async ({ page }) => {
+    await registerOwnerOnCalendar(page, 'calendar-manual-cycle-start');
+
+    const todayISO = await todayISOFromCalendar(page);
+    const pastISO = shiftISODate(todayISO, -3);
+    const pastMonth = pastISO.slice(0, 7);
+
+    await page.goto(`/calendar?month=${pastMonth}&day=${pastISO}`);
+    await expect(page).toHaveURL(new RegExp(`/calendar\\?month=${pastMonth}&day=${pastISO}`));
+
+    const manualStartButton = page.locator(`#day-editor form[hx-post="/api/days/${pastISO}/cycle-start?source=calendar"] button`);
+    await expect(manualStartButton).toBeVisible();
+    await manualStartButton.click();
+
+    await expect(page.locator(`#day-editor button[hx-get="/calendar/day/${pastISO}?mode=edit"]`)).toBeVisible();
+  });
 });

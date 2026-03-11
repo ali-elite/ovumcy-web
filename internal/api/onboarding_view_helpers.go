@@ -28,5 +28,6 @@ func (handler *Handler) buildOnboardingViewData(c *fiber.Ctx, user *models.User,
 		"CycleLength":     state.CycleLength,
 		"PeriodLength":    state.PeriodLength,
 		"AutoPeriodFill":  state.AutoPeriodFill,
+		"IrregularCycle":  state.IrregularCycle,
 	}
 }

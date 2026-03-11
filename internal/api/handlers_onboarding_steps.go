@@ -50,7 +50,7 @@ func (handler *Handler) OnboardingStep2(c *fiber.Ctx) error {
 	if validationError != "" {
 		return handler.respondMappedError(c, onboardingValidationErrorSpec(validationError))
 	}
-	_, _, err := handler.onboardingSvc.SaveStep2(user.ID, values.CycleLength, values.PeriodLength, values.AutoPeriodFill)
+	_, _, err := handler.onboardingSvc.SaveStep2(user.ID, values.CycleLength, values.PeriodLength, values.AutoPeriodFill, values.IrregularCycle)
 	if err != nil {
 		return handler.respondMappedError(c, onboardingSaveStepErrorSpec())
 	}

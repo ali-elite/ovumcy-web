@@ -28,6 +28,7 @@ type CycleSettingsUpdate struct {
 	CycleLength        int
 	PeriodLength       int
 	AutoPeriodFill     bool
+	IrregularCycle     bool
 	LastPeriodStartSet bool
 	LastPeriodStart    *time.Time
 }
@@ -68,6 +69,7 @@ func (service *SettingsService) SaveCycleSettings(userID uint, settings CycleSet
 		"cycle_length":     settings.CycleLength,
 		"period_length":    settings.PeriodLength,
 		"auto_period_fill": settings.AutoPeriodFill,
+		"irregular_cycle":  settings.IrregularCycle,
 	}
 	if settings.LastPeriodStartSet {
 		if settings.LastPeriodStart == nil {

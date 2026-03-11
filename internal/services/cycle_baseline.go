@@ -16,12 +16,12 @@ func ApplyUserCycleBaseline(user *models.User, logs []models.DailyLog, stats Cyc
 
 	latestLoggedPeriodStart := findLatestLoggedPeriodStart(logs, location)
 	cycleLength, periodLength := resolveUserCycleLengths(user)
-	reliableCycleData := len(CycleLengths(logs)) >= 2
-	applyObservedBaseline(&stats, user, latestLoggedPeriodStart, cycleLength, periodLength, reliableCycleData, location)
-	applyProjectedBaseline(&stats, cycleLength, periodLength, reliableCycleData, location)
-
+	hasObservedCycleLengths := len(CycleLengths(logs)) >= 1
 	today := DateAtLocation(now.In(location), location)
-	stats.CurrentCycleDay = baselineCurrentCycleDay(stats.LastPeriodStart, cycleLength, today)
+	applyObservedBaseline(&stats, user, latestLoggedPeriodStart, cycleLength, periodLength, hasObservedCycleLengths, today, location)
+	applyProjectedBaseline(&stats, cycleLength, periodLength, location)
+
+	stats.CurrentCycleDay = baselineCurrentCycleDay(stats.LastPeriodStart, today)
 	stats.CurrentPhase = DetectCurrentPhase(stats, logs, today, location)
 	return stats
 }
@@ -50,8 +50,8 @@ func resolveUserCycleLengths(user *models.User) (int, int) {
 	return cycleLength, periodLength
 }
 
-func applyObservedBaseline(stats *CycleStats, user *models.User, latestLoggedPeriodStart time.Time, cycleLength int, periodLength int, reliableCycleData bool, location *time.Location) {
-	if !reliableCycleData {
+func applyObservedBaseline(stats *CycleStats, user *models.User, latestLoggedPeriodStart time.Time, cycleLength int, periodLength int, hasObservedCycleLengths bool, today time.Time, location *time.Location) {
+	if !hasObservedCycleLengths {
 		if cycleLength > 0 {
 			stats.AverageCycleLength = float64(cycleLength)
 			stats.MedianCycleLength = cycleLength
@@ -59,32 +59,47 @@ func applyObservedBaseline(stats *CycleStats, user *models.User, latestLoggedPer
 		if periodLength > 0 {
 			stats.AveragePeriodLength = float64(periodLength)
 		}
-		stats.LastPeriodStart = baselineLastPeriodStart(user, latestLoggedPeriodStart, location)
+		stats.LastPeriodStart = baselineLastPeriodStart(user, latestLoggedPeriodStart, today, location)
 		return
 	}
 
-	if !latestLoggedPeriodStart.IsZero() {
-		stats.LastPeriodStart = latestLoggedPeriodStart
-	}
+	stats.LastPeriodStart = baselineLastPeriodStart(user, latestLoggedPeriodStart, today, location)
 }
 
-func baselineLastPeriodStart(user *models.User, latestLoggedPeriodStart time.Time, location *time.Location) time.Time {
+func baselineLastPeriodStart(user *models.User, latestLoggedPeriodStart time.Time, today time.Time, location *time.Location) time.Time {
+	userLastPeriodStart := time.Time{}
+	if user != nil && user.LastPeriodStart != nil {
+		userLastPeriodStart = DateAtLocation(*user.LastPeriodStart, location)
+	}
+	if !userLastPeriodStart.IsZero() && !today.IsZero() && userLastPeriodStart.After(today) {
+		userLastPeriodStart = time.Time{}
+	}
 	switch {
+	case !userLastPeriodStart.IsZero() && (latestLoggedPeriodStart.IsZero() || userLastPeriodStart.After(latestLoggedPeriodStart)):
+		return userLastPeriodStart
 	case !latestLoggedPeriodStart.IsZero():
 		return latestLoggedPeriodStart
-	case user.LastPeriodStart != nil:
-		return DateAtLocation(*user.LastPeriodStart, location)
+	case !userLastPeriodStart.IsZero():
+		return userLastPeriodStart
 	default:
 		return time.Time{}
 	}
 }
 
-func applyProjectedBaseline(stats *CycleStats, cycleLength int, periodLength int, reliableCycleData bool, location *time.Location) {
-	if stats.LastPeriodStart.IsZero() || cycleLength <= 0 || (reliableCycleData && !stats.NextPeriodStart.IsZero()) {
+func applyProjectedBaseline(stats *CycleStats, cycleLength int, periodLength int, location *time.Location) {
+	if stats.LastPeriodStart.IsZero() {
 		return
 	}
 
-	stats.NextPeriodStart = DateAtLocation(stats.LastPeriodStart.AddDate(0, 0, cycleLength), location)
+	predictionCycleLength := predictedCycleLength(stats.MedianCycleLength, stats.AverageCycleLength)
+	if predictionCycleLength <= 0 {
+		predictionCycleLength = cycleLength
+	}
+	if predictionCycleLength <= 0 {
+		return
+	}
+
+	stats.NextPeriodStart = DateAtLocation(stats.LastPeriodStart.AddDate(0, 0, predictionCycleLength), location)
 	projectedPeriodLength := int(stats.AveragePeriodLength + 0.5)
 	if projectedPeriodLength <= 0 {
 		projectedPeriodLength = periodLength
@@ -92,7 +107,7 @@ func applyProjectedBaseline(stats *CycleStats, cycleLength int, periodLength int
 
 	ovulationDate, fertilityWindowStart, fertilityWindowEnd, ovulationExact, ovulationCalculable := PredictCycleWindow(
 		stats.LastPeriodStart,
-		cycleLength,
+		predictionCycleLength,
 		projectedPeriodLength,
 	)
 	if !ovulationCalculable {
@@ -114,14 +129,11 @@ func locationDateOrZero(day time.Time, location *time.Location) time.Time {
 	return DateAtLocation(day, location)
 }
 
-func baselineCurrentCycleDay(lastPeriodStart time.Time, cycleLength int, today time.Time) int {
-	if _, projectedCycleDay, ok := ProjectCycleStart(lastPeriodStart, cycleLength, today); ok {
-		return projectedCycleDay
+func baselineCurrentCycleDay(lastPeriodStart time.Time, today time.Time) int {
+	if lastPeriodStart.IsZero() || today.Before(lastPeriodStart) {
+		return 0
 	}
-	if !lastPeriodStart.IsZero() && !today.Before(lastPeriodStart) {
-		return int(today.Sub(lastPeriodStart).Hours()/24) + 1
-	}
-	return 0
+	return int(today.Sub(lastPeriodStart).Hours()/24) + 1
 }
 
 func DetectCurrentPhase(stats CycleStats, logs []models.DailyLog, today time.Time, location *time.Location) string {

@@ -18,6 +18,9 @@
     {{if lt .TrendPointCount 3}}
     <div class="journal-panel text-sm journal-muted">{{t .Messages "stats.data_notice"}}</div>
     {{end}}
+    {{if .ShowIrregularityNotice}}
+    <div class="journal-panel text-sm journal-muted">{{printf (t .Messages "stats.irregular_notice") .Stats.MinCycleLength .Stats.MaxCycleLength}}</div>
+    {{end}}
 
     <div class="grid gap-4 lg:grid-cols-3">
       <article class="journal-card stat-card reveal">
@@ -28,8 +31,16 @@
             <p class="stat-value mt-2">{{if gt .Stats.AverageCycleLength 0.0}}{{formatFloat .Stats.AverageCycleLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</p>
           </div>
           <div>
-            <p class="journal-muted text-xs">{{t .Messages "dashboard.median_cycle"}}</p>
-            <p class="stat-value mt-2">{{if gt .Stats.MedianCycleLength 0}}{{.Stats.MedianCycleLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</p>
+            <p class="journal-muted text-xs">{{t .Messages "stats.cycle_range"}}</p>
+            <p class="stat-value mt-2">{{if gt .Stats.MinCycleLength 0}}{{.Stats.MinCycleLength}}-{{.Stats.MaxCycleLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</p>
+          </div>
+          <div>
+            <p class="journal-muted text-xs">{{t .Messages "stats.shortest_cycle"}}</p>
+            <p class="stat-value mt-2">{{if gt .Stats.MinCycleLength 0}}{{.Stats.MinCycleLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</p>
+          </div>
+          <div>
+            <p class="journal-muted text-xs">{{t .Messages "stats.longest_cycle"}}</p>
+            <p class="stat-value mt-2">{{if gt .Stats.MaxCycleLength 0}}{{.Stats.MaxCycleLength}} {{t .Messages "common.days_short"}}{{else}}{{.NoDataLabel}}{{end}}</p>
           </div>
         </div>
       </article>
@@ -58,9 +69,15 @@
         </div>
         <div class="mb-3 flex flex-wrap items-center gap-3 text-xs journal-muted">
           <span class="inline-flex items-center gap-2">
-            <span class="inline-block h-2.5 w-2.5 rounded-full stats-legend-dot-actual"></span>
+            <span class="inline-block h-2.5 w-2.5 rounded-sm stats-legend-dot-actual"></span>
             {{t .Messages "stats.legend.actual"}}
           </span>
+          {{if .ChartBaseline}}
+          <span class="inline-flex items-center gap-2">
+            <span class="inline-block w-6 border-t-2 border-dashed stats-legend-baseline-line"></span>
+            {{t .Messages "stats.legend.average"}}
+          </span>
+          {{end}}
         </div>
         {{if .HasTrendData}}
         <div
@@ -68,7 +85,7 @@
           data-chart='{{toJSON .ChartData}}'
           data-empty-text='{{t .Messages "stats.no_cycle_data"}}'
           data-days-suffix='{{t .Messages "common.days_short"}}'
-          data-baseline-label=''
+          data-baseline-label='{{t .Messages "stats.legend.average"}}'
           class="chart-shell">
         </div>
         {{else}}

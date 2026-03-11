@@ -81,7 +81,10 @@ func OwnerBaselineCycleLength(user *models.User) int {
 func (service *StatsService) BuildTrend(user *models.User, logs []models.DailyLog, now time.Time, location *time.Location, maxTrendPoints int) ([]int, int) {
 	lengths := CompletedCycleTrendLengths(logs, now, location)
 	lengths = TrimTrailingCycleTrendLengths(lengths, maxTrendPoints)
-	return lengths, OwnerBaselineCycleLength(user)
+	if len(lengths) == 0 {
+		return lengths, 0
+	}
+	return lengths, int(averageInts(lengths) + 0.5)
 }
 
 func (service *StatsService) BuildFlags(user *models.User, logs []models.DailyLog, stats CycleStats, now time.Time, location *time.Location, trendPointCount int) StatsFlags {
@@ -90,7 +93,7 @@ func (service *StatsService) BuildFlags(user *models.User, logs []models.DailyLo
 	today := DateAtLocation(now, location)
 	cycleDayReference := DashboardCycleReferenceLength(user, stats)
 	cycleStaleAnchor := DashboardCycleStaleAnchor(user, stats, location)
-	insightProgress := completedCycleCount * 50
+	insightProgress := completedCycleCount * 100
 	if insightProgress > 100 {
 		insightProgress = 100
 	}
@@ -98,7 +101,7 @@ func (service *StatsService) BuildFlags(user *models.User, logs []models.DailyLo
 	return StatsFlags{
 		HasObservedCycleData: observedCycleCount > 0,
 		HasTrendData:         trendPointCount > 0,
-		HasInsights:          completedCycleCount >= 2,
+		HasInsights:          completedCycleCount >= 1,
 		HasReliableTrend:     trendPointCount >= 3,
 		CycleDataStale:       DashboardCycleDataLooksStale(cycleStaleAnchor, today, cycleDayReference),
 		CompletedCycleCount:  completedCycleCount,

@@ -12,6 +12,8 @@ type CycleStats struct {
 	CurrentPhase         string    `json:"current_phase"`
 	AverageCycleLength   float64   `json:"average_cycle_length"`
 	MedianCycleLength    int       `json:"median_cycle_length"`
+	MinCycleLength       int       `json:"min_cycle_length"`
+	MaxCycleLength       int       `json:"max_cycle_length"`
 	AveragePeriodLength  float64   `json:"average_period_length"`
 	LastPeriodStart      time.Time `json:"last_period_start"`
 	NextPeriodStart      time.Time `json:"next_period_start"`
@@ -28,6 +30,12 @@ type detectedCycle struct {
 	PeriodLength int
 }
 
+const (
+	cyclePredictionWindow      = 6
+	irregularCycleSpreadDays   = 7
+	irregularCycleFallbackSpan = 7
+)
+
 func BuildCycleStats(logs []models.DailyLog, now time.Time) CycleStats {
 	stats := CycleStats{CurrentPhase: "unknown"}
 	if len(logs) == 0 {
@@ -41,7 +49,7 @@ func BuildCycleStats(logs []models.DailyLog, now time.Time) CycleStats {
 	}
 
 	cycles := buildCycles(starts, sorted)
-	populateObservedCycleStats(&stats, starts, cycles)
+	populateObservedCycleStats(&stats, cycleLengths(starts), cycles)
 	stats.LastPeriodStart = starts[len(starts)-1]
 	applyPredictedCycleStats(&stats)
 
@@ -156,14 +164,17 @@ func sortDailyLogs(logs []models.DailyLog) []models.DailyLog {
 	return sorted
 }
 
-func populateObservedCycleStats(stats *CycleStats, starts []time.Time, cycles []detectedCycle) {
-	recentLengths := tailInts(cycleLengths(starts), 6)
+func populateObservedCycleStats(stats *CycleStats, lengths []int, cycles []detectedCycle) {
+	recentLengths := tailInts(lengths, cyclePredictionWindow)
 	if len(recentLengths) > 0 {
 		stats.AverageCycleLength = averageInts(recentLengths)
 		stats.MedianCycleLength = medianInt(recentLengths)
 	}
+	if len(lengths) > 0 {
+		stats.MinCycleLength, stats.MaxCycleLength = minMaxInts(lengths)
+	}
 
-	periodLengths := recentPositivePeriodLengths(cycles, 6)
+	periodLengths := recentPositivePeriodLengths(cycles, cyclePredictionWindow)
 	if len(periodLengths) > 0 {
 		stats.AveragePeriodLength = averageInts(periodLengths)
 	}
@@ -202,11 +213,11 @@ func applyPredictedCycleStats(stats *CycleStats) {
 }
 
 func predictedCycleLength(median int, average float64) int {
-	if median > 0 {
-		return median
-	}
 	if average > 0 {
 		return int(average + 0.5)
+	}
+	if median > 0 {
+		return median
 	}
 	return models.DefaultCycleLength
 }
@@ -339,6 +350,35 @@ func averageInts(values []int) float64 {
 		total += value
 	}
 	return float64(total) / float64(len(values))
+}
+
+func minMaxInts(values []int) (int, int) {
+	if len(values) == 0 {
+		return 0, 0
+	}
+
+	minValue := values[0]
+	maxValue := values[0]
+	for _, value := range values[1:] {
+		if value < minValue {
+			minValue = value
+		}
+		if value > maxValue {
+			maxValue = value
+		}
+	}
+	return minValue, maxValue
+}
+
+func CycleLengthSpread(stats CycleStats) int {
+	if stats.MinCycleLength <= 0 || stats.MaxCycleLength <= 0 || stats.MaxCycleLength < stats.MinCycleLength {
+		return 0
+	}
+	return stats.MaxCycleLength - stats.MinCycleLength
+}
+
+func IsIrregularCycleSpread(stats CycleStats) bool {
+	return CycleLengthSpread(stats) > irregularCycleSpreadDays
 }
 
 func medianInt(values []int) int {

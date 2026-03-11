@@ -26,6 +26,7 @@ func TestOnboardingFlowCompletesWithOngoingPeriodRangeAndFlowNone(t *testing.T) 
 		"cycle_length":     {"30"},
 		"period_length":    {"5"},
 		"auto_period_fill": {"true"},
+		"irregular_cycle":  {"true"},
 	})
 
 	submitOnboardingComplete(t, app, authCookie)
@@ -42,6 +43,9 @@ func TestOnboardingFlowCompletesWithOngoingPeriodRangeAndFlowNone(t *testing.T) 
 	}
 	if updatedUser.PeriodLength != 5 {
 		t.Fatalf("expected period length 5, got %d", updatedUser.PeriodLength)
+	}
+	if !updatedUser.IrregularCycle {
+		t.Fatalf("expected irregular_cycle to be persisted from onboarding")
 	}
 	if updatedUser.LastPeriodStart == nil {
 		t.Fatalf("expected last period start to be saved")

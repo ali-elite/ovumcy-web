@@ -38,6 +38,7 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 		"CycleLength":            viewData.CycleLength,
 		"PeriodLength":           viewData.PeriodLength,
 		"AutoPeriodFill":         viewData.AutoPeriodFill,
+		"IrregularCycle":         viewData.IrregularCycle,
 		"TrackBBT":               viewData.TrackBBT,
 		"TrackCervicalMucus":     viewData.TrackCervicalMucus,
 		"HideSexChip":            viewData.HideSexChip,

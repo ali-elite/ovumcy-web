@@ -46,12 +46,12 @@ func TestDashboardEnglishRendersLocalizedPredictionDates(t *testing.T) {
 	}
 	rendered := string(body)
 
-	nextPeriodPattern := regexp.MustCompile(`Next period: [A-Z][a-z]{2} \d{1,2}`)
+	nextPeriodPattern := regexp.MustCompile(`Next period:\s*[A-Z][a-z]{2} \d{1,2}`)
 	if !nextPeriodPattern.MatchString(rendered) {
 		t.Fatalf("expected English-localized next period short date in dashboard status line")
 	}
 
-	ovulationPattern := regexp.MustCompile(`Ovulation: [A-Z][a-z]{2} \d{1,2}`)
+	ovulationPattern := regexp.MustCompile(`Ovulation:\s*[A-Z][a-z]{2} \d{1,2}`)
 	if !ovulationPattern.MatchString(rendered) {
 		t.Fatalf("expected English-localized ovulation short date in dashboard status line")
 	}

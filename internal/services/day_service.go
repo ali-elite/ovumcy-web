@@ -17,6 +17,7 @@ var (
 	ErrDayAutoFillApplyFailed = errors.New("apply day autofill failed")
 	ErrDeleteDayFailed        = errors.New("delete day failed")
 	ErrSyncLastPeriodFailed   = errors.New("sync last period failed")
+	ErrManualCycleStartFailed = errors.New("manual cycle start failed")
 )
 
 type DayEntryInput struct {
@@ -211,6 +212,41 @@ func (service *DayService) DeleteDayAndRefreshLastPeriod(userID uint, day time.T
 	if err := service.RefreshUserLastPeriodStart(userID, location); err != nil {
 		return ErrSyncLastPeriodFailed
 	}
+	return nil
+}
+
+func (service *DayService) MarkCycleStartManually(userID uint, day time.Time, location *time.Location) error {
+	existingEntry, err := service.FetchLogByDate(userID, day, location)
+	if err != nil {
+		return ErrDayEntryLoadFailed
+	}
+
+	symptomIDs := make([]uint, len(existingEntry.SymptomIDs))
+	copy(symptomIDs, existingEntry.SymptomIDs)
+
+	payload := DayEntryInput{
+		IsPeriod:      true,
+		Flow:          existingEntry.Flow,
+		Mood:          existingEntry.Mood,
+		SexActivity:   NormalizeDaySexActivity(existingEntry.SexActivity),
+		BBT:           existingEntry.BBT,
+		CervicalMucus: NormalizeDayCervicalMucus(existingEntry.CervicalMucus),
+		Notes:         existingEntry.Notes,
+		SymptomIDs:    symptomIDs,
+	}
+	if !IsValidDayFlow(payload.Flow) {
+		payload.Flow = models.FlowNone
+	}
+
+	if _, err := service.UpsertDayEntryWithAutoFill(userID, day, payload, location); err != nil {
+		return err
+	}
+
+	dayStart, _ := DayRange(day, location)
+	if err := service.users.UpdateByID(userID, map[string]any{"last_period_start": dayStart}); err != nil {
+		return fmt.Errorf("%w: %v", ErrManualCycleStartFailed, err)
+	}
+
 	return nil
 }
 

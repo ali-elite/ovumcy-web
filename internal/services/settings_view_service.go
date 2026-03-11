@@ -56,6 +56,7 @@ type SettingsPageViewData struct {
 	CycleLength             int
 	PeriodLength            int
 	AutoPeriodFill          bool
+	IrregularCycle          bool
 	TrackBBT                bool
 	TrackCervicalMucus      bool
 	HideSexChip             bool
@@ -116,6 +117,7 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 	resolvedUser.CycleLength = cycleLength
 	resolvedUser.PeriodLength = periodLength
 	resolvedUser.AutoPeriodFill = autoPeriodFill
+	resolvedUser.IrregularCycle = persisted.IrregularCycle
 	resolvedUser.TrackBBT = persisted.TrackBBT
 	resolvedUser.TrackCervicalMucus = persisted.TrackCervicalMucus
 	resolvedUser.HideSexChip = persisted.HideSexChip
@@ -135,6 +137,7 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 		CycleLength:            cycleLength,
 		PeriodLength:           periodLength,
 		AutoPeriodFill:         autoPeriodFill,
+		IrregularCycle:         resolvedUser.IrregularCycle,
 		TrackBBT:               resolvedUser.TrackBBT,
 		TrackCervicalMucus:     resolvedUser.TrackCervicalMucus,
 		HideSexChip:            resolvedUser.HideSexChip,

@@ -83,11 +83,13 @@ func (handler *Handler) parseOnboardingStep2Input(c *fiber.Ctx) (onboardingStep2
 			CycleLength:    0,
 			PeriodLength:   0,
 			AutoPeriodFill: services.ParseBoolLike(c.FormValue("auto_period_fill")),
+			IrregularCycle: services.ParseBoolLike(c.FormValue("irregular_cycle")),
 		}
-		cycleLength, periodLength, autoPeriodFill, err := handler.onboardingSvc.ParseAndNormalizeStep2Input(
+		cycleLength, periodLength, autoPeriodFill, irregularCycle, err := handler.onboardingSvc.ParseAndNormalizeStep2Input(
 			c.FormValue("cycle_length"),
 			c.FormValue("period_length"),
 			input.AutoPeriodFill,
+			input.IrregularCycle,
 		)
 		if err != nil {
 			return onboardingStep2Input{}, "invalid input"
@@ -95,12 +97,14 @@ func (handler *Handler) parseOnboardingStep2Input(c *fiber.Ctx) (onboardingStep2
 		input.CycleLength = cycleLength
 		input.PeriodLength = periodLength
 		input.AutoPeriodFill = autoPeriodFill
+		input.IrregularCycle = irregularCycle
 		return input, ""
 	}
-	cycleLength, periodLength, autoPeriodFill, err := handler.onboardingSvc.ParseAndNormalizeStep2Input(
+	cycleLength, periodLength, autoPeriodFill, irregularCycle, err := handler.onboardingSvc.ParseAndNormalizeStep2Input(
 		strconv.Itoa(input.CycleLength),
 		strconv.Itoa(input.PeriodLength),
 		input.AutoPeriodFill,
+		input.IrregularCycle,
 	)
 	if err != nil {
 		return onboardingStep2Input{}, "invalid input"
@@ -108,6 +112,7 @@ func (handler *Handler) parseOnboardingStep2Input(c *fiber.Ctx) (onboardingStep2
 	input.CycleLength = cycleLength
 	input.PeriodLength = periodLength
 	input.AutoPeriodFill = autoPeriodFill
+	input.IrregularCycle = irregularCycle
 
 	return input, ""
 }

@@ -18,6 +18,7 @@ type StatsChartViewData struct {
 	Values      []int
 	Baseline    int
 	HasBaseline bool
+	Kind        string
 }
 
 type StatsSymptomCountViewData struct {
@@ -39,6 +40,8 @@ type StatsPageViewData struct {
 	PhaseSymptomInsights    []StatsPhaseSymptomInsight
 	HasPhaseMoodInsights    bool
 	HasPhaseSymptomInsights bool
+	ShowIrregularityNotice  bool
+	IsIrregularMode         bool
 	IsOwner                 bool
 }
 
@@ -76,6 +79,7 @@ func (service *StatsService) BuildStatsPageViewData(user *models.User, language 
 	chartData := StatsChartViewData{
 		Labels: BuildCycleTrendLabels(cycleLabelPattern, trendPointCount),
 		Values: lengths,
+		Kind:   "bar",
 	}
 	if baselineCycleLength > 0 {
 		chartData.Baseline = baselineCycleLength
@@ -93,6 +97,8 @@ func (service *StatsService) BuildStatsPageViewData(user *models.User, language 
 		PhaseSymptomInsights:    phaseSymptomInsights,
 		HasPhaseMoodInsights:    hasPhaseMoodInsights,
 		HasPhaseSymptomInsights: hasPhaseSymptomInsights,
+		ShowIrregularityNotice:  IsOwnerUser(user) && !user.IrregularCycle && IsIrregularCycleSpread(stats),
+		IsIrregularMode:         user != nil && user.IrregularCycle,
 		IsOwner:                 IsOwnerUser(user),
 	}, nil
 }

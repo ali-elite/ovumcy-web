@@ -25,26 +25,26 @@ func TestApplyUserCycleBaselineUsesOnboardingValuesWhenDataIsSparse(t *testing.T
 	stats := BuildCycleStats(logs, now)
 	stats = ApplyUserCycleBaseline(user, logs, stats, now, time.UTC)
 
-	if stats.AverageCycleLength != 29 {
-		t.Fatalf("expected average cycle length 29, got %.2f", stats.AverageCycleLength)
+	if stats.AverageCycleLength != 9 {
+		t.Fatalf("expected average cycle length 9, got %.2f", stats.AverageCycleLength)
 	}
-	if stats.MedianCycleLength != 29 {
-		t.Fatalf("expected median cycle length 29, got %d", stats.MedianCycleLength)
+	if stats.MedianCycleLength != 9 {
+		t.Fatalf("expected median cycle length 9, got %d", stats.MedianCycleLength)
 	}
-	if stats.AveragePeriodLength != 6 {
-		t.Fatalf("expected average period length 6, got %.2f", stats.AveragePeriodLength)
+	if stats.AveragePeriodLength != 1 {
+		t.Fatalf("expected average period length 1, got %.2f", stats.AveragePeriodLength)
 	}
 	if stats.LastPeriodStart.Format("2006-01-02") != "2026-02-16" {
 		t.Fatalf("expected last period start 2026-02-16, got %s", stats.LastPeriodStart.Format("2006-01-02"))
 	}
-	if stats.NextPeriodStart.Format("2006-01-02") != "2026-03-17" {
-		t.Fatalf("expected next period start 2026-03-17, got %s", stats.NextPeriodStart.Format("2006-01-02"))
+	if stats.NextPeriodStart.Format("2006-01-02") != "2026-02-25" {
+		t.Fatalf("expected next period start 2026-02-25, got %s", stats.NextPeriodStart.Format("2006-01-02"))
 	}
 	if stats.CurrentCycleDay != 2 {
 		t.Fatalf("expected current cycle day 2, got %d", stats.CurrentCycleDay)
 	}
-	if stats.CurrentPhase != "menstrual" {
-		t.Fatalf("expected menstrual phase, got %s", stats.CurrentPhase)
+	if stats.CurrentPhase != "ovulation" {
+		t.Fatalf("expected ovulation phase, got %s", stats.CurrentPhase)
 	}
 }
 

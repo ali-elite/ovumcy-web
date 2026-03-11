@@ -107,6 +107,7 @@ func (repo *UserRepository) LoadSettingsByID(userID uint) (models.User, error) {
 			"cycle_length",
 			"period_length",
 			"auto_period_fill",
+			"irregular_cycle",
 			"track_bbt",
 			"track_cervical_mucus",
 			"hide_sex_chip",
@@ -132,11 +133,12 @@ func (repo *UserRepository) SaveOnboardingStep1(userID uint, start time.Time) er
 	}).Error
 }
 
-func (repo *UserRepository) SaveOnboardingStep2(userID uint, cycleLength int, periodLength int, autoPeriodFill bool) error {
+func (repo *UserRepository) SaveOnboardingStep2(userID uint, cycleLength int, periodLength int, autoPeriodFill bool, irregularCycle bool) error {
 	return repo.database.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]any{
 		"cycle_length":     cycleLength,
 		"period_length":    periodLength,
 		"auto_period_fill": autoPeriodFill,
+		"irregular_cycle":  irregularCycle,
 	}).Error
 }
 
@@ -152,6 +154,7 @@ func (repo *UserRepository) ClearAllDataAndResetSettings(userID uint) error {
 			"cycle_length":         models.DefaultCycleLength,
 			"period_length":        models.DefaultPeriodLength,
 			"auto_period_fill":     true,
+			"irregular_cycle":      false,
 			"track_bbt":            false,
 			"track_cervical_mucus": false,
 			"hide_sex_chip":        false,

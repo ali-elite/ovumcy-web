@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN irregular_cycle BOOLEAN NOT NULL DEFAULT 0;

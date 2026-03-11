@@ -68,6 +68,15 @@ async function submitStepTwo(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+async function currentDashboardNextPeriodText(page: Page): Promise<string> {
+  const value = await page
+    .locator('.dashboard-status-line .dashboard-status-item')
+    .nth(2)
+    .textContent();
+
+  return String(value || '').trim();
+}
+
 test.describe('Onboarding flow', () => {
   test('onboarding appears on first login only, then redirects to dashboard', async ({ page }) => {
     const creds = await registerAndOpenOnboarding(page, 'onboarding-first-login');
@@ -214,5 +223,20 @@ test.describe('Onboarding flow', () => {
     await fillDateField(page.locator('#last-period-start'), startDate);
     await submitStepOne(page, startDate);
     await submitStepTwo(page);
+  });
+
+  test('step 2 irregular checkbox carries through to dashboard range prediction', async ({ page }) => {
+    await registerAndOpenOnboarding(page, 'onboarding-irregular');
+
+    const selectedDate = toISODate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000));
+    await submitStepOne(page, selectedDate);
+
+    const irregularCheckbox = page.locator('form[hx-post="/onboarding/step2"] input[name="irregular_cycle"]');
+    await irregularCheckbox.check();
+    await submitStepTwo(page);
+
+    const nextPeriodText = await currentDashboardNextPeriodText(page);
+    expect(nextPeriodText).toContain('around');
+    expect(nextPeriodText).toContain(' - ');
   });
 });

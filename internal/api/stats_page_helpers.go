@@ -15,6 +15,9 @@ func mapStatsChartData(chart services.StatsChartViewData) fiber.Map {
 		"labels": chart.Labels,
 		"values": chart.Values,
 	}
+	if chart.Kind != "" {
+		payload["kind"] = chart.Kind
+	}
 	if chart.HasBaseline {
 		payload["baseline"] = chart.Baseline
 	}
@@ -58,6 +61,8 @@ func (handler *Handler) buildStatsPageData(user *models.User, language string, m
 		"PhaseSymptomInsights":    viewData.PhaseSymptomInsights,
 		"HasPhaseMoodInsights":    viewData.HasPhaseMoodInsights,
 		"HasPhaseSymptomInsights": viewData.HasPhaseSymptomInsights,
+		"ShowIrregularityNotice":  viewData.ShowIrregularityNotice,
+		"IsIrregularMode":         viewData.IsIrregularMode,
 		"IsOwner":                 viewData.IsOwner,
 	}
 	return data, nil

@@ -46,3 +46,35 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 
 	return c.JSON(entry)
 }
+
+func (handler *Handler) MarkCycleStart(c *fiber.Ctx) error {
+	user, ok := currentUser(c)
+	if !ok {
+		return handler.respondMappedError(c, unauthorizedErrorSpec())
+	}
+
+	location := handler.requestLocation(c)
+	day, err := services.ParseDayDate(c.Params("date"), location)
+	if err != nil {
+		return handler.respondMappedError(c, invalidDateErrorSpec())
+	}
+
+	if err := handler.dayService.MarkCycleStartManually(user.ID, day, location); err != nil {
+		return handler.respondMappedError(c, upsertDayPersistenceErrorSpec(err))
+	}
+
+	if isHTMX(c) {
+		c.Set("HX-Trigger", "calendar-day-updated")
+		c.Set("HX-Refresh", "true")
+		return c.SendStatus(fiber.StatusNoContent)
+	}
+	if acceptsJSON(c) {
+		return c.JSON(fiber.Map{"ok": true})
+	}
+
+	if c.Query("source") == "calendar" {
+		month := day.Format("2006-01")
+		return redirectOrJSON(c, "/calendar?month="+month+"&day="+day.Format("2006-01-02"))
+	}
+	return redirectOrJSON(c, "/dashboard")
+}

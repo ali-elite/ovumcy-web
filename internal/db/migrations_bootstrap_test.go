@@ -44,6 +44,7 @@ func TestOpenSQLiteUpgradesLegacyInitSchema(t *testing.T) {
 		CycleLength         int    `gorm:"column:cycle_length"`
 		PeriodLength        int    `gorm:"column:period_length"`
 		AutoPeriodFill      bool   `gorm:"column:auto_period_fill"`
+		IrregularCycle      bool   `gorm:"column:irregular_cycle"`
 		TrackBBT            bool   `gorm:"column:track_bbt"`
 		TrackCervicalMucus  bool   `gorm:"column:track_cervical_mucus"`
 		HideSexChip         bool   `gorm:"column:hide_sex_chip"`
@@ -57,6 +58,7 @@ func TestOpenSQLiteUpgradesLegacyInitSchema(t *testing.T) {
 			"cycle_length",
 			"period_length",
 			"auto_period_fill",
+			"irregular_cycle",
 			"track_bbt",
 			"track_cervical_mucus",
 			"hide_sex_chip",
@@ -80,6 +82,9 @@ func TestOpenSQLiteUpgradesLegacyInitSchema(t *testing.T) {
 	}
 	if !migratedUser.AutoPeriodFill {
 		t.Fatal("expected auto_period_fill default to be true")
+	}
+	if migratedUser.IrregularCycle {
+		t.Fatal("expected irregular_cycle default to be false")
 	}
 	if migratedUser.TrackBBT {
 		t.Fatal("expected track_bbt default to be false")
@@ -242,6 +247,7 @@ func assertUsersSchemaReconciled(t *testing.T, database *gorm.DB) {
 		"cycle_length",
 		"period_length",
 		"auto_period_fill",
+		"irregular_cycle",
 		"track_bbt",
 		"track_cervical_mucus",
 		"hide_sex_chip",

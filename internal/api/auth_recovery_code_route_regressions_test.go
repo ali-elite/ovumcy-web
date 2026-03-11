@@ -85,9 +85,14 @@ func TestRecoveryCodePageRejectsTamperedRecoveryCookie(t *testing.T) {
 		t.Fatalf("expected auth and recovery cookies in register response")
 	}
 
-	tampered := recoveryCookie[:len(recoveryCookie)-1] + "A"
-	if strings.HasSuffix(recoveryCookie, "A") {
-		tampered = recoveryCookie[:len(recoveryCookie)-1] + "B"
+	separatorIndex := strings.Index(recoveryCookie, ".")
+	if separatorIndex < 0 || separatorIndex+6 >= len(recoveryCookie) {
+		t.Fatalf("expected versioned recovery cookie payload, got %q", recoveryCookie)
+	}
+
+	tampered := recoveryCookie[:separatorIndex+5] + "A" + recoveryCookie[separatorIndex+6:]
+	if recoveryCookie[separatorIndex+5] == 'A' {
+		tampered = recoveryCookie[:separatorIndex+5] + "B" + recoveryCookie[separatorIndex+6:]
 	}
 
 	request := httptest.NewRequest(http.MethodGet, "/recovery-code", nil)

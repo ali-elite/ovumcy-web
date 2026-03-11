@@ -35,6 +35,9 @@ func TestBuildStatsPageViewDataOwnerBuildsTrendBaselineAndSymptomSummaries(t *te
 	if !viewData.IsOwner {
 		t.Fatalf("expected IsOwner=true")
 	}
+	if viewData.ChartData.Kind != "bar" {
+		t.Fatalf("expected chart kind=bar, got %q", viewData.ChartData.Kind)
+	}
 	if !viewData.ChartData.HasBaseline || viewData.ChartData.Baseline != 28 {
 		t.Fatalf("expected chart baseline=28, got has=%v value=%d", viewData.ChartData.HasBaseline, viewData.ChartData.Baseline)
 	}
@@ -55,6 +58,43 @@ func TestBuildStatsPageViewDataOwnerBuildsTrendBaselineAndSymptomSummaries(t *te
 	}
 	if viewData.SymptomCounts[0].FrequencySummary == "" {
 		t.Fatalf("expected non-empty frequency summary")
+	}
+}
+
+func TestBuildStatsPageViewDataIrregularNoticeRespectsUserMode(t *testing.T) {
+	logs := []models.DailyLog{
+		{Date: mustParseStatsServiceDay(t, "2026-01-01"), IsPeriod: true},
+		{Date: mustParseStatsServiceDay(t, "2026-01-25"), IsPeriod: true},
+		{Date: mustParseStatsServiceDay(t, "2026-03-10"), IsPeriod: true},
+	}
+	service := NewStatsService(&stubStatsDayReader{logsForRange: logs}, &stubStatsSymptomReader{})
+	now := mustParseStatsServiceDay(t, "2026-03-20")
+
+	regularUser := &models.User{ID: 7, Role: models.RoleOwner, CycleLength: 32}
+	regularView, err := service.BuildStatsPageViewData(regularUser, "en", "Cycle %d", now, time.UTC, 12)
+	if err != nil {
+		t.Fatalf("BuildStatsPageViewData() unexpected error for regular user: %v", err)
+	}
+	if !regularView.ShowIrregularityNotice {
+		t.Fatalf("expected irregularity notice for spread greater than seven days")
+	}
+	if regularView.IsIrregularMode {
+		t.Fatalf("expected IsIrregularMode=false for regular user")
+	}
+	if regularView.ChartBaseline != 34 {
+		t.Fatalf("expected averaged chart baseline 34, got %d", regularView.ChartBaseline)
+	}
+
+	irregularUser := &models.User{ID: 7, Role: models.RoleOwner, CycleLength: 32, IrregularCycle: true}
+	irregularView, err := service.BuildStatsPageViewData(irregularUser, "en", "Cycle %d", now, time.UTC, 12)
+	if err != nil {
+		t.Fatalf("BuildStatsPageViewData() unexpected error for irregular user: %v", err)
+	}
+	if irregularView.ShowIrregularityNotice {
+		t.Fatalf("expected irregularity notice to be suppressed in irregular mode")
+	}
+	if !irregularView.IsIrregularMode {
+		t.Fatalf("expected IsIrregularMode=true for irregular user")
 	}
 }
 

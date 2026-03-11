@@ -76,6 +76,17 @@
     </div>
   </form>
 
+  {{if not .IsFutureDate}}
+  <form
+    hx-post="/api/days/{{.DateString}}/cycle-start?source=calendar"
+    hx-target="#calendar-save-status"
+    hx-swap="innerHTML"
+    class="pt-3">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="btn-secondary">{{t .Messages "dashboard.manual_cycle_start"}}</button>
+  </form>
+  {{end}}
+
   {{if .HasDayData}}
   <div class="panel-danger-zone">
     <form
@@ -93,11 +104,31 @@
     {{template "owner_log_summary" (dict "Messages" .Messages "Log" .Log "Symptoms" .Symptoms "SelectedSymptomID" .SelectedSymptomID "NoDataLabel" .NoDataLabel)}}
     <div class="flex flex-wrap items-center gap-3">
       <button type="button" class="btn-secondary" hx-get="/calendar/day/{{.DateString}}?mode=edit" hx-target="#day-editor" hx-swap="innerHTML">{{t .Messages "calendar.edit_entry"}}</button>
+      {{if not .IsFutureDate}}
+      <form
+        hx-post="/api/days/{{.DateString}}/cycle-start?source=calendar"
+        hx-target="#day-editor"
+        hx-swap="innerHTML">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button type="submit" class="btn-secondary">{{t .Messages "dashboard.manual_cycle_start"}}</button>
+      </form>
+      {{end}}
     </div>
     {{else}}
     <div class="journal-panel space-y-3 text-sm">
       <p>{{t .Messages "calendar.no_entry"}}</p>
-      <button type="button" class="btn-primary" hx-get="/calendar/day/{{.DateString}}?mode=edit" hx-target="#day-editor" hx-swap="innerHTML">{{t .Messages "calendar.add_entry"}}</button>
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="button" class="btn-primary" hx-get="/calendar/day/{{.DateString}}?mode=edit" hx-target="#day-editor" hx-swap="innerHTML">{{t .Messages "calendar.add_entry"}}</button>
+        {{if not .IsFutureDate}}
+        <form
+          hx-post="/api/days/{{.DateString}}/cycle-start?source=calendar"
+          hx-target="#day-editor"
+          hx-swap="innerHTML">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button type="submit" class="btn-secondary">{{t .Messages "dashboard.manual_cycle_start"}}</button>
+        </form>
+        {{end}}
+      </div>
     </div>
     {{end}}
   {{else}}

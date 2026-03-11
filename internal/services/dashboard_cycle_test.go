@@ -7,11 +7,11 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/models"
 )
 
-func TestDashboardCycleReferenceLengthPrefersUserValue(t *testing.T) {
+func TestDashboardCycleReferenceLengthPrefersObservedAverage(t *testing.T) {
 	user := &models.User{CycleLength: 29}
 	stats := CycleStats{MedianCycleLength: 28, AverageCycleLength: 27}
-	if got := DashboardCycleReferenceLength(user, stats); got != 29 {
-		t.Fatalf("expected 29, got %d", got)
+	if got := DashboardCycleReferenceLength(user, stats); got != 27 {
+		t.Fatalf("expected 27, got %d", got)
 	}
 }
 
@@ -68,8 +68,37 @@ func TestBuildDashboardCycleContext(t *testing.T) {
 	if !context.CycleDataStale {
 		t.Fatalf("expected stale cycle data flag")
 	}
-	if context.DisplayNextPeriodStart.IsZero() {
-		t.Fatalf("expected next period start prediction")
+	if !context.DisplayNextPeriodStart.IsZero() {
+		t.Fatalf("expected exact next period date to be hidden for delayed cycle")
+	}
+	if !context.DisplayNextPeriodDelayed {
+		t.Fatalf("expected delayed next period marker")
+	}
+}
+
+func TestBuildDashboardCycleContextUsesRangeForIrregularMode(t *testing.T) {
+	user := &models.User{IrregularCycle: true}
+	stats := CycleStats{
+		LastPeriodStart:    mustParseDashboardDay(t, "2026-03-01"),
+		AverageCycleLength: 32,
+		MinCycleLength:     24,
+		MaxCycleLength:     45,
+		CurrentCycleDay:    20,
+	}
+	today := mustParseDashboardDay(t, "2026-03-20")
+
+	context := BuildDashboardCycleContext(user, stats, today, time.UTC)
+	if !context.DisplayNextPeriodUseRange {
+		t.Fatalf("expected irregular mode to use prediction range")
+	}
+	if got := context.DisplayNextPeriodRangeStart.Format("2006-01-02"); got != "2026-03-25" {
+		t.Fatalf("expected range start 2026-03-25, got %s", got)
+	}
+	if got := context.DisplayNextPeriodRangeEnd.Format("2006-01-02"); got != "2026-04-15" {
+		t.Fatalf("expected range end 2026-04-15, got %s", got)
+	}
+	if context.DisplayNextPeriodDelayed {
+		t.Fatalf("expected irregular range to avoid delayed placeholder")
 	}
 }
 
