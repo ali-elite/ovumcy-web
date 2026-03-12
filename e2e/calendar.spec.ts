@@ -142,6 +142,36 @@ test.describe('Calendar page', () => {
     await expect(page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${pastISO}"] input[name="is_period"]`)).toBeChecked();
   });
 
+  test('existing day entry can be deleted from calendar after confirmation', async ({ page }) => {
+    await registerOwnerOnCalendar(page, 'calendar-delete-entry');
+
+    const todayISO = await todayISOFromCalendar(page);
+    const pastISO = shiftISODate(todayISO, -2);
+    const pastMonth = pastISO.slice(0, 7);
+    const noteText = `calendar-delete-${Date.now()}`;
+
+    const dayEditorForm = await openCalendarDayEditor(page, pastISO);
+    await dayEditorForm.locator('input[name="is_period"]').check();
+    await openCalendarNotes(dayEditorForm);
+    await dayEditorForm.locator('#calendar-notes').fill(noteText);
+    await dayEditorForm.locator('button[data-save-button]').click();
+
+    await page.goto(`/calendar?month=${pastMonth}&day=${pastISO}`);
+    await expect(page.locator('#day-editor')).toContainText(noteText);
+
+    await page.locator(`#day-editor button[hx-get="/calendar/day/${pastISO}?mode=edit"]`).first().click();
+    const deleteButton = page.locator(`#day-editor form[hx-delete="/api/log/delete?date=${pastISO}&source=calendar"] button[type="submit"]`);
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.click();
+
+    await expect(page.locator('#confirm-modal')).toBeVisible();
+    await page.locator('#confirm-modal-accept').click();
+
+    await expect(page.locator(`form.calendar-day-editor-form[hx-post="/api/days/${pastISO}"]`)).toHaveCount(0);
+    await expect(page.locator(`#day-editor button[hx-get="/calendar/day/${pastISO}?mode=edit"]`).first()).toBeVisible();
+    await expect(page.locator('#day-editor')).not.toContainText(noteText);
+  });
+
   test('future day panel shows future warning context', async ({ page }) => {
     await registerOwnerOnCalendar(page, 'calendar-future-day');
 

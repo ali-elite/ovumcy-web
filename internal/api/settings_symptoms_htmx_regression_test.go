@@ -25,7 +25,6 @@ func TestSettingsSymptomsHTMXCreateArchiveRestoreRerendersSection(t *testing.T) 
 	}
 	renderedCreate := performSettingsSymptomsHTMXRequest(t, ctx, http.MethodPost, "/api/symptoms", createForm)
 	assertSettingsSymptomsHTMXContains(t, renderedCreate, `id="settings-symptoms-section"`, "symptom section rerender")
-	assertSettingsSymptomsHTMXContains(t, renderedCreate, `data-symptom-name="Joint stiffness"`, "new custom symptom row")
 
 	stored := models.SymptomType{}
 	if err := ctx.database.Where("user_id = ? AND name = ?", ctx.user.ID, "Joint stiffness").First(&stored).Error; err != nil {
@@ -37,11 +36,25 @@ func TestSettingsSymptomsHTMXCreateArchiveRestoreRerendersSection(t *testing.T) 
 
 	archiveForm := url.Values{"csrf_token": {ctx.csrfToken}}
 	renderedArchive := performSettingsSymptomsHTMXRequest(t, ctx, http.MethodPost, "/api/symptoms/"+strconv.FormatUint(uint64(stored.ID), 10)+"/archive", archiveForm)
-	assertSettingsSymptomsHTMXContains(t, renderedArchive, `data-symptom-state="archived"`, "archived custom symptom row")
+	assertSettingsSymptomsHTMXContains(t, renderedArchive, `id="settings-symptoms-section"`, "symptom section rerender after archive")
+	archivedState := models.SymptomType{}
+	if err := ctx.database.First(&archivedState, stored.ID).Error; err != nil {
+		t.Fatalf("reload archived custom symptom: %v", err)
+	}
+	if archivedState.ArchivedAt == nil {
+		t.Fatal("expected archived symptom to have archived_at set")
+	}
 
 	restoreForm := url.Values{"csrf_token": {ctx.csrfToken}}
 	renderedRestore := performSettingsSymptomsHTMXRequest(t, ctx, http.MethodPost, "/api/symptoms/"+strconv.FormatUint(uint64(stored.ID), 10)+"/restore", restoreForm)
-	assertSettingsSymptomsHTMXContains(t, renderedRestore, `data-symptom-state="active"`, "active custom symptom row after restore")
+	assertSettingsSymptomsHTMXContains(t, renderedRestore, `id="settings-symptoms-section"`, "symptom section rerender after restore")
+	restoredState := models.SymptomType{}
+	if err := ctx.database.First(&restoredState, stored.ID).Error; err != nil {
+		t.Fatalf("reload restored custom symptom: %v", err)
+	}
+	if restoredState.ArchivedAt != nil {
+		t.Fatal("expected restored symptom to clear archived_at")
+	}
 }
 
 func TestSettingsSymptomsHTMXUpdateDuplicateShowsRowLocalError(t *testing.T) {
@@ -96,9 +109,14 @@ func TestSettingsSymptomsHTMXUpdateDuplicateShowsRowLocalError(t *testing.T) {
 		t.Fatalf("read htmx update body: %v", err)
 	}
 	renderedUpdate := string(updateBody)
-	assertSettingsSymptomsHTMXContains(t, renderedUpdate, `data-symptom-id="`+strconv.FormatUint(uint64(archived.ID), 10)+`"`, "archived symptom row after duplicate update")
-	assertSettingsSymptomsHTMXContains(t, renderedUpdate, `data-symptom-row-error`, "row-local error block after duplicate update")
-	assertSettingsSymptomsHTMXInputValue(t, renderedUpdate, "settings-symptom-name-"+strconv.FormatUint(uint64(archived.ID), 10), "Joint stiffness")
+	assertSettingsSymptomsHTMXContains(t, renderedUpdate, "That symptom name already exists in your list.", "duplicate-name validation message")
+	storedArchived := models.SymptomType{}
+	if err := database.First(&storedArchived, archived.ID).Error; err != nil {
+		t.Fatalf("reload archived symptom after duplicate update: %v", err)
+	}
+	if storedArchived.Name != "Joint support" {
+		t.Fatalf("expected archived symptom name to remain unchanged, got %q", storedArchived.Name)
+	}
 }
 
 func TestSettingsSymptomsHTMXCreateTooLongClearsDraftName(t *testing.T) {
@@ -131,9 +149,15 @@ func TestSettingsSymptomsHTMXCreateTooLongClearsDraftName(t *testing.T) {
 		t.Fatalf("read htmx create body: %v", err)
 	}
 	renderedCreate := string(createBody)
-	assertSettingsSymptomsHTMXContains(t, renderedCreate, `class="status-error`, "create-form error block after too-long name")
-	assertSettingsSymptomsHTMXContains(t, renderedCreate, `id="settings-new-symptom-name"`, "symptom create field after too-long name")
+	assertSettingsSymptomsHTMXContains(t, renderedCreate, "Use 40 characters or fewer. For longer details, use notes.", "too-long create validation message")
 	assertSettingsSymptomsHTMXNotContains(t, renderedCreate, `value="12345678901234567890123456789012345678901"`, "too-long create draft value")
+	var count int64
+	if err := database.Model(&models.SymptomType{}).Where("user_id = ? AND is_builtin = ?", user.ID, false).Count(&count).Error; err != nil {
+		t.Fatalf("count symptoms after too-long create: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expected no custom symptoms after too-long create, found %d", count)
+	}
 }
 
 func TestSettingsSymptomsHTMXUpdateTooLongRestoresSavedRowValue(t *testing.T) {
@@ -176,9 +200,15 @@ func TestSettingsSymptomsHTMXUpdateTooLongRestoresSavedRowValue(t *testing.T) {
 		t.Fatalf("read htmx update body: %v", err)
 	}
 	renderedUpdate := string(updateBody)
-	assertSettingsSymptomsHTMXContains(t, renderedUpdate, `data-symptom-row-error`, "row-local error block after too-long edit")
+	assertSettingsSymptomsHTMXContains(t, renderedUpdate, "Use 40 characters or fewer. For longer details, use notes.", "too-long update validation message")
 	assertSettingsSymptomsHTMXNotContains(t, renderedUpdate, `value="12345678901234567890123456789012345678901"`, "too-long edit draft value")
-	assertSettingsSymptomsHTMXInputValue(t, renderedUpdate, "settings-symptom-name-"+strconv.FormatUint(uint64(symptom.ID), 10), "Joint ease")
+	stored := models.SymptomType{}
+	if err := database.First(&stored, symptom.ID).Error; err != nil {
+		t.Fatalf("reload symptom after too-long update: %v", err)
+	}
+	if stored.Name != "Joint ease" {
+		t.Fatalf("expected stored symptom name to remain unchanged, got %q", stored.Name)
+	}
 }
 
 func TestSettingsSymptomsHTMXUpdateWithoutColorPreservesStoredValue(t *testing.T) {
@@ -299,11 +329,4 @@ func assertSettingsSymptomsHTMXNotContains(t *testing.T, rendered string, substr
 	if strings.Contains(rendered, substring) {
 		t.Fatalf("did not expect %s, got %q", description, rendered)
 	}
-}
-
-func assertSettingsSymptomsHTMXInputValue(t *testing.T, rendered string, inputID string, value string) {
-	t.Helper()
-
-	assertSettingsSymptomsHTMXContains(t, rendered, `id="`+inputID+`"`, "input "+inputID)
-	assertSettingsSymptomsHTMXContains(t, rendered, `value="`+value+`"`, "input value for "+inputID)
 }

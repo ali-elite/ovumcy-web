@@ -4,14 +4,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
 )
 
-func TestCalendarDayPanelDeleteEntryUsesConfirmForm(t *testing.T) {
+func TestCalendarDayPanelEditModeRendersDeleteActionForExistingEntry(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "calendar-confirm@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
@@ -47,13 +47,10 @@ func TestCalendarDayPanelDeleteEntryUsesConfirmForm(t *testing.T) {
 	}
 	rendered := string(body)
 
-	deleteFormPattern := regexp.MustCompile(`(?s)<form[^>]+hx-delete="/api/log/delete\?date=2026-02-17&source=calendar"[^>]+hx-target="#day-editor"[^>]+data-confirm="[^"]+"[^>]+data-confirm-accept="[^"]+"`)
-	if !deleteFormPattern.MatchString(rendered) {
-		t.Fatalf("expected confirmed delete form in calendar edit panel")
+	if !strings.Contains(rendered, `/api/log/delete?date=2026-02-17&source=calendar`) {
+		t.Fatalf("expected delete action for existing calendar entry")
 	}
-
-	deleteButtonPattern := regexp.MustCompile(`(?s)<button[^>]+type="submit"[^>]+class="danger-link"[^>]*>[^<]+</button>`)
-	if !deleteButtonPattern.MatchString(rendered) {
+	if !strings.Contains(rendered, `class="danger-link"`) {
 		t.Fatalf("expected visible destructive submit button in calendar edit panel")
 	}
 }

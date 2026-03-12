@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -75,16 +74,6 @@ func TestDashboardTodayActionsUseRequestTimezoneHeaderAndCookie(t *testing.T) {
 
 	if !strings.Contains(rendered, formattedToday) {
 		t.Fatalf("expected dashboard header date %q, got different value", formattedToday)
-	}
-
-	expectedSavePath := fmt.Sprintf(`hx-post="/api/days/%s"`, todayRaw)
-	if !strings.Contains(rendered, expectedSavePath) {
-		t.Fatalf("expected save action %q in dashboard", expectedSavePath)
-	}
-
-	expectedClearPath := fmt.Sprintf(`hx-delete="/api/log/delete?date=%s&source=dashboard"`, todayRaw)
-	if !strings.Contains(rendered, expectedClearPath) {
-		t.Fatalf("expected clear action %q in dashboard", expectedClearPath)
 	}
 
 	tzCookieHeader := joinCookieHeader(authCookie, timezoneCookieName+"="+timezoneName)

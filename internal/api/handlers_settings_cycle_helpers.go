@@ -13,8 +13,7 @@ func (handler *Handler) parseCycleSettingsInput(c *fiber.Ctx) (services.CycleSet
 	input := cycleSettingsInput{}
 	location := handler.requestLocation(c)
 
-	contentType := strings.ToLower(c.Get("Content-Type"))
-	if strings.Contains(contentType, "application/json") {
+	if hasJSONBody(c) {
 		if err := c.BodyParser(&input); err != nil {
 			return services.CycleSettingsUpdate{}, "invalid settings input"
 		}

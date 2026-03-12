@@ -73,8 +73,7 @@ func (handler *Handler) parseOnboardingStep1Values(c *fiber.Ctx, today time.Time
 func (handler *Handler) parseOnboardingStep2Input(c *fiber.Ctx) (onboardingStep2Input, string) {
 	input := onboardingStep2Input{}
 
-	contentType := strings.ToLower(c.Get("Content-Type"))
-	if strings.Contains(contentType, "application/json") {
+	if hasJSONBody(c) {
 		if err := c.BodyParser(&input); err != nil {
 			return onboardingStep2Input{}, "invalid input"
 		}

@@ -10,9 +10,8 @@ import (
 
 func parseDayPayload(c *fiber.Ctx) (dayPayload, error) {
 	payload := dayPayload{Flow: models.FlowNone, SymptomIDs: []uint{}}
-	contentType := strings.ToLower(c.Get("Content-Type"))
 
-	if strings.Contains(contentType, "application/json") {
+	if hasJSONBody(c) {
 		if err := c.BodyParser(&payload); err != nil {
 			return payload, err
 		}

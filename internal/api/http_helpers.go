@@ -9,18 +9,19 @@ import (
 )
 
 func redirectOrJSON(c *fiber.Ctx, path string) error {
-	if isHTMX(c) {
+	switch responseFormat(c) {
+	case httpx.ResponseFormatHTMX:
 		c.Set("HX-Redirect", path)
 		return c.SendStatus(fiber.StatusOK)
-	}
-	if acceptsJSON(c) {
+	case httpx.ResponseFormatJSON:
 		return c.JSON(fiber.Map{"ok": true})
+	default:
+		return c.Redirect(path, fiber.StatusSeeOther)
 	}
-	return c.Redirect(path, fiber.StatusSeeOther)
 }
 
 func apiError(c *fiber.Ctx, status int, message string) error {
-	if isHTMX(c) {
+	if responseFormat(c) == httpx.ResponseFormatHTMX {
 		rendered := message
 		if key := services.AuthErrorTranslationKey(message); key != "" {
 			if localized := translateMessage(currentMessages(c), key); localized != key {
@@ -35,11 +36,19 @@ func apiError(c *fiber.Ctx, status int, message string) error {
 }
 
 func acceptsJSON(c *fiber.Ctx) bool {
-	return httpx.AcceptsJSON(c, httpx.JSONModeAcceptOnly)
+	return responseFormat(c) == httpx.ResponseFormatJSON
 }
 
 func isHTMX(c *fiber.Ctx) bool {
-	return httpx.IsHTMX(c)
+	return responseFormat(c) == httpx.ResponseFormatHTMX
+}
+
+func hasJSONBody(c *fiber.Ctx) bool {
+	return httpx.HasJSONContentType(c)
+}
+
+func responseFormat(c *fiber.Ctx) httpx.ResponseFormat {
+	return httpx.NegotiateResponseFormat(c, httpx.JSONModeAcceptOrContentType)
 }
 
 func csrfToken(c *fiber.Ctx) string {

@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/httpx"
 )
 
 func authRateLimitErrorSpec(key string) APIErrorSpec {
@@ -40,7 +39,7 @@ func (handler *Handler) RespondAPIRateLimited(c *fiber.Ctx) error {
 }
 
 func (handler *Handler) respondRateLimitedMappedError(c *fiber.Ctx, spec APIErrorSpec) error {
-	if httpx.AcceptsJSON(c, httpx.JSONModeAcceptOrContentType) {
+	if acceptsJSON(c) {
 		payload := fiber.Map{"error": spec.Key}
 		if retryAfter := retryAfterSeconds(c); retryAfter > 0 {
 			payload["retry_after_seconds"] = retryAfter

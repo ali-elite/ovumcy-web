@@ -13,8 +13,21 @@ const (
 	JSONModeAcceptOrContentType
 )
 
+type ResponseFormat uint8
+
+const (
+	ResponseFormatHTML ResponseFormat = iota
+	ResponseFormatJSON
+	ResponseFormatHTMX
+)
+
 func IsHTMX(c *fiber.Ctx) bool {
 	return strings.EqualFold(c.Get("HX-Request"), "true")
+}
+
+func HasJSONContentType(c *fiber.Ctx) bool {
+	contentType := strings.ToLower(strings.TrimSpace(c.Get(fiber.HeaderContentType)))
+	return strings.Contains(contentType, fiber.MIMEApplicationJSON)
 }
 
 func AcceptsJSON(c *fiber.Ctx, mode JSONMode) bool {
@@ -23,12 +36,20 @@ func AcceptsJSON(c *fiber.Ctx, mode JSONMode) bool {
 		return true
 	}
 
-	if mode == JSONModeAcceptOrContentType {
-		contentType := strings.ToLower(c.Get(fiber.HeaderContentType))
-		if strings.Contains(contentType, fiber.MIMEApplicationJSON) {
-			return true
-		}
+	if mode == JSONModeAcceptOrContentType && HasJSONContentType(c) {
+		return true
 	}
 
 	return false
+}
+
+func NegotiateResponseFormat(c *fiber.Ctx, mode JSONMode) ResponseFormat {
+	switch {
+	case IsHTMX(c):
+		return ResponseFormatHTMX
+	case AcceptsJSON(c, mode):
+		return ResponseFormatJSON
+	default:
+		return ResponseFormatHTML
+	}
 }

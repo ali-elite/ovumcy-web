@@ -36,7 +36,7 @@ func (handler *Handler) DeleteAccount(c *fiber.Ctx) error {
 	}
 
 	input := deleteAccountInput{}
-	if err := c.BodyParser(&input); err != nil && acceptsJSON(c) {
+	if err := c.BodyParser(&input); err != nil && hasJSONBody(c) {
 		spec := settingsMissingPasswordErrorSpec()
 		handler.logSecurityError(c, "settings.delete_account", spec)
 		return handler.respondMappedError(c, spec)

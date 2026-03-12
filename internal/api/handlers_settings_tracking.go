@@ -1,8 +1,6 @@
 package api
 
 import (
-	"strings"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
@@ -54,8 +52,7 @@ func (handler *Handler) UpdateTrackingSettings(c *fiber.Ctx) error {
 
 func parseTrackingSettingsInput(c *fiber.Ctx) (trackingSettingsInput, error) {
 	input := trackingSettingsInput{}
-	contentType := strings.ToLower(c.Get("Content-Type"))
-	if strings.Contains(contentType, "application/json") {
+	if hasJSONBody(c) {
 		if err := c.BodyParser(&input); err != nil {
 			return trackingSettingsInput{}, err
 		}
