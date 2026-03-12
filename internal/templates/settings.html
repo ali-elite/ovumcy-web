@@ -391,7 +391,15 @@
     </p>
     <p class="journal-muted mt-3 text-xs">{{t .Messages "settings.export_data_hint"}}</p>
 
-    <div class="panel-danger-zone space-y-3">
+  </section>
+  {{end}}
+
+  <section class="journal-card danger-card-strong p-5 sm:p-6 settings-danger-zone">
+    <h2 class="journal-subtitle danger-title">⚠️ {{t .Messages "settings.danger_zone.title"}}</h2>
+    <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.danger_zone.subtitle"}}</p>
+
+    {{if eq .CurrentUser.Role "owner"}}
+    <div class="journal-panel danger-card-soft mt-5 space-y-4">
       <div>
         <h3 class="field-label">{{t .Messages "settings.clear_data.title"}}</h3>
         <p class="journal-muted mt-1 text-sm">{{t .Messages "settings.clear_data.subtitle"}}</p>
@@ -406,33 +414,30 @@
         <button type="submit" class="btn-warning">{{t .Messages "settings.clear_data.submit"}}</button>
       </form>
     </div>
-  </section>
-  {{end}}
+    {{end}}
 
-  <section class="journal-card danger-card-strong p-5 sm:p-6 settings-danger-zone">
-    <h2 class="journal-subtitle danger-title">⚠️ {{t .Messages "settings.danger_zone.title"}}</h2>
-    <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.danger_zone.subtitle"}}</p>
+    <div class="journal-panel danger-card-soft mt-5 space-y-4">
+      <form
+        hx-delete="/api/settings/delete-account"
+        hx-target="#delete-account-feedback"
+        hx-swap="innerHTML"
+        hx-confirm="{{t .Messages "settings.confirm_delete_account"}}"
+        data-confirm-accept="{{t .Messages "settings.delete_account.submit"}}"
+        class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-    <form
-      hx-delete="/api/settings/delete-account"
-      hx-target="#delete-account-feedback"
-      hx-swap="innerHTML"
-      hx-confirm="{{t .Messages "settings.confirm_delete_account"}}"
-      data-confirm-accept="{{t .Messages "settings.delete_account.submit"}}"
-      class="mt-5 space-y-4">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        {{template "password_toggle_field" (dict
+          "Messages" .Messages
+          "LabelKey" "settings.delete_account.password"
+          "FieldID" "settings-delete-password"
+          "FieldName" "password"
+          "Autocomplete" "current-password"
+          "Required" true)}}
 
-      {{template "password_toggle_field" (dict
-        "Messages" .Messages
-        "LabelKey" "settings.delete_account.password"
-        "FieldID" "settings-delete-password"
-        "FieldName" "password"
-        "Autocomplete" "current-password"
-        "Required" true)}}
-
-      <button type="submit" class="btn-danger">{{t .Messages "settings.delete_account.submit"}}</button>
-      <div id="delete-account-feedback" class="save-status text-sm"></div>
-    </form>
+        <button type="submit" class="btn-danger">{{t .Messages "settings.delete_account.submit"}}</button>
+        <div id="delete-account-feedback" class="save-status text-sm"></div>
+      </form>
+    </div>
   </section>
 </section>
 {{if eq .CurrentUser.Role "owner"}}

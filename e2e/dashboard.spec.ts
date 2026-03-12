@@ -72,6 +72,33 @@ test.describe('Dashboard: today editor', () => {
     await expect(dateLabel).not.toHaveText(/^$/);
   });
 
+  test('note disclosure toggles between add, hide, and edit labels and can collapse again', async ({
+    page,
+  }) => {
+    await registerOwnerOnDashboard(page, 'dashboard-note-disclosure');
+
+    const disclosure = page.locator('details.note-disclosure');
+    const summary = disclosure.locator('summary');
+    const label = disclosure.locator('[data-note-disclosure-label]');
+    const emptyText = String(await disclosure.getAttribute('data-note-empty-text'));
+    const openText = String(await disclosure.getAttribute('data-note-open-text'));
+    const filledText = String(await disclosure.getAttribute('data-note-filled-text'));
+
+    await expect(label).toHaveText(emptyText);
+    await expect(summary).toHaveAttribute('aria-expanded', 'false');
+
+    await summary.click();
+    await expect(disclosure).toHaveAttribute('open', '');
+    await expect(summary).toHaveAttribute('aria-expanded', 'true');
+    await expect(label).toHaveText(openText);
+
+    await page.locator('#today-notes').fill(`toggle-note-${Date.now()}`);
+    await summary.click();
+    await expect(disclosure).not.toHaveAttribute('open', '');
+    await expect(summary).toHaveAttribute('aria-expanded', 'false');
+    await expect(label).toHaveText(filledText);
+  });
+
   test('period/flow/symptoms/notes save and persist after reload; flow is single-select', async ({ page }) => {
     await registerOwnerOnDashboard(page, 'dashboard-save-persist');
 

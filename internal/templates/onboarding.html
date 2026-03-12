@@ -130,10 +130,12 @@
 
         <div class="flex flex-wrap items-center gap-3">
           <button type="button" class="btn-secondary" data-onboarding-go-step="1">{{t .Messages "onboarding.button.back"}}</button>
-          <button
-            type="submit"
-            class="btn-primary"
-            data-onboarding-step2-submit>{{t .Messages "onboarding.button.finish"}}</button>
+          <span class="inline-flex overflow-hidden rounded-full" data-onboarding-step2-submit-shell>
+            <button
+              type="submit"
+              class="btn-primary"
+              data-onboarding-step2-submit>{{t .Messages "onboarding.button.finish"}}</button>
+          </span>
         </div>
         <div id="onboarding-step2-status" class="save-status text-sm"></div>
       </form>

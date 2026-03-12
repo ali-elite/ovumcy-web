@@ -156,6 +156,12 @@ test.describe('Onboarding flow', () => {
     const periodSlider = page.locator('#period-length');
     const autoFillCheckbox = page.locator('form[hx-post="/onboarding/step2"] input[name="auto_period_fill"]');
     const irregularCheckbox = page.locator('form[hx-post="/onboarding/step2"] input[name="irregular_cycle"]');
+    const finishButtonShell = page.locator('[data-onboarding-step2-submit-shell]');
+
+    await expect(finishButtonShell).toBeVisible();
+    expect(
+      await finishButtonShell.evaluate((node) => window.getComputedStyle(node).overflow)
+    ).toBe('hidden');
 
     await setRangeValue(cycleSlider, 35);
     await setRangeValue(periodSlider, 6);

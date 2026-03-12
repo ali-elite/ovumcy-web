@@ -100,7 +100,18 @@ test.describe('Calendar page', () => {
     await expect(page.locator('.legend-dot.legend-dot-period')).toHaveCount(1);
     await expect(page.locator('.legend-dot.legend-dot-predicted')).toHaveCount(1);
     await expect(page.locator('.legend-dot.legend-dot-fertile')).toHaveCount(1);
-    await expect(page.locator('.legend-item .calendar-ovulation-dot')).toHaveCount(1);
+    const ovulationDot = page.locator('.legend-item .calendar-ovulation-dot');
+    await expect(ovulationDot).toHaveCount(1);
+
+    const styles = await ovulationDot.evaluate((node) => {
+      const computed = window.getComputedStyle(node);
+      return {
+        width: parseFloat(computed.width || '0'),
+        boxShadow: computed.boxShadow || '',
+      };
+    });
+    expect(styles.width).toBeGreaterThanOrEqual(12);
+    expect(styles.boxShadow).not.toBe('none');
   });
 
   test('past day entry can be edited from calendar and persists after reload', async ({ page }) => {

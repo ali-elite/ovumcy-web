@@ -48,6 +48,34 @@
     target.appendChild(block);
   }
 
+  function statusAnchorForField(field) {
+    if (!field) {
+      return null;
+    }
+
+    if (typeof field.closest === "function") {
+      var passwordField = field.closest(".password-field");
+      if (passwordField) {
+        return passwordField;
+      }
+    }
+
+    return field;
+  }
+
+  function moveFormStatusTarget(target, field) {
+    if (!target || !field) {
+      return;
+    }
+
+    var anchor = statusAnchorForField(field);
+    if (!anchor || !anchor.parentNode || typeof anchor.insertAdjacentElement !== "function") {
+      return;
+    }
+
+    anchor.insertAdjacentElement("afterend", target);
+  }
+
   function clearFormStatus(target) {
     if (!target) {
       return;
@@ -109,6 +137,7 @@
       }
 
       event.preventDefault();
+      moveFormStatusTarget(statusTarget, invalidField);
       renderFormStatusError(statusTarget, invalidField.validationMessage || requiredMessage);
       invalidField.focus();
     });
@@ -167,6 +196,7 @@
       invalidField = firstInvalidRequiredField(form, requiredMessage, emailMessage);
       if (invalidField) {
         event.preventDefault();
+        moveFormStatusTarget(statusTarget, invalidField);
         renderFormStatusError(statusTarget, invalidField.validationMessage || requiredMessage);
         invalidField.focus();
         return;
@@ -177,6 +207,7 @@
       }
 
       event.preventDefault();
+      moveFormStatusTarget(statusTarget, confirmField);
       renderFormStatusError(statusTarget, mismatchMessage);
       focusLoginPasswordField(confirmField);
     });

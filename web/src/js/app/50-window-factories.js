@@ -247,15 +247,20 @@
     for (var index = 0; index < disclosures.length; index++) {
       var disclosure = disclosures[index];
       var label = disclosure.querySelector("[data-note-disclosure-label]");
+      var summary = disclosure.querySelector("summary");
       var notesField = disclosure.querySelector("[data-dashboard-notes]");
       var openText = String(disclosure.getAttribute("data-note-open-text") || "");
       var emptyText = String(disclosure.getAttribute("data-note-empty-text") || "");
       var filledText = String(disclosure.getAttribute("data-note-filled-text") || "");
       var hasNotes = !!(notesField && String(notesField.value || "").trim());
+      var isOpen = disclosure.hasAttribute("open");
+      if (summary) {
+        summary.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      }
       if (!label) {
         continue;
       }
-      label.textContent = disclosure.hasAttribute("open")
+      label.textContent = isOpen
         ? openText
         : (hasNotes ? filledText : emptyText);
     }
@@ -269,10 +274,20 @@
     var disclosures = root.querySelectorAll("[data-note-disclosure]");
     for (var index = 0; index < disclosures.length; index++) {
       var disclosure = disclosures[index];
+      var summary = disclosure.querySelector("summary");
       if (disclosure.dataset.noteDisclosureBound === "1") {
         continue;
       }
       disclosure.dataset.noteDisclosureBound = "1";
+      if (summary) {
+        (function (currentDisclosure) {
+          summary.addEventListener("click", function (event) {
+            event.preventDefault();
+            currentDisclosure.open = !currentDisclosure.open;
+            syncNoteDisclosure(root);
+          });
+        })(disclosure);
+      }
       disclosure.addEventListener("toggle", function () {
         syncNoteDisclosure(root);
       });

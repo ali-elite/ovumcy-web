@@ -89,6 +89,41 @@ test.describe('Auth: register, login, logout', () => {
     await expect(page.locator('#register-client-status .status-error')).toBeVisible();
   });
 
+  test('register empty submit validates in top-down order and places the error next to the active field', async ({
+    page,
+  }) => {
+    await page.goto('/register');
+    await expect(page).toHaveURL(/\/register(?:\?.*)?$/);
+
+    const submit = page.locator('form[action="/api/auth/register"] button[type="submit"]');
+    const status = page.locator('#register-client-status');
+    const email = page.locator('#register-email');
+    const password = page.locator('#register-password');
+    const confirm = page.locator('#register-confirm-password');
+    const passwordField = page.locator('.password-field', { has: password });
+    const confirmField = page.locator('.password-field', { has: confirm });
+
+    await submit.click();
+    await expect(status.locator('.status-error')).toBeVisible();
+    await expect(email).toBeFocused();
+    await expect(page.locator('#register-email + #register-client-status')).toHaveCount(1);
+
+    const emailValue = `ordered-${Date.now()}@example.com`;
+    await email.fill(emailValue);
+    await submit.click();
+    await expect(password).toBeFocused();
+    expect(await passwordField.evaluate((node) => node.nextElementSibling?.id || '')).toBe(
+      'register-client-status'
+    );
+
+    await password.fill('StrongPass1');
+    await submit.click();
+    await expect(confirm).toBeFocused();
+    expect(await confirmField.evaluate((node) => node.nextElementSibling?.id || '')).toBe(
+      'register-client-status'
+    );
+  });
+
   test('login form uses custom validation and clears invalid-credentials banner on input', async ({
     page,
   }) => {

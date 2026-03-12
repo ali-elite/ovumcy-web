@@ -217,6 +217,10 @@ test.describe('Settings: password, export, clear data, delete account', () => {
   test('clear data removes tracked entry and resets cycle defaults', async ({ page }) => {
     await registerOwnerAndOpenSettings(page, 'settings-clear-data');
 
+    const dangerZone = page.locator('section.settings-danger-zone');
+    await expect(dangerZone.locator('form[action="/api/settings/clear-data"]')).toHaveCount(1);
+    await expect(page.locator('#settings-data form[action="/api/settings/clear-data"]')).toHaveCount(0);
+
     await setRangeValue(page.locator('#settings-cycle-length'), 35);
     await setRangeValue(page.locator('#settings-period-length'), 7);
     await fillDateField(page.locator('#settings-last-period-start'), isoDaysAgo(12));
@@ -238,7 +242,7 @@ test.describe('Settings: password, export, clear data, delete account', () => {
     await expect(symptomSection).not.toContainText('Kept in history and export.');
     await expect(symptomSection).not.toContainText('Built-in symptoms always stay available.');
 
-    await page.locator('form[action="/api/settings/clear-data"] button[type="submit"]').click();
+    await dangerZone.locator('form[action="/api/settings/clear-data"] button[type="submit"]').click();
     await expect(page.locator('#confirm-modal')).toBeVisible();
     await page.locator('#confirm-modal-accept').click();
 

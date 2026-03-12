@@ -444,6 +444,34 @@
     target.appendChild(block);
   }
 
+  function statusAnchorForField(field) {
+    if (!field) {
+      return null;
+    }
+
+    if (typeof field.closest === "function") {
+      var passwordField = field.closest(".password-field");
+      if (passwordField) {
+        return passwordField;
+      }
+    }
+
+    return field;
+  }
+
+  function moveFormStatusTarget(target, field) {
+    if (!target || !field) {
+      return;
+    }
+
+    var anchor = statusAnchorForField(field);
+    if (!anchor || !anchor.parentNode || typeof anchor.insertAdjacentElement !== "function") {
+      return;
+    }
+
+    anchor.insertAdjacentElement("afterend", target);
+  }
+
   function clearFormStatus(target) {
     if (!target) {
       return;
@@ -505,6 +533,7 @@
       }
 
       event.preventDefault();
+      moveFormStatusTarget(statusTarget, invalidField);
       renderFormStatusError(statusTarget, invalidField.validationMessage || requiredMessage);
       invalidField.focus();
     });
@@ -563,6 +592,7 @@
       invalidField = firstInvalidRequiredField(form, requiredMessage, emailMessage);
       if (invalidField) {
         event.preventDefault();
+        moveFormStatusTarget(statusTarget, invalidField);
         renderFormStatusError(statusTarget, invalidField.validationMessage || requiredMessage);
         invalidField.focus();
         return;
@@ -573,6 +603,7 @@
       }
 
       event.preventDefault();
+      moveFormStatusTarget(statusTarget, confirmField);
       renderFormStatusError(statusTarget, mismatchMessage);
       focusLoginPasswordField(confirmField);
     });
@@ -2126,15 +2157,20 @@
     for (var index = 0; index < disclosures.length; index++) {
       var disclosure = disclosures[index];
       var label = disclosure.querySelector("[data-note-disclosure-label]");
+      var summary = disclosure.querySelector("summary");
       var notesField = disclosure.querySelector("[data-dashboard-notes]");
       var openText = String(disclosure.getAttribute("data-note-open-text") || "");
       var emptyText = String(disclosure.getAttribute("data-note-empty-text") || "");
       var filledText = String(disclosure.getAttribute("data-note-filled-text") || "");
       var hasNotes = !!(notesField && String(notesField.value || "").trim());
+      var isOpen = disclosure.hasAttribute("open");
+      if (summary) {
+        summary.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      }
       if (!label) {
         continue;
       }
-      label.textContent = disclosure.hasAttribute("open")
+      label.textContent = isOpen
         ? openText
         : (hasNotes ? filledText : emptyText);
     }
@@ -2148,10 +2184,20 @@
     var disclosures = root.querySelectorAll("[data-note-disclosure]");
     for (var index = 0; index < disclosures.length; index++) {
       var disclosure = disclosures[index];
+      var summary = disclosure.querySelector("summary");
       if (disclosure.dataset.noteDisclosureBound === "1") {
         continue;
       }
       disclosure.dataset.noteDisclosureBound = "1";
+      if (summary) {
+        (function (currentDisclosure) {
+          summary.addEventListener("click", function (event) {
+            event.preventDefault();
+            currentDisclosure.open = !currentDisclosure.open;
+            syncNoteDisclosure(root);
+          });
+        })(disclosure);
+      }
       disclosure.addEventListener("toggle", function () {
         syncNoteDisclosure(root);
       });
