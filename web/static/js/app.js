@@ -1,8 +1,8 @@
 (function () {
   "use strict";
 
-  var PASSWORD_HIDE_ICON = "\u{1F648}";
-  var PASSWORD_SHOW_ICON = "\u{1F441}";
+  var PASSWORD_HIDE_ICON = '<svg viewBox="0 0 24 24" class="password-toggle-svg" focusable="false" aria-hidden="true"><path d="M3 3.8 21 20.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path><path d="M9.9 9.9A3 3 0 0 0 12 15a3 3 0 0 0 2.1-.9" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path><path d="M5.5 7.7C4.3 8.7 3.3 10 2.6 12c2.1 3.6 5.6 5.8 9.4 5.8 1.7 0 3.4-.5 4.9-1.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path><path d="M10.1 6.4c.6-.2 1.2-.2 1.9-.2 3.8 0 7.3 2.2 9.4 5.8-.5.9-1.2 1.8-2 2.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path></svg>';
+  var PASSWORD_SHOW_ICON = '<svg viewBox="0 0 24 24" class="password-toggle-svg" focusable="false" aria-hidden="true"><path d="M2.6 12c2.1-3.6 5.6-5.8 9.4-5.8s7.3 2.2 9.4 5.8c-2.1 3.6-5.6 5.8-9.4 5.8S4.7 15.6 2.6 12Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"></circle></svg>';
   var TOAST_VISIBLE_MS = 5200;
   var TOAST_EXIT_MS = 220;
   var STATUS_CLEAR_MS = 2000;
@@ -346,11 +346,21 @@
     });
   }
 
+  function passwordToggleIconNode(button) {
+    if (!button || !button.querySelector) {
+      return null;
+    }
+    return button.querySelector("[data-password-toggle-icon]");
+  }
+
   function updatePasswordToggleLabel(button, isVisible) {
     var showLabel = button.getAttribute("data-show-label") || "Show password";
     var hideLabel = button.getAttribute("data-hide-label") || "Hide password";
+    var iconNode = passwordToggleIconNode(button);
     button.setAttribute("aria-label", isVisible ? hideLabel : showLabel);
-    button.textContent = isVisible ? PASSWORD_HIDE_ICON : PASSWORD_SHOW_ICON;
+    if (iconNode) {
+      iconNode.innerHTML = isVisible ? PASSWORD_HIDE_ICON : PASSWORD_SHOW_ICON;
+    }
   }
 
   function attachPasswordToggles(root) {
@@ -1304,18 +1314,35 @@
     }
   }
 
+  function syncCurrentUserIdentityContainer(container, identity) {
+    if (!container) {
+      return;
+    }
+
+    var normalized = String(identity || "").trim();
+    var placeholder = String(container.getAttribute("data-placeholder-label") || "").trim();
+    var displayText = normalized || placeholder;
+
+    container.classList.toggle("nav-user-chip-empty", normalized === "");
+    container.setAttribute("title", displayText);
+  }
+
   function updateCurrentUserIdentity(identity) {
     var normalized = String(identity || "").trim();
-    if (!normalized) {
-      return;
+    var containers = document.querySelectorAll("[data-current-user-identity-container]");
+    for (var containerIndex = 0; containerIndex < containers.length; containerIndex++) {
+      syncCurrentUserIdentityContainer(containers[containerIndex], normalized);
     }
 
     var identityNodes = document.querySelectorAll("[data-current-user-identity]");
     for (var index = 0; index < identityNodes.length; index++) {
       var node = identityNodes[index];
-      node.textContent = normalized;
+      var container = typeof node.closest === "function" ? node.closest("[data-current-user-identity-container]") : null;
+      var placeholder = container ? String(container.getAttribute("data-placeholder-label") || "").trim() : "";
+      var displayText = normalized || placeholder;
+      node.textContent = displayText;
       if (typeof node.setAttribute === "function") {
-        node.setAttribute("title", normalized);
+        node.setAttribute("title", displayText);
       }
     }
   }
@@ -1332,7 +1359,7 @@
     }
 
     var identity = xhr.getResponseHeader("X-Ovumcy-Profile-Identity");
-    if (!identity) {
+    if (identity === null) {
       return;
     }
 

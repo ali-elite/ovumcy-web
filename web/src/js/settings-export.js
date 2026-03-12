@@ -468,15 +468,11 @@
       var fromDate = fromResult.date;
       var toDate = toResult.date;
 
-      if (bounds.hasBounds) {
-        if (!fromDate) {
-          fromDate = cloneDate(bounds.minBound);
-          setDateFieldValue(context.fromField, context.fromInput, formatISODate(fromDate));
-        }
-        if (!toDate) {
-          toDate = cloneDate(bounds.maxBound);
-          setDateFieldValue(context.toField, context.toInput, formatISODate(toDate));
-        }
+      if (!fromDate || !toDate) {
+        clearDateFieldValidity(context.fromField, context.fromInput);
+        clearDateFieldValidity(context.toField, context.toInput);
+        setExportActionsDisabled(true);
+        return false;
       }
 
       if (fromDate && toDate && dateKey(toDate) < dateKey(fromDate)) {

@@ -86,14 +86,17 @@ async function assertSelectedSymptomChipHasNoTrailingMarker(chip: Locator): Prom
 
 async function ensureSymptomInputVisible(root: Locator, symptomName: string): Promise<Locator> {
   const input = root.locator(`input[name="symptom_ids"][data-symptom-name="${symptomName}"]`);
-  const visible = await input.isVisible().catch(() => false);
+  const visibleChip = root.locator(
+    `label.choice-option:has(input[name="symptom_ids"][data-symptom-name="${symptomName}"])`
+  );
+  const visible = await visibleChip.isVisible().catch(() => false);
   if (!visible) {
     const moreSummary = root.locator('[data-symptom-more-toggle]');
     if (await moreSummary.isVisible().catch(() => false)) {
       await moreSummary.click();
     }
   }
-  await expect(input).toBeVisible();
+  await expect(visibleChip).toBeVisible();
   return input;
 }
 
@@ -219,7 +222,9 @@ test.describe('Settings: profile and cycle', () => {
     await page.reload();
     await expect(page).toHaveURL(/\/settings$/);
     await expect(displayNameInput).toHaveValue(newName);
-    await expect(page.locator('.nav-user-chip')).toHaveCount(0);
+    await expect(page.locator('.nav-user-chip')).toContainText(newName);
+    await expect(page.locator('.nav-user-chip')).not.toContainText(creds.email);
+    await expect(page.locator('.nav-user-chip')).not.toContainText(creds.email.split('@')[0]);
 
     await displayNameInput.evaluate((el) => {
       (el as HTMLInputElement).value = 'X'.repeat(80);
@@ -233,7 +238,9 @@ test.describe('Settings: profile and cycle', () => {
 
     await page.reload();
     await expect(displayNameInput).toHaveValue('');
-    await expect(page.locator('.nav-user-chip')).toHaveCount(0);
+    await expect(page.locator('.nav-user-chip')).toContainText('Add profile name');
+    await expect(page.locator('.nav-user-chip')).not.toContainText(creds.email);
+    await expect(page.locator('.nav-user-chip')).not.toContainText(creds.email.split('@')[0]);
   });
 
   test('cycle settings persist, affect dashboard predictions, and reject future last-period date', async ({
@@ -383,6 +390,33 @@ test.describe('Settings: profile and cycle', () => {
     await page.goto('/settings');
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator('#settings-last-period-start')).toHaveValue(selectedStart);
+  });
+
+  test('new custom symptoms stay visible in dashboard and calendar pickers without forcing extra expansion', async ({
+    page,
+  }) => {
+    await registerOwnerAndOpenSettings(page, 'settings-custom-symptom-primary');
+
+    const symptomSection = page.locator('#settings-symptoms-section');
+    await createCustomSymptom(symptomSection, 'Joint stiffness', '✨');
+
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/dashboard$/);
+    const dashboardSymptom = dashboardSaveForm(page).locator(
+      'label.choice-option:has(input[name="symptom_ids"][data-symptom-name="Joint stiffness"])'
+    );
+    await expect(dashboardSymptom).toBeVisible();
+
+    const todayAction = await dashboardSaveForm(page).getAttribute('hx-post');
+    expect(todayAction).toMatch(/^\/api\/days\/\d{4}-\d{2}-\d{2}$/);
+    const todayISO = String(todayAction).replace('/api/days/', '');
+
+    const dayEditorForm = await openCalendarDayEditor(page, todayISO);
+    await expect(
+      dayEditorForm.locator(
+        'label.choice-option:has(input[name="symptom_ids"][data-symptom-name="Joint stiffness"])'
+      )
+    ).toBeVisible();
   });
 
   test('archiving a custom symptom keeps old entries while hiding it from new days', async ({

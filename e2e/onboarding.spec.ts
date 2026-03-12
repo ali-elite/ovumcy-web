@@ -128,6 +128,27 @@ test.describe('Onboarding flow', () => {
     await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
   });
 
+  test('today quick-pick keeps the exact selected date through onboarding completion', async ({
+    page,
+  }) => {
+    await registerAndOpenOnboarding(page, 'onboarding-step1-today-persist');
+
+    const todayQuickPick = page
+      .locator('form[hx-post="/onboarding/step1"] button[data-onboarding-day-option]')
+      .first();
+    const selectedValue = await todayQuickPick.getAttribute('data-onboarding-day-value');
+    expect(selectedValue).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    await todayQuickPick.click();
+    await page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]').click();
+    await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
+    await submitStepTwo(page);
+
+    await page.goto('/settings');
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(page.locator('#settings-last-period-start')).toHaveValue(String(selectedValue));
+  });
+
   test('step 1 enforces min/max bounds and clamps out-of-range values', async ({ page }) => {
     await registerAndOpenOnboarding(page, 'onboarding-step1-bounds');
 

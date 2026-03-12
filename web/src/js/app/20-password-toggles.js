@@ -1,8 +1,18 @@
+  function passwordToggleIconNode(button) {
+    if (!button || !button.querySelector) {
+      return null;
+    }
+    return button.querySelector("[data-password-toggle-icon]");
+  }
+
   function updatePasswordToggleLabel(button, isVisible) {
     var showLabel = button.getAttribute("data-show-label") || "Show password";
     var hideLabel = button.getAttribute("data-hide-label") || "Hide password";
+    var iconNode = passwordToggleIconNode(button);
     button.setAttribute("aria-label", isVisible ? hideLabel : showLabel);
-    button.textContent = isVisible ? PASSWORD_HIDE_ICON : PASSWORD_SHOW_ICON;
+    if (iconNode) {
+      iconNode.innerHTML = isVisible ? PASSWORD_HIDE_ICON : PASSWORD_SHOW_ICON;
+    }
   }
 
   function attachPasswordToggles(root) {

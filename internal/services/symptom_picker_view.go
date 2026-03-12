@@ -36,10 +36,23 @@ func SplitSymptomsForCollapsedPicker(symptoms []models.SymptomType, selectedIDs 
 	}
 
 	primary := make([]models.SymptomType, 0, primaryLimit)
+	custom := make([]models.SymptomType, 0, len(symptoms))
 	remaining := make([]models.SymptomType, 0, len(symptoms))
 
 	for _, symptom := range symptoms {
 		if selectedIDs[symptom.ID] {
+			primary = append(primary, symptom)
+			continue
+		}
+		if !symptom.IsBuiltin && symptom.IsActive() {
+			custom = append(custom, symptom)
+			continue
+		}
+		remaining = append(remaining, symptom)
+	}
+
+	for _, symptom := range custom {
+		if len(primary) < primaryLimit {
 			primary = append(primary, symptom)
 			continue
 		}

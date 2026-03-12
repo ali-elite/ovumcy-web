@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { fillDateField } from './support/date-field-helpers';
+import { clearDateField, fillDateField } from './support/date-field-helpers';
 import {
   completeOnboardingIfPresent,
   continueFromRecoveryCode,
@@ -31,6 +31,15 @@ async function registerOwnerAndReachDashboard(page: Page, prefix: string) {
   await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
 
   return credentials;
+}
+
+async function setRangeValue(selector: string, page: Page, value: number): Promise<void> {
+  await page.locator(selector).evaluate((element, rawValue) => {
+    const input = element as HTMLInputElement;
+    input.value = String(rawValue);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
 }
 
 async function pickTimezoneWithDifferentUTCDate(page: Page): Promise<string> {
@@ -112,6 +121,16 @@ async function timezoneToday(page: Page, timezone: string): Promise<{
   }, timezone);
 }
 
+async function browserLocalISODate(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
+}
+
 test.describe('Bug regressions', () => {
   test.describe('BUG-01: request-local date consistency', () => {
     test('dashboard date subtitle, cycle day and calendar today badge use request timezone', async ({
@@ -187,6 +206,39 @@ test.describe('Bug regressions', () => {
       await expect(todayButton).toBeVisible();
       await expect(todayButton).toHaveAttribute('data-day', expectedToday.iso);
 
+    });
+
+    test('calendar marks the current baseline period window before manual day logs exist', async ({
+      page,
+    }) => {
+      await registerOwnerAndReachDashboard(page, 'bug01-baseline-period');
+
+      await page.goto('/settings');
+      await expect(page).toHaveURL(/\/settings$/);
+
+      const csrfToken = (await page.locator('meta[name="csrf-token"]').getAttribute('content')) ?? '';
+      const clearResponse = await page.request.post('/api/settings/clear-data', {
+        form: { csrf_token: csrfToken },
+        maxRedirects: 0,
+      });
+      expect([200, 303]).toContain(clearResponse.status());
+
+      await page.goto('/settings');
+      await expect(page).toHaveURL(/\/settings$/);
+
+      const cycleForm = page.locator('section#settings-cycle form[action="/settings/cycle"]');
+      const todayISO = await browserLocalISODate(page);
+      await fillDateField(cycleForm.locator('#settings-last-period-start'), shiftISODate(todayISO, -4));
+      await setRangeValue('#settings-cycle-length', page, 28);
+      await setRangeValue('#settings-period-length', page, 5);
+      await cycleForm.locator('button[data-save-button]').click();
+      await expect(page.locator('#settings-cycle-status .status-ok')).toBeVisible();
+
+      const currentStart = await cycleForm.locator('#settings-last-period-start').inputValue();
+      const currentDay = shiftISODate(currentStart, 4);
+
+      await page.goto(`/calendar?month=${currentDay.slice(0, 7)}&day=${currentDay}`);
+      await expect(page.locator(`button[data-day="${currentDay}"]`)).toHaveClass(/calendar-cell-predicted/);
     });
   });
 
@@ -264,11 +316,15 @@ test.describe('Bug regressions', () => {
   });
 
   test.describe('BUG-03: profile name immediate nav update', () => {
-    test('settings profile save keeps the header identity empty and persists the field value', async ({ page }) => {
+    test('settings profile save updates the header identity without email fallback', async ({ page }) => {
       await registerOwnerAndReachDashboard(page, 'bug03-profile-live');
 
       await page.goto('/settings');
       await expect(page).toHaveURL(/\/settings$/);
+
+      const identityChip = page.locator('[data-current-user-identity-container]').first();
+      await expect(identityChip).toBeVisible();
+      await expect(identityChip).toContainText('Add profile name');
 
       const newName = `TestUser_${Date.now()}`;
       const nameInput = page.locator('#settings-display-name');
@@ -277,10 +333,12 @@ test.describe('Bug regressions', () => {
       await page.locator('form[action="/api/settings/profile"] button[data-save-button]').click();
       await expect(page.locator('#settings-profile-status .status-ok')).toBeVisible();
 
-      await expect(page.locator('.nav-user-chip')).toHaveCount(0);
+      await expect(identityChip).toContainText(newName);
       await page.reload();
       await expect(page.locator('#settings-display-name')).toHaveValue(newName);
-      await expect(page.locator('.nav-user-chip')).toHaveCount(0);
+      const reloadedIdentityChip = page.locator('[data-current-user-identity-container]').first();
+      await expect(reloadedIdentityChip).toContainText(newName);
+      await expect(reloadedIdentityChip).not.toContainText('@');
     });
   });
 });

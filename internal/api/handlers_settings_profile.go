@@ -38,9 +38,7 @@ func (handler *Handler) UpdateProfile(c *fiber.Ctx) error {
 	}
 	if isHTMX(c) {
 		identity := userIdentityAfterProfileUpdate(user, displayName)
-		if identity != "" {
-			c.Set("X-Ovumcy-Profile-Identity", identity)
-		}
+		c.Set("X-Ovumcy-Profile-Identity", identity)
 		messageKey := services.SettingsStatusTranslationKey(status)
 		message := translateMessage(currentMessages(c), messageKey)
 		if message == "" || message == messageKey {

@@ -210,9 +210,11 @@ test.describe('Auth: register, login, logout', () => {
 
   test('password visibility toggles work on login, register and settings forms', async ({ page }) => {
     const assertToggle = async (inputSelector: string, toggleSelector: string) => {
+      await expect(page.locator(`${toggleSelector} svg.password-toggle-svg`)).toBeVisible();
       await expect(page.locator(inputSelector)).toHaveAttribute('type', 'password');
       await page.locator(toggleSelector).click();
       await expect(page.locator(inputSelector)).toHaveAttribute('type', 'text');
+      await expect(page.locator(`${toggleSelector} svg.password-toggle-svg`)).toBeVisible();
       await page.locator(toggleSelector).click();
       await expect(page.locator(inputSelector)).toHaveAttribute('type', 'password');
     };

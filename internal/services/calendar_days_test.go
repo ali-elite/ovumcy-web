@@ -91,6 +91,25 @@ func TestBuildCalendarDayStatesProjectsOvulationIntoFutureCycles(t *testing.T) {
 	}
 }
 
+func TestBuildCalendarDayStatesIncludesCurrentBaselinePeriodWindow(t *testing.T) {
+	monthStart := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC)
+	now := time.Date(2026, time.March, 12, 0, 0, 0, 0, time.UTC)
+
+	stats := CycleStats{
+		AveragePeriodLength: 5,
+		LastPeriodStart:     time.Date(2026, time.March, 8, 0, 0, 0, 0, time.UTC),
+	}
+
+	days := BuildCalendarDayStates(monthStart, nil, stats, now, time.UTC)
+
+	for _, dateString := range []string{"2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12"} {
+		day := findCalendarDayStateByDateString(t, days, dateString)
+		if !day.IsPredicted {
+			t.Fatalf("expected baseline period day %s to be marked as predicted period", dateString)
+		}
+	}
+}
+
 func findCalendarDayStateByDateString(t *testing.T, days []CalendarDayState, date string) CalendarDayState {
 	t.Helper()
 	for _, day := range days {

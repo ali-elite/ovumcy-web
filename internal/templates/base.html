@@ -42,7 +42,16 @@
         </a>
 
         {{if and .CurrentUser (not .HideNavigation)}}
-        <div class="flex items-center gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <a
+            href="/settings#settings-account"
+            class="role-chip nav-user-chip nav-user-chip-header{{if not (hasDisplayName .CurrentUser)}} nav-user-chip-empty{{end}}"
+            data-current-user-identity-container
+            data-placeholder-label="{{t .Messages "nav.profile_name_hint"}}"
+            title="{{if hasDisplayName .CurrentUser}}{{userIdentity .CurrentUser}}{{else}}{{t .Messages "nav.profile_name_hint"}}{{end}}">
+            <span class="nav-user-chip-icon" aria-hidden="true">👤</span>
+            <span data-current-user-identity>{{if hasDisplayName .CurrentUser}}{{userIdentity .CurrentUser}}{{else}}{{t .Messages "nav.profile_name_hint"}}{{end}}</span>
+          </a>
           <button
             type="button"
             class="menu-toggle sm:hidden"
@@ -167,7 +176,14 @@
     data-password-toggle
     data-show-label="{{t .Messages "auth.show_password"}}"
     data-hide-label="{{t .Messages "auth.hide_password"}}"
-    aria-label="{{t .Messages "auth.show_password"}}">👁</button>
+    aria-label="{{t .Messages "auth.show_password"}}">
+    <span class="password-toggle-icon" data-password-toggle-icon aria-hidden="true">
+      <svg viewBox="0 0 24 24" class="password-toggle-svg" focusable="false" aria-hidden="true">
+        <path d="M2.6 12c2.1-3.6 5.6-5.8 9.4-5.8s7.3 2.2 9.4 5.8c-2.1 3.6-5.6 5.8-9.4 5.8S4.7 15.6 2.6 12Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+        <circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
+      </svg>
+    </span>
+  </button>
 </div>
 {{end}}
 {{define "recovery_code_panel"}}
@@ -426,11 +442,8 @@
 <details class="sex-activity-details" data-sex-activity-details {{if ne .SelectedSexActivity "none"}}open{{end}}>
   <summary class="sex-chip-summary">
     <span class="{{if .Compact}}check-chip check-chip-sm check-chip-static{{else}}check-chip check-chip-static{{end}} sex-chip-summary-pill{{if ne .SelectedSexActivity "none"}} choice-chip-active{{end}}">
-      <span class="symptom-icon">♥</span>
+      <span class="symptom-icon sex-heart-icon">♥</span>
       <span class="symptom-label">{{t .Messages "dashboard.sex"}}</span>
-      {{if ne .SelectedSexActivity "none"}}
-      <span class="sex-chip-status">{{sexActivityLabel .Messages .SelectedSexActivity}}</span>
-      {{end}}
       <span class="sex-chip-chevron" aria-hidden="true">▼</span>
     </span>
   </summary>
@@ -455,7 +468,7 @@
 </label>
 {{end}}
 {{define "cervical_mucus_options"}}
-<div class="{{if .Compact}}flow-radio-row flow-radio-row-compact{{else}}flow-radio-row{{end}}">
+<div class="cervical-mucus-row{{if .Compact}} cervical-mucus-row-compact{{end}}">
   {{template "cervical_mucus_option" (dict "Messages" .Messages "SelectedCervicalMucus" .SelectedCervicalMucus "Value" "none" "Compact" .Compact)}}
   {{template "cervical_mucus_option" (dict "Messages" .Messages "SelectedCervicalMucus" .SelectedCervicalMucus "Value" "dry" "Compact" .Compact)}}
   {{template "cervical_mucus_option" (dict "Messages" .Messages "SelectedCervicalMucus" .SelectedCervicalMucus "Value" "moist" "Compact" .Compact)}}

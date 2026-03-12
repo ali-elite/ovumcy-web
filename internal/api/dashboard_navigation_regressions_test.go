@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/models"
 )
 
 func TestDashboardLogoutFormsRequireConfirmation(t *testing.T) {
@@ -45,9 +46,12 @@ func TestDashboardLogoutFormsRequireConfirmation(t *testing.T) {
 	}
 }
 
-func TestDashboardNavigationOmitsCurrentUserIdentity(t *testing.T) {
+func TestDashboardNavigationShowsDisplayNameWithoutEmailFallback(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "identity-owner@example.com", "StrongPass1", true)
+	if err := database.Model(&models.User{}).Where("id = ?", user.ID).Update("display_name", "Maya").Error; err != nil {
+		t.Fatalf("seed display name: %v", err)
+	}
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
 
 	request := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
@@ -74,6 +78,23 @@ func TestDashboardNavigationOmitsCurrentUserIdentity(t *testing.T) {
 	}
 	if strings.Contains(rendered, "identity-owner@example.com") {
 		t.Fatalf("did not expect email identity in navigation")
+	}
+	if !strings.Contains(rendered, `data-current-user-identity`) || !strings.Contains(rendered, ">Maya<") {
+		t.Fatalf("expected dashboard navigation to render the saved display name, got %q", rendered)
+	}
+}
+
+func TestDashboardNavigationShowsProfileHintWhenDisplayNameEmpty(t *testing.T) {
+	app, database := newOnboardingTestApp(t)
+	user := createOnboardingTestUser(t, database, "identity-empty@example.com", "StrongPass1", true)
+	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
+
+	rendered := mustRenderDashboard(t, app, authCookie, "en")
+	if !strings.Contains(rendered, "Add profile name") {
+		t.Fatalf("expected empty display-name navigation hint, got %q", rendered)
+	}
+	if strings.Contains(rendered, "identity-empty@example.com") || strings.Contains(rendered, "identity-empty") {
+		t.Fatalf("did not expect email fallback in navigation when display name is empty")
 	}
 }
 

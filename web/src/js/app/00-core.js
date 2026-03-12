@@ -1,8 +1,8 @@
 (function () {
   "use strict";
 
-  var PASSWORD_HIDE_ICON = "\u{1F648}";
-  var PASSWORD_SHOW_ICON = "\u{1F441}";
+  var PASSWORD_HIDE_ICON = '<svg viewBox="0 0 24 24" class="password-toggle-svg" focusable="false" aria-hidden="true"><path d="M3 3.8 21 20.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path><path d="M9.9 9.9A3 3 0 0 0 12 15a3 3 0 0 0 2.1-.9" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path><path d="M5.5 7.7C4.3 8.7 3.3 10 2.6 12c2.1 3.6 5.6 5.8 9.4 5.8 1.7 0 3.4-.5 4.9-1.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path><path d="M10.1 6.4c.6-.2 1.2-.2 1.9-.2 3.8 0 7.3 2.2 9.4 5.8-.5.9-1.2 1.8-2 2.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path></svg>';
+  var PASSWORD_SHOW_ICON = '<svg viewBox="0 0 24 24" class="password-toggle-svg" focusable="false" aria-hidden="true"><path d="M2.6 12c2.1-3.6 5.6-5.8 9.4-5.8s7.3 2.2 9.4 5.8c-2.1 3.6-5.6 5.8-9.4 5.8S4.7 15.6 2.6 12Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"></circle></svg>';
   var TOAST_VISIBLE_MS = 5200;
   var TOAST_EXIT_MS = 220;
   var STATUS_CLEAR_MS = 2000;

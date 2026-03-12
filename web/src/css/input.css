@@ -209,6 +209,18 @@
       transform 180ms ease;
   }
 
+  .theme-switch-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
   .theme-switch-option:hover {
     background: rgba(232, 196, 168, 0.38);
     border-color: rgba(186, 131, 80, 0.18);
@@ -229,6 +241,11 @@
     box-shadow:
       inset 0 0 0 1px rgba(255, 247, 237, 0.12),
       0 6px 12px rgba(186, 131, 80, 0.26);
+  }
+
+  .theme-switch-option[data-selected="true"] .theme-switch-check {
+    opacity: 1;
+    transform: scale(1);
   }
 
   .settings-interface-grid {
@@ -378,6 +395,30 @@
     font-weight: 600;
     font-size: 0.74rem;
     letter-spacing: 0.01em;
+    text-transform: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    max-width: min(100%, 16rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .nav-user-chip-header {
+    margin-left: auto;
+  }
+
+  .nav-user-chip-icon {
+    flex: 0 0 auto;
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+
+  .nav-user-chip-empty {
+    color: var(--text-muted);
   }
 
   .nav-divider {
@@ -582,6 +623,21 @@
     cursor: pointer;
   }
 
+  .password-toggle-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    pointer-events: none;
+  }
+
+  .password-toggle-svg {
+    width: 1rem;
+    height: 1rem;
+    stroke: currentColor;
+  }
+
   .password-toggle-btn:hover {
     background: rgba(232, 196, 168, 0.4);
     color: var(--accent-strong);
@@ -770,6 +826,15 @@
   .btn-warning:hover {
     transform: translateY(-1px);
     background: rgba(247, 218, 161, 0.92);
+  }
+
+  .btn-secondary-caution {
+    border-color: rgba(177, 86, 78, 0.28);
+    color: #8f5049;
+  }
+
+  .btn-secondary-caution:hover {
+    background: rgba(250, 222, 216, 0.4);
   }
 
   .btn-danger {
@@ -1060,15 +1125,12 @@
   .sex-chip-summary-pill {
     justify-content: flex-start;
     gap: 0.5rem;
-    min-width: min(100%, 13rem);
+    min-width: 0;
     padding-inline: 0.75rem;
   }
 
-  .sex-chip-status {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--accent-strong);
-    line-height: 1.1;
+  .sex-heart-icon {
+    color: #d34957;
   }
 
   .sex-chip-chevron {
@@ -1083,13 +1145,13 @@
   }
 
   .sex-activity-row {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
     gap: 0.55rem;
   }
 
   .sex-activity-row .choice-option {
-    flex: 1 1 9.5rem;
+    min-width: 0;
   }
 
   .sex-activity-row .radio-tile {
@@ -1101,7 +1163,44 @@
   }
 
   .sex-activity-row-compact .choice-option {
-    flex-basis: 8.25rem;
+    min-width: 0;
+  }
+
+  .cervical-mucus-row {
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  }
+
+  .cervical-mucus-row .choice-option {
+    min-width: 0;
+  }
+
+  .cervical-mucus-row .radio-tile {
+    min-height: 2.7rem;
+    justify-content: center;
+    text-align: center;
+    padding-inline: 0.72rem;
+  }
+
+  .measurement-field-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    max-width: 12rem;
+    width: 100%;
+  }
+
+  .measurement-field-input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .measurement-field-unit {
+    flex: 0 0 auto;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-muted);
   }
 
   .symptom-group-panel .symptom-grid {
@@ -1377,7 +1476,7 @@
     align-items: center;
     justify-content: center;
     min-width: 0.6rem;
-    color: var(--text-muted);
+    color: #d34957;
     font-size: 0.85rem;
     line-height: 1;
   }
@@ -1467,6 +1566,14 @@
 
   .settings-account-block {
     background: var(--surface-tint);
+  }
+
+  .settings-locked-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-secondary);
+    font-weight: 600;
   }
 
   .settings-danger-zone {
@@ -2162,6 +2269,10 @@
       0 6px 14px rgba(86, 62, 125, 0.34);
   }
 
+  :root[data-theme="dark"] .theme-switch-option[data-selected="true"] .theme-switch-check {
+    color: #ffe7c9;
+  }
+
   :root[data-theme="dark"] .menu-toggle,
   :root[data-theme="dark"] .nav-link-logout,
   :root[data-theme="dark"] .btn-secondary,
@@ -2187,6 +2298,10 @@
     border-color: rgba(157, 129, 196, 0.58);
     background: rgba(43, 34, 58, 0.86);
     color: #e8dcf7;
+  }
+
+  :root[data-theme="dark"] .nav-user-chip-empty {
+    color: #c2b3db;
   }
 
   :root[data-theme="dark"] .nav-divider {
@@ -2225,6 +2340,15 @@
   :root[data-theme="dark"] .password-toggle-btn:hover {
     background: rgba(159, 124, 215, 0.2);
     color: #f0d3b5;
+  }
+
+  :root[data-theme="dark"] .btn-secondary-caution {
+    border-color: rgba(196, 108, 108, 0.42);
+    color: #f0c2bf;
+  }
+
+  :root[data-theme="dark"] .btn-secondary-caution:hover {
+    background: rgba(116, 57, 57, 0.6);
   }
 
   :root[data-theme="dark"] .btn-warning {
@@ -2481,8 +2605,9 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .sex-activity-row .choice-option {
-      flex-basis: 100%;
+    .sex-activity-row,
+    .cervical-mucus-row {
+      grid-template-columns: 1fr;
     }
 
     .mood-row,

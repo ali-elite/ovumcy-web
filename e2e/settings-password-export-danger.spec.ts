@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { fillDateField } from './support/date-field-helpers';
+import { clearDateField, fillDateField } from './support/date-field-helpers';
 import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
 import {
   completeOnboardingIfPresent,
@@ -266,6 +266,27 @@ test.describe('Settings: password, export, clear data, delete account', () => {
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator('#export-to')).toHaveValue(todayISO);
     await expect(page.locator('#export-to')).toHaveAttribute('max', futureISO);
+  });
+
+  test('export range fields stay stable while editing instead of snapping back to bounds', async ({
+    page,
+  }) => {
+    await registerOwnerAndOpenSettings(page, 'settings-export-stable-range');
+
+    await page.goto('/settings');
+    await expect(page).toHaveURL(/\/settings$/);
+
+    const exportTo = page.locator('#export-to');
+    const exportButtons = page.locator('button[data-export-action]');
+    const initialValue = String(await exportTo.inputValue());
+
+    await clearDateField(exportTo);
+    await expect(exportTo).toHaveValue('');
+    await expect(exportButtons.first()).toBeDisabled();
+
+    await fillDateField(exportTo, initialValue);
+    await expect(exportTo).toHaveValue(initialValue);
+    await expect(exportButtons.first()).toBeEnabled();
   });
 
   test('clear data removes tracked entry and resets cycle defaults', async ({ page }) => {

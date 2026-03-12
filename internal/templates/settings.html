@@ -45,6 +45,7 @@
             aria-pressed="false">
             <span class="theme-switch-icon" aria-hidden="true">☀️</span>
             <span>{{t .Messages "theme.name.light"}}</span>
+            <span class="theme-switch-check" aria-hidden="true">✓</span>
           </button>
           <button
             type="button"
@@ -53,6 +54,7 @@
             aria-pressed="false">
             <span class="theme-switch-icon" aria-hidden="true">🌙</span>
             <span>{{t .Messages "theme.name.dark"}}</span>
+            <span class="theme-switch-check" aria-hidden="true">✓</span>
           </button>
         </div>
       </section>
@@ -240,7 +242,7 @@
           <div class="journal-panel space-y-1" data-profile-email-panel>
             <p class="field-label">{{t .Messages "settings.profile.email"}}</p>
             <p class="text-sm break-all">{{.CurrentUser.Email}}</p>
-            <p class="journal-muted text-xs">{{t .Messages "settings.profile.email_locked"}}</p>
+            <p class="settings-locked-copy text-xs"><span aria-hidden="true">🔒</span><span>{{t .Messages "settings.profile.email_locked"}}</span></p>
           </div>
 
           <div class="settings-form-actions">
@@ -293,7 +295,7 @@
 
           <div class="settings-form-actions">
             <button type="submit" class="btn-primary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{t .Messages "settings.change_password.submit"}}</button>
-            <div id="settings-change-password-status" class="save-status text-sm"></div>
+            <div id="settings-change-password-status" class="save-status text-sm" aria-live="polite"></div>
           </div>
         </form>
       </section>
@@ -443,7 +445,7 @@
         data-confirm="{{t .Messages "settings.confirm_clear_data"}}"
         data-confirm-accept="{{t .Messages "settings.clear_data.submit"}}">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <button type="submit" class="btn-warning">{{t .Messages "settings.clear_data.submit"}}</button>
+        <button type="submit" class="btn-secondary btn-secondary-caution">{{t .Messages "settings.clear_data.submit"}}</button>
       </form>
     </div>
     {{end}}

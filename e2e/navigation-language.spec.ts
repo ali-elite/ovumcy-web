@@ -89,10 +89,12 @@ test.describe('Navigation and language switch', () => {
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
     await expect(page.locator('h1.journal-title')).toContainText('Войти в аккаунт');
+    await expect(page.locator('label[for="login-email"]')).toHaveText('Эл. почта');
 
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
     await expect(page.locator('h1.journal-title')).toContainText('Войти в аккаунт');
+    await expect(page.locator('label[for="login-email"]')).toHaveText('Эл. почта');
   });
 
   test('language switch while logged in keeps current page and translates navigation/settings', async ({

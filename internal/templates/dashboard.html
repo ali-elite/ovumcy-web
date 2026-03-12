@@ -97,9 +97,9 @@
         {{if .ShowBBTField}}
         <fieldset class="space-y-2">
           <legend class="field-label">{{t .Messages "dashboard.bbt"}}</legend>
-          <div class="flex items-center gap-3">
-            <input type="number" name="bbt" value="{{if hasBBT .TodayEntry.BBT}}{{printf "%.2f" .TodayEntry.BBT}}{{end}}" step="0.01" min="34" max="43" inputmode="decimal" class="input-field max-w-[10rem]">
-            <span class="journal-muted text-sm">°C</span>
+          <div class="measurement-field-row">
+            <input type="number" name="bbt" value="{{if hasBBT .TodayEntry.BBT}}{{printf "%.2f" .TodayEntry.BBT}}{{end}}" step="0.01" min="34" max="43" inputmode="decimal" class="input-field measurement-field-input">
+            <span class="measurement-field-unit">°C</span>
           </div>
         </fieldset>
         {{end}}

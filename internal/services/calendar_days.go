@@ -66,11 +66,21 @@ func buildCalendarPredictionMaps(stats CycleStats, gridEnd time.Time, location *
 	fertilityMap := make(map[string]bool)
 	ovulationMap := make(map[string]bool)
 
+	appendCurrentBaselinePeriod(predictedPeriodMap, stats, location)
 	appendCalendarDateRange(fertilityMap, stats.FertilityWindowStart, stats.FertilityWindowEnd)
 	appendCalendarSingleDate(ovulationMap, stats.OvulationDate)
 	appendPredictedCycles(predictedPeriodMap, fertilityMap, ovulationMap, stats, gridEnd, location)
 
 	return predictedPeriodMap, fertilityMap, ovulationMap
+}
+
+func appendCurrentBaselinePeriod(predictedPeriodMap map[string]bool, stats CycleStats, location *time.Location) {
+	if stats.LastPeriodStart.IsZero() {
+		return
+	}
+
+	periodLength := predictedPeriodLength(stats.AveragePeriodLength)
+	appendPredictedPeriod(predictedPeriodMap, DateAtLocation(stats.LastPeriodStart, location), periodLength)
 }
 
 func appendCalendarDateRange(target map[string]bool, start time.Time, end time.Time) {
