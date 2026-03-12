@@ -7,6 +7,7 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
+import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
 
 function shiftISODate(iso: string, days: number): string {
   const [y, m, d] = iso.split('-').map((part) => Number(part));
@@ -19,30 +20,6 @@ function shiftISODate(iso: string, days: number): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-async function setClientTimezoneCookie(page: Page): Promise<void> {
-  const timezone = await page.evaluate(() => {
-    try {
-      return String(Intl.DateTimeFormat().resolvedOptions().timeZone || '').trim();
-    } catch {
-      return '';
-    }
-  });
-
-  if (!timezone) {
-    return;
-  }
-
-  const origin = new URL(page.url()).origin;
-  await page.context().addCookies([
-    {
-      name: 'ovumcy_tz',
-      value: timezone,
-      url: origin,
-      sameSite: 'Lax',
-    },
-  ]);
-}
-
 async function registerOwnerOnCalendar(page: Page, prefix: string): Promise<void> {
   const creds = createCredentials(prefix);
 
@@ -53,7 +30,7 @@ async function registerOwnerOnCalendar(page: Page, prefix: string): Promise<void
   await continueFromRecoveryCode(page);
   await completeOnboardingIfPresent(page);
 
-  await setClientTimezoneCookie(page);
+  await setRequestTimezoneFromBrowser(page);
   await page.goto('/calendar');
   await expect(page).toHaveURL(/\/calendar(?:\?.*)?$/);
 }

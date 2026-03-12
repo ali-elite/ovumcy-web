@@ -30,7 +30,7 @@ func TestSettingsCycleUsesRequestTimezoneForLastPeriodStartValidation(t *testing
 	request := httptest.NewRequest(http.MethodPost, "/settings/cycle", strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("HX-Request", "true")
-	request.Header.Set("Cookie", authCookie)
+	request.Header.Set("Cookie", joinCookieHeader(authCookie, timezoneCookieName+"="+timezoneName))
 	request.Header.Set(timezoneHeaderName, timezoneName)
 
 	response, err := app.Test(request, -1)

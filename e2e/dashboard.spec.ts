@@ -7,30 +7,7 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
-
-async function setClientTimezoneCookie(page: Page): Promise<void> {
-  const timezone = await page.evaluate(() => {
-    try {
-      return String(Intl.DateTimeFormat().resolvedOptions().timeZone || '').trim();
-    } catch {
-      return '';
-    }
-  });
-
-  if (!timezone) {
-    return;
-  }
-
-  const origin = new URL(page.url()).origin;
-  await page.context().addCookies([
-    {
-      name: 'ovumcy_tz',
-      value: timezone,
-      url: origin,
-      sameSite: 'Lax',
-    },
-  ]);
-}
+import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
 
 async function registerOwnerOnDashboard(page: Page, prefix: string): Promise<void> {
   const creds = createCredentials(prefix);
@@ -42,7 +19,7 @@ async function registerOwnerOnDashboard(page: Page, prefix: string): Promise<voi
   await continueFromRecoveryCode(page);
   await completeOnboardingIfPresent(page);
 
-  await setClientTimezoneCookie(page);
+  await setRequestTimezoneFromBrowser(page);
   await page.goto('/dashboard');
   await expect(page).toHaveURL(/\/dashboard$/);
 }
