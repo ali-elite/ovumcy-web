@@ -56,7 +56,7 @@
       <p class="journal-muted text-sm">{{t .Messages "dashboard.ovulation_approximate"}}</p>
       {{end}}
     {{if .ShowMissedDaysLink}}
-    <p class="journal-muted text-sm"><a href="/calendar?month={{.MissedDayMonth}}&selected={{.MissedDay}}" class="inline-link">{{t .Messages "dashboard.fill_missed_days"}}</a></p>
+    <p class="journal-muted text-sm"><a href="/calendar?month={{.MissedDayMonth}}&day={{.MissedDay}}&edit=1" class="inline-link">{{t .Messages "dashboard.fill_missed_days"}}</a></p>
     {{end}}
   </section>
 
@@ -68,7 +68,7 @@
           <p class="journal-muted">{{.FormattedDate}}</p>
         </div>
         {{if and .IsOwner .ShowYesterdayJump}}
-        <a href="/calendar?month={{.YesterdayMonth}}&selected={{.Yesterday}}" class="inline-link text-sm">← {{t .Messages "dashboard.fill_yesterday"}}</a>
+        <a href="/calendar?month={{.YesterdayMonth}}&day={{.Yesterday}}&edit=1" class="inline-link text-sm">← {{t .Messages "dashboard.fill_yesterday"}}</a>
         {{end}}
       </div>
 

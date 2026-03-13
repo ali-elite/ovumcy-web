@@ -552,9 +552,14 @@
       <form
         action="/api/settings/clear-data"
         method="post"
-        data-confirm="{{t .Messages "settings.confirm_clear_data"}}"
-        data-confirm-accept="{{t .Messages "settings.clear_data.confirm_accept"}}"
-        class="space-y-4">
+        class="space-y-4"
+        data-clear-data-verify-form
+        data-clear-data-status-target="#settings-clear-data-status"
+        data-clear-data-validate-action="/api/settings/clear-data/validate"
+        data-clear-data-confirm-message="{{t .Messages "settings.confirm_clear_data"}}"
+        data-clear-data-confirm-accept="{{t .Messages "settings.clear_data.confirm_accept"}}"
+        data-clear-data-invalid-password="{{t .Messages "settings.error.invalid_password"}}"
+        data-clear-data-request-failed="{{t .Messages "common.error.request_failed"}}">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         {{template "password_toggle_field" (dict
           "Messages" .Messages
@@ -564,6 +569,7 @@
           "Autocomplete" "current-password"
           "Required" true)}}
         <button type="submit" class="btn-secondary">{{t .Messages "settings.clear_data.submit"}}</button>
+        <div id="settings-clear-data-status" class="save-status text-sm"></div>
       </form>
     </div>
     {{end}}

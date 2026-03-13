@@ -75,6 +75,7 @@ func registerAPIRoutes(app *fiber.App, handler *Handler) {
 	settings.Post("/tracking", handler.OwnerOnly, handler.UpdateTrackingSettings)
 	settings.Post("/change-password", handler.ChangePassword)
 	settings.Post("/regenerate-recovery-code", handler.RegenerateRecoveryCode)
+	settings.Post("/clear-data/validate", handler.OwnerOnly, handler.ValidateClearDataPassword)
 	settings.Post("/clear-data", handler.OwnerOnly, handler.ClearAllData)
 	settings.Delete("/delete-account", handler.DeleteAccount)
 }

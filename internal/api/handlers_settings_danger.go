@@ -1,21 +1,26 @@
 package api
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/models"
+)
+
+func (handler *Handler) ValidateClearDataPassword(c *fiber.Ctx) error {
+	_, spec, valid := handler.validateSettingsActionPassword(c)
+	if !valid {
+		handler.logSecurityError(c, "settings.clear_data_validate", spec)
+		return handler.respondMappedError(c, spec)
+	}
+
+	if acceptsJSON(c) {
+		return c.JSON(fiber.Map{"ok": true})
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
 
 func (handler *Handler) ClearAllData(c *fiber.Ctx) error {
-	user, ok := currentUser(c)
-	if !ok {
-		spec := unauthorizedErrorSpec()
-		handler.logSecurityError(c, "settings.clear_data", spec)
-		return handler.respondMappedError(c, spec)
-	}
-	password, spec, valid := parsePasswordProtectedSettingsAction(c)
+	user, spec, valid := handler.validateSettingsActionPassword(c)
 	if !valid {
-		handler.logSecurityError(c, "settings.clear_data", spec)
-		return handler.respondMappedError(c, spec)
-	}
-	if err := handler.settingsService.ValidateCurrentPassword(user.PasswordHash, password); err != nil {
-		spec := mapSettingsDeleteAccountPasswordError(err)
 		handler.logSecurityError(c, "settings.clear_data", spec)
 		return handler.respondMappedError(c, spec)
 	}
@@ -34,19 +39,8 @@ func (handler *Handler) ClearAllData(c *fiber.Ctx) error {
 }
 
 func (handler *Handler) DeleteAccount(c *fiber.Ctx) error {
-	user, ok := currentUser(c)
-	if !ok {
-		spec := unauthorizedErrorSpec()
-		handler.logSecurityError(c, "settings.delete_account", spec)
-		return handler.respondMappedError(c, spec)
-	}
-	password, spec, valid := parsePasswordProtectedSettingsAction(c)
+	user, spec, valid := handler.validateSettingsActionPassword(c)
 	if !valid {
-		handler.logSecurityError(c, "settings.delete_account", spec)
-		return handler.respondMappedError(c, spec)
-	}
-	if err := handler.settingsService.ValidateCurrentPassword(user.PasswordHash, password); err != nil {
-		spec := mapSettingsDeleteAccountPasswordError(err)
 		handler.logSecurityError(c, "settings.delete_account", spec)
 		return handler.respondMappedError(c, spec)
 	}
@@ -76,4 +70,21 @@ func parsePasswordProtectedSettingsAction(c *fiber.Ctx) (string, APIErrorSpec, b
 		return "", spec, false
 	}
 	return input.Password, APIErrorSpec{}, true
+}
+
+func (handler *Handler) validateSettingsActionPassword(c *fiber.Ctx) (*models.User, APIErrorSpec, bool) {
+	user, ok := currentUser(c)
+	if !ok {
+		return nil, unauthorizedErrorSpec(), false
+	}
+
+	password, spec, valid := parsePasswordProtectedSettingsAction(c)
+	if !valid {
+		return nil, spec, false
+	}
+	if err := handler.settingsService.ValidateCurrentPassword(user.PasswordHash, password); err != nil {
+		return nil, mapSettingsDeleteAccountPasswordError(err), false
+	}
+
+	return user, APIErrorSpec{}, true
 }

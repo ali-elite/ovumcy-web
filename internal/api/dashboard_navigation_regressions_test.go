@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -111,6 +112,46 @@ func TestDashboardHeaderOmitsLanguageSwitch(t *testing.T) {
 		if strings.Contains(rendered, ">"+label+"</a>") {
 			t.Fatalf("did not expect %s language shortcut in dashboard header", label)
 		}
+	}
+}
+
+func TestDashboardYesterdayLinkTargetsCalendarEditModeForSelectedDay(t *testing.T) {
+	app, database := newOnboardingTestApp(t)
+	user := createOnboardingTestUser(t, database, "yesterday-link@example.com", "StrongPass1", true)
+	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
+
+	rendered := mustRenderDashboard(t, app, authCookie, "en")
+	yesterdayLinkPattern := regexp.MustCompile(`href="/calendar\?month=\d{4}-\d{2}&day=\d{4}-\d{2}-\d{2}&edit=1"`)
+	if !yesterdayLinkPattern.MatchString(rendered) {
+		t.Fatalf("expected yesterday link to target calendar selected day edit mode, got %q", rendered)
+	}
+	if strings.Contains(rendered, `selected=`) {
+		t.Fatalf("did not expect legacy selected query parameter in dashboard links")
+	}
+}
+
+func TestCalendarSelectedDayLoadsEditModeWhenRequested(t *testing.T) {
+	app, database := newOnboardingTestApp(t)
+	user := createOnboardingTestUser(t, database, "calendar-edit-selected@example.com", "StrongPass1", true)
+	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
+
+	request := httptest.NewRequest(http.MethodGet, "/calendar?month=2026-03&day=2026-03-12&edit=1", nil)
+	request.Header.Set("Accept-Language", "en")
+	request.Header.Set("Cookie", authCookie)
+
+	response, err := app.Test(request, -1)
+	if err != nil {
+		t.Fatalf("calendar request failed: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.StatusCode)
+	}
+
+	rendered := mustReadBodyString(t, response.Body)
+	if !strings.Contains(rendered, `hx-get="/calendar/day/2026-03-12?mode=edit"`) {
+		t.Fatalf("expected selected calendar day to load the editor directly, got %q", rendered)
 	}
 }
 

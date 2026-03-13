@@ -1,6 +1,8 @@
 package api
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
@@ -17,7 +19,11 @@ func (handler *Handler) ShowCalendar(c *fiber.Ctx) error {
 	language, messages, now := handler.currentPageViewContext(c)
 	location := handler.requestLocation(c)
 	minMonth := services.CalendarMinimumNavigableMonth(user, location)
-	activeMonth, selectedDate, err := services.ResolveCalendarMonthAndSelectedDateWithinBounds(c.Query("month"), c.Query("day"), now, location, minMonth)
+	selectedDateQuery := strings.TrimSpace(c.Query("day"))
+	if selectedDateQuery == "" {
+		selectedDateQuery = strings.TrimSpace(c.Query("selected"))
+	}
+	activeMonth, selectedDate, err := services.ResolveCalendarMonthAndSelectedDateWithinBounds(c.Query("month"), selectedDateQuery, now, location, minMonth)
 	if err != nil {
 		return handler.respondMappedError(c, invalidMonthErrorSpec())
 	}
@@ -26,6 +32,7 @@ func (handler *Handler) ShowCalendar(c *fiber.Ctx) error {
 	if err != nil {
 		return handler.respondMappedError(c, mapCalendarViewError(err))
 	}
+	data["SelectedDateEditMode"] = services.ParseBoolLike(c.Query("edit"))
 
 	return handler.render(c, "calendar", data)
 }

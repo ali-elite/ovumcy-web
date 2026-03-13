@@ -41,6 +41,17 @@ func TestSettingsClearDataMissingCSRFRejectedByMiddleware(t *testing.T) {
 	assertStatusCode(t, response, http.StatusForbidden)
 }
 
+func TestSettingsClearDataValidateMissingCSRFRejectedByMiddleware(t *testing.T) {
+	ctx := newSettingsSecurityTestContext(t, "settings-clear-data-validate-csrf@example.com")
+
+	response := settingsRequestWithoutCSRF(t, ctx, http.MethodPost, "/api/settings/clear-data/validate", url.Values{
+		"password": {"StrongPass1"},
+	}, nil)
+	defer response.Body.Close()
+
+	assertStatusCode(t, response, http.StatusForbidden)
+}
+
 func TestSettingsDeleteAccountMissingCSRFRejectedByMiddleware(t *testing.T) {
 	ctx := newSettingsSecurityTestContext(t, "settings-delete-account-csrf@example.com")
 

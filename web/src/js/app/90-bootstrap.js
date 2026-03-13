@@ -21,6 +21,7 @@
     initResetPasswordValidation();
     initLoginPasswordPersistence();
     initConfirmModal();
+    initClearDataPasswordConfirmation();
     bindCycleStartConfirmForms();
     initToastAPI();
     initHTMXHooks();
