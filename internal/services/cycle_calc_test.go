@@ -17,7 +17,8 @@ func TestCalcOvulationDay(t *testing.T) {
 	}{
 		{name: "regular cycle", cycleLength: 28, lutealPhase: 14, wantDay: 14, wantExact: true},
 		{name: "short cycle keeps minimum luteal reserve", cycleLength: 15, lutealPhase: 10, wantDay: 5, wantExact: true},
-		{name: "incompatible when cycle is not longer than luteal", cycleLength: 15, lutealPhase: 15, wantDay: 0, wantExact: false},
+		{name: "short cycle clamps high luteal phase to day five", cycleLength: 15, lutealPhase: 15, wantDay: 5, wantExact: false},
+		{name: "incompatible when cycle is shorter than the supported prediction floor", cycleLength: 14, lutealPhase: 15, wantDay: 0, wantExact: false},
 		{name: "long cycle with personalized luteal", cycleLength: 35, lutealPhase: 12, wantDay: 23, wantExact: true},
 	}
 
@@ -35,11 +36,11 @@ func TestCalcOvulationDay(t *testing.T) {
 	}
 }
 
-func TestPredictCycleWindow_InvalidWhenCycleIsNotLongerThanLutealPhase(t *testing.T) {
+func TestPredictCycleWindow_InvalidWhenCycleIsShorterThanSupportedPredictionFloor(t *testing.T) {
 	t.Parallel()
 
 	periodStart := mustParseDay(t, "2026-02-10")
-	ovulationDate, fertilityStart, fertilityEnd, exact, calculable := PredictCycleWindow(periodStart, 15, 15)
+	ovulationDate, fertilityStart, fertilityEnd, exact, calculable := PredictCycleWindow(periodStart, 14, 15)
 
 	if calculable {
 		t.Fatalf("expected incompatible values to be non-calculable")
@@ -114,7 +115,8 @@ func TestPredictCycleWindow_InvariantsAcrossRanges(t *testing.T) {
 		lutealPhase    int
 		wantCalculable bool
 	}{
-		{name: "incompatible", cycleLength: 15, lutealPhase: 15, wantCalculable: false},
+		{name: "below supported floor", cycleLength: 14, lutealPhase: 15, wantCalculable: false},
+		{name: "short cycle with clamped luteal", cycleLength: 15, lutealPhase: 15, wantCalculable: true},
 		{name: "short cycle", cycleLength: 15, lutealPhase: 10, wantCalculable: true},
 		{name: "regular", cycleLength: 28, lutealPhase: 14, wantCalculable: true},
 		{name: "personalized", cycleLength: 35, lutealPhase: 12, wantCalculable: true},

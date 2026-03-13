@@ -1436,7 +1436,9 @@
       return;
     }
 
-    message = String(xhr.getResponseHeader("X-Ovumcy-Notice") || "").trim();
+    message = typeof window.__ovumcyDecodeResponseNoticeHeader === "function"
+      ? window.__ovumcyDecodeResponseNoticeHeader(xhr.getResponseHeader("X-Ovumcy-Notice"))
+      : String(xhr.getResponseHeader("X-Ovumcy-Notice") || "").trim();
     if (!message) {
       return;
     }
@@ -1497,8 +1499,8 @@
       var xhr = event && event.detail ? event.detail.xhr : null;
       setSaveButtonState(form, false);
       showResponseNotice(xhr);
-      if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcySetDashboardAutosaveState === "function") {
-        window.__ovumcySetDashboardAutosaveState(form, !!(event && event.detail && event.detail.successful));
+      if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcyFinalizeDashboardManualSave === "function") {
+        window.__ovumcyFinalizeDashboardManualSave(form, !!(event && event.detail && event.detail.successful));
       }
     });
 
@@ -1546,8 +1548,8 @@
       var target = event && event.detail ? event.detail.target : null;
       var form = getSaveFeedbackFormFromEvent(event);
       if (!target || !target.classList || !target.classList.contains("save-status")) {
-        if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcySetDashboardAutosaveState === "function") {
-          window.__ovumcySetDashboardAutosaveState(form, false);
+        if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcyFinalizeDashboardManualSave === "function") {
+          window.__ovumcyFinalizeDashboardManualSave(form, false);
         }
         return;
       }
@@ -1561,8 +1563,8 @@
 
       var fallback = document.body.getAttribute("data-request-failed") || "Request failed. Please try again.";
       renderErrorStatus(target, fallback);
-      if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcySetDashboardAutosaveState === "function") {
-        window.__ovumcySetDashboardAutosaveState(form, false);
+      if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcyFinalizeDashboardManualSave === "function") {
+        window.__ovumcyFinalizeDashboardManualSave(form, false);
       }
     });
   }
@@ -1645,6 +1647,19 @@
     var month = String(value.getMonth() + 1).padStart(2, "0");
     var day = String(value.getDate()).padStart(2, "0");
     return year + "-" + month + "-" + day;
+  }
+
+  function decodeResponseNoticeHeader(raw) {
+    var value = String(raw || "").trim();
+    if (!value) {
+      return "";
+    }
+
+    try {
+      return decodeURIComponent(value.replace(/\+/g, "%20")).trim();
+    } catch {
+      return value;
+    }
   }
 
   function buildDayOptions(minDateRaw, maxDateRaw, locale, todayLabel) {
@@ -1996,6 +2011,8 @@
 
     return root.__ovumcyDateFieldController;
   }
+
+  window.__ovumcyDecodeResponseNoticeHeader = decodeResponseNoticeHeader;
 
   function bindLocalizedDateFields(scope) {
     var root = scope && scope.querySelectorAll ? scope : document;
@@ -2365,13 +2382,7 @@
     var minValue = Number(input.getAttribute("data-temperature-min"));
     var maxValue = Number(input.getAttribute("data-temperature-max"));
     var errorMessage = String(input.getAttribute("data-temperature-range-error") || "");
-    var lastValid = String(input.dataset.temperatureLastValid || "");
     var numeric = parseTemperatureNumber(sanitized);
-
-    if (sanitized && isFinite(numeric) && isFinite(maxValue) && numeric > maxValue) {
-      sanitized = lastValid;
-      numeric = parseTemperatureNumber(sanitized);
-    }
 
     if (sanitized !== raw) {
       input.value = sanitized;
@@ -2380,26 +2391,33 @@
     if (!sanitized) {
       input.dataset.temperatureLastValid = "";
       input.setCustomValidity("");
+      input.removeAttribute("aria-invalid");
       return true;
     }
 
     if (isFinite(numeric) && (!isFinite(maxValue) || numeric <= maxValue)) {
       input.dataset.temperatureLastValid = sanitized;
+      input.setAttribute("aria-invalid", "false");
+    } else if (sanitized) {
+      input.removeAttribute("aria-invalid");
     }
 
     if (!finalize) {
       input.setCustomValidity("");
+      input.removeAttribute("aria-invalid");
       return true;
     }
 
     if (!isFinite(numeric) || (isFinite(minValue) && numeric < minValue) || (isFinite(maxValue) && numeric > maxValue)) {
       input.setCustomValidity(errorMessage);
+      input.setAttribute("aria-invalid", "true");
       return false;
     }
 
     input.value = numeric.toFixed(2);
     input.dataset.temperatureLastValid = input.value;
     input.setCustomValidity("");
+    input.setAttribute("aria-invalid", "false");
     return true;
   }
 
@@ -2781,7 +2799,9 @@
     if (!response || typeof response.headers.get !== "function" || typeof window.showToast !== "function") {
       return;
     }
-    notice = String(response.headers.get("X-Ovumcy-Notice") || "").trim();
+    notice = typeof window.__ovumcyDecodeResponseNoticeHeader === "function"
+      ? window.__ovumcyDecodeResponseNoticeHeader(response.headers.get("X-Ovumcy-Notice"))
+      : String(response.headers.get("X-Ovumcy-Notice") || "").trim();
     if (!notice) {
       return;
     }
@@ -2900,17 +2920,20 @@
     }
   }
 
-  function settleDashboardAutosaveState(form, successful) {
+  function finalizeDashboardManualSave(form, successful) {
     if (!form) {
       return;
     }
     clearDashboardAutosaveTimers(form);
     delete form.dataset.autosaveDirty;
-    setDashboardAutosaveIndicator(form, successful ? "saved" : "error");
-    scheduleDashboardAutosaveIdleReset(form);
+    if (!successful) {
+      setDashboardAutosaveIndicator(form, "idle");
+      return;
+    }
+    setDashboardAutosaveIndicator(form, "idle");
   }
 
-  window.__ovumcySetDashboardAutosaveState = settleDashboardAutosaveState;
+  window.__ovumcyFinalizeDashboardManualSave = finalizeDashboardManualSave;
 
   function bindDashboardAutosaveBeforeUnload() {
     if (document.body && document.body.dataset.dashboardAutosaveBeforeUnloadBound === "1") {
@@ -3041,6 +3064,7 @@
     var periodInput = root.querySelector("[data-settings-period-length]");
     var cycleValue = root.querySelector("[data-settings-cycle-length-value]");
     var periodValue = root.querySelector("[data-settings-period-length-value]");
+    var unpredictableInput = root.querySelector('input[name="unpredictable_cycle"]');
     if (!cycleInput || !periodInput) {
       return;
     }
@@ -3048,6 +3072,7 @@
     var cycleLength = clampInteger(cycleInput.value, 28, 15, 90);
     var periodLength = clampInteger(periodInput.value, 5, 1, 14);
     var guidance = cycleGuidanceState(cycleLength, periodLength);
+    var showShortCycleWarning = guidance.cycleShort && !(unpredictableInput && unpredictableInput.checked);
     periodLength = guidance.periodLength;
 
     cycleInput.value = String(cycleLength);
@@ -3063,7 +3088,7 @@
     setNodeHidden(root.querySelector("[data-settings-cycle-message='warning']"), !guidance.warning);
     setNodeHidden(root.querySelector("[data-settings-cycle-message='adjusted']"), !guidance.adjusted);
     setNodeHidden(root.querySelector("[data-settings-cycle-message='period-long']"), !guidance.periodLong);
-    setNodeHidden(root.querySelector("[data-settings-cycle-message='cycle-short']"), !guidance.cycleShort);
+    setNodeHidden(root.querySelector("[data-settings-cycle-message='cycle-short']"), !showShortCycleWarning);
   }
 
   function bindSettingsCycleForms() {
@@ -3080,7 +3105,7 @@
           if (!event.target || !event.target.matches) {
             return;
           }
-          if (event.target.matches("[data-settings-cycle-length], [data-settings-period-length]")) {
+          if (event.target.matches("[data-settings-cycle-length], [data-settings-period-length], input[name='unpredictable_cycle']")) {
             syncSettingsCycleForm(this);
           }
         });

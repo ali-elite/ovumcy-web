@@ -127,6 +127,47 @@ func TestDashboardPredictionRangeWidensForAge35Plus(t *testing.T) {
 	}
 }
 
+func TestDashboardUpcomingPredictionsClampsShortCycleOvulationAwayFromCycleStart(t *testing.T) {
+	stats := CycleStats{
+		LastPeriodStart: mustParseDashboardDay(t, "2026-02-10"),
+		LutealPhase:     14,
+	}
+	today := mustParseDashboardDay(t, "2026-02-10")
+
+	nextPeriodStart, ovulationDate, ovulationExact, ovulationImpossible := DashboardUpcomingPredictions(stats, &models.User{}, today, 15)
+	if got := nextPeriodStart.Format("2006-01-02"); got != "2026-02-25" {
+		t.Fatalf("expected next period start 2026-02-25, got %s", got)
+	}
+	if got := ovulationDate.Format("2006-01-02"); got != "2026-02-14" {
+		t.Fatalf("expected clamped ovulation date 2026-02-14, got %s", got)
+	}
+	if ovulationExact {
+		t.Fatalf("expected short-cycle ovulation prediction to be approximate")
+	}
+	if ovulationImpossible {
+		t.Fatalf("expected short-cycle ovulation prediction to remain calculable")
+	}
+}
+
+func TestBuildDashboardCycleContextDisablesPredictionsForUnpredictableMode(t *testing.T) {
+	user := &models.User{UnpredictableCycle: true, CycleLength: 28}
+	stats := CycleStats{
+		LastPeriodStart:   mustParseDashboardDay(t, "2026-03-01"),
+		NextPeriodStart:   mustParseDashboardDay(t, "2026-03-29"),
+		OvulationDate:     mustParseDashboardDay(t, "2026-03-15"),
+		CurrentCycleDay:   13,
+		MedianCycleLength: 28,
+	}
+
+	context := BuildDashboardCycleContext(user, stats, mustParseDashboardDay(t, "2026-03-13"), time.UTC)
+	if !context.PredictionDisabled {
+		t.Fatalf("expected unpredictable mode to disable dashboard predictions")
+	}
+	if !context.DisplayNextPeriodStart.IsZero() || !context.DisplayOvulationDate.IsZero() {
+		t.Fatalf("expected unpredictable mode to clear projected dates")
+	}
+}
+
 func mustParseDashboardDay(t *testing.T, raw string) time.Time {
 	t.Helper()
 	parsed, err := time.ParseInLocation("2006-01-02", raw, time.UTC)

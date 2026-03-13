@@ -70,9 +70,9 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 		c.Set("HX-Trigger", "calendar-day-updated")
 		if feedbackErr == nil {
 			if feedback.ShowSpottingCycleWarning {
-				c.Set("X-Ovumcy-Notice", translateMessage(currentMessages(c), "dashboard.spotting_cycle_warning"))
+				setEncodedResponseNotice(c, translateMessage(currentMessages(c), "dashboard.spotting_cycle_warning"))
 			} else if feedback.ShowLongPeriodWarning {
-				c.Set("X-Ovumcy-Notice", translateMessage(currentMessages(c), "dashboard.long_period_warning"))
+				setEncodedResponseNotice(c, translateMessage(currentMessages(c), "dashboard.long_period_warning"))
 			}
 			return handler.sendDaySaveStatus(c, feedback.MessageKey)
 		}
@@ -126,7 +126,7 @@ func (handler *Handler) MarkCycleStart(c *fiber.Ctx) error {
 		c.Set("HX-Trigger", "calendar-day-updated")
 		c.Set("HX-Refresh", "true")
 		if cycleStartPolicy.PotentialImplantation {
-			c.Set("X-Ovumcy-Notice", translateMessage(currentMessages(c), "dashboard.implantation_warning"))
+			setEncodedResponseNotice(c, translateMessage(currentMessages(c), "dashboard.implantation_warning"))
 		}
 		return c.SendStatus(fiber.StatusNoContent)
 	}

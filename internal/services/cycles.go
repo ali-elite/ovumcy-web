@@ -42,6 +42,7 @@ const (
 	irregularCycleFallbackSpan = 7
 	defaultLutealPhaseDays     = 14
 	minLutealPhaseDays         = 10
+	minOvulationCycleDay       = 5
 	minCycleReserveDays        = 10
 )
 
@@ -92,16 +93,26 @@ func ResolveLutealPhase(value int) int {
 }
 
 func CalcOvulationDay(cycleLen, lutealPhase int) (int, bool) {
-	resolvedLutealPhase := ResolveLutealPhase(lutealPhase)
-	if cycleLen <= resolvedLutealPhase {
+	if cycleLen < minLutealPhaseDays+minOvulationCycleDay {
 		return 0, false
 	}
 
-	ovDay := cycleLen - resolvedLutealPhase
-	if ovDay < 1 {
+	resolvedLutealPhase := ResolveLutealPhase(lutealPhase)
+	ovulationExact := true
+	maxSupportedLutealPhase := cycleLen - minOvulationCycleDay
+	if maxSupportedLutealPhase < minLutealPhaseDays {
 		return 0, false
 	}
-	return ovDay, true
+	if resolvedLutealPhase > maxSupportedLutealPhase {
+		resolvedLutealPhase = maxSupportedLutealPhase
+		ovulationExact = false
+	}
+
+	ovDay := cycleLen - resolvedLutealPhase
+	if ovDay < minOvulationCycleDay {
+		return 0, false
+	}
+	return ovDay, ovulationExact
 }
 
 func PredictCycleWindow(periodStart time.Time, cycleLength int, lutealPhase int) (time.Time, time.Time, time.Time, bool, bool) {

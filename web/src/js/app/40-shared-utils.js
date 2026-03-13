@@ -78,6 +78,19 @@
     return year + "-" + month + "-" + day;
   }
 
+  function decodeResponseNoticeHeader(raw) {
+    var value = String(raw || "").trim();
+    if (!value) {
+      return "";
+    }
+
+    try {
+      return decodeURIComponent(value.replace(/\+/g, "%20")).trim();
+    } catch {
+      return value;
+    }
+  }
+
   function buildDayOptions(minDateRaw, maxDateRaw, locale, todayLabel) {
     var minDate = parseDateValue(minDateRaw);
     var maxDate = parseDateValue(maxDateRaw);
@@ -427,6 +440,8 @@
 
     return root.__ovumcyDateFieldController;
   }
+
+  window.__ovumcyDecodeResponseNoticeHeader = decodeResponseNoticeHeader;
 
   function bindLocalizedDateFields(scope) {
     var root = scope && scope.querySelectorAll ? scope : document;

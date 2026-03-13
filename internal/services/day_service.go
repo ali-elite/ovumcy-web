@@ -172,6 +172,14 @@ func (service *DayService) UpsertDayEntry(userID uint, dayStart time.Time, paylo
 }
 
 func (service *DayService) UpsertDayEntryWithAutoFill(userID uint, day time.Time, payload DayEntryInput, location *time.Location) (models.DailyLog, error) {
+	return service.UpsertDayEntryWithAutoFillAt(userID, day, payload, time.Now(), location)
+}
+
+func (service *DayService) UpsertDayEntryWithAutoFillAt(userID uint, day time.Time, payload DayEntryInput, now time.Time, location *time.Location) (models.DailyLog, error) {
+	if location == nil {
+		location = time.UTC
+	}
+
 	normalized, err := NormalizeDayEntryInput(payload)
 	if err != nil {
 		return models.DailyLog{}, err
@@ -199,7 +207,7 @@ func (service *DayService) UpsertDayEntryWithAutoFill(userID uint, day time.Time
 			return models.DailyLog{}, fmt.Errorf("%w: %v", ErrDayAutoFillCheckFailed, err)
 		}
 		if shouldAutoFill {
-			if err := service.AutoFillFollowingPeriodDays(userID, dayStart, periodLength, normalized.Flow, location); err != nil {
+			if err := service.AutoFillFollowingPeriodDays(userID, dayStart, periodLength, normalized.Flow, now, location); err != nil {
 				return models.DailyLog{}, fmt.Errorf("%w: %v", ErrDayAutoFillApplyFailed, err)
 			}
 		}
@@ -278,7 +286,7 @@ func (service *DayService) MarkCycleStartManually(userID uint, day time.Time, no
 		payload.Flow = models.FlowNone
 	}
 
-	if _, err := service.UpsertDayEntryWithAutoFill(userID, day, payload, location); err != nil {
+	if _, err := service.UpsertDayEntryWithAutoFillAt(userID, day, payload, now, location); err != nil {
 		return err
 	}
 
@@ -343,13 +351,20 @@ func (service *DayService) ShouldAutoFillPeriodDays(userID uint, dayStart time.T
 	return !previousEntry.IsPeriod && !hasRecentPeriod, nil
 }
 
-func (service *DayService) AutoFillFollowingPeriodDays(userID uint, startDay time.Time, periodLength int, flow string, location *time.Location) error {
+func (service *DayService) AutoFillFollowingPeriodDays(userID uint, startDay time.Time, periodLength int, flow string, now time.Time, location *time.Location) error {
 	if periodLength <= 1 {
 		return nil
 	}
+	if location == nil {
+		location = time.UTC
+	}
 
+	today := DateAtLocation(now, location)
 	for offset := 1; offset < periodLength; offset++ {
 		targetDay := DateAtLocation(startDay.AddDate(0, 0, offset), location)
+		if !today.IsZero() && targetDay.After(today) {
+			break
+		}
 		entry, err := service.FetchLogByDate(userID, targetDay, location)
 		if err != nil {
 			return err

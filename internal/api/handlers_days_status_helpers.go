@@ -2,6 +2,8 @@ package api
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,6 +20,14 @@ func localizedStatusDismissLabel(messages map[string]string) string {
 		return "Close"
 	}
 	return closeLabel
+}
+
+func setEncodedResponseNotice(c *fiber.Ctx, message string) {
+	trimmed := strings.TrimSpace(message)
+	if trimmed == "" {
+		return
+	}
+	c.Set("X-Ovumcy-Notice", url.QueryEscape(trimmed))
 }
 
 func (handler *Handler) sendDaySaveStatus(c *fiber.Ctx, messageKey string) error {

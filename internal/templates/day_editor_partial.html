@@ -28,7 +28,7 @@
           class="period-toggle-main"
           data-period-toggle-label
           data-period-label-on="{{t .Messages "dashboard.period_day"}}"
-          data-period-label-off="{{t .Messages "dashboard.period_day_action"}}">🩸 {{if .Log.IsPeriod}}{{t .Messages "dashboard.period_day"}}{{else}}{{t .Messages "dashboard.period_day_action"}}{{end}}</span>
+          data-period-label-off="{{t .Messages "dashboard.period_day"}}">🩸 {{t .Messages "dashboard.period_day"}}</span>
       </span>
     </label>
 
@@ -62,25 +62,16 @@
     </fieldset>
 
     {{if .ShowBBTField}}
-    <fieldset class="space-y-2">
-      <legend class="field-label">{{t .Messages "dashboard.bbt"}}</legend>
-      <div class="measurement-field-row">
-        <input
-          type="text"
-          name="bbt"
-          value="{{displayBBT .Log.BBT .TemperatureUnit}}"
-          inputmode="decimal"
-          autocomplete="off"
-          class="input-field measurement-field-input"
-          data-temperature-input
-          data-temperature-unit="{{.TemperatureUnit}}"
-          data-temperature-min="{{.TemperatureInputMin}}"
-          data-temperature-max="{{.TemperatureInputMax}}"
-          data-temperature-range-error="{{.TemperatureRangeError}}">
-        <span class="measurement-field-unit">{{.TemperatureUnitSymbol}}</span>
-      </div>
-      <p class="journal-muted text-xs">{{.TemperatureRangeHint}}</p>
-    </fieldset>
+    {{template "temperature_input_field" (dict
+      "Messages" .Messages
+      "FieldID" "calendar-bbt"
+      "Value" (displayBBT .Log.BBT .TemperatureUnit)
+      "TemperatureUnit" .TemperatureUnit
+      "TemperatureInputMin" .TemperatureInputMin
+      "TemperatureInputMax" .TemperatureInputMax
+      "TemperatureRangeError" .TemperatureRangeError
+      "TemperatureUnitSymbol" .TemperatureUnitSymbol
+      "TemperatureRangeHint" .TemperatureRangeHint)}}
     {{end}}
 
     {{if .ShowCervicalMucus}}

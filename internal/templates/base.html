@@ -393,6 +393,30 @@
   </div>
 </div>
 {{end}}
+{{define "temperature_input_field"}}
+<fieldset class="space-y-2">
+  <legend id="{{.FieldID}}-legend" class="field-label">{{t .Messages "dashboard.bbt"}}</legend>
+  <div class="measurement-field-row">
+    <input
+      type="text"
+      id="{{.FieldID}}"
+      name="bbt"
+      value="{{.Value}}"
+      inputmode="decimal"
+      autocomplete="off"
+      class="input-field measurement-field-input"
+      aria-labelledby="{{.FieldID}}-legend"
+      aria-describedby="{{.FieldID}}-hint"
+      data-temperature-input
+      data-temperature-unit="{{.TemperatureUnit}}"
+      data-temperature-min="{{.TemperatureInputMin}}"
+      data-temperature-max="{{.TemperatureInputMax}}"
+      data-temperature-range-error="{{.TemperatureRangeError}}">
+    <span class="measurement-field-unit">{{.TemperatureUnitSymbol}}</span>
+  </div>
+  <p id="{{.FieldID}}-hint" class="journal-muted text-xs">{{.TemperatureRangeHint}}</p>
+</fieldset>
+{{end}}
 {{define "period_flow_option"}}
 <label class="choice-option">
   <input

@@ -131,6 +131,20 @@ async function browserLocalISODate(page: Page): Promise<string> {
   });
 }
 
+async function openCalendarDayEditor(page: Page, isoDate: string) {
+  const month = isoDate.slice(0, 7);
+  await page.goto(`/calendar?month=${month}&day=${isoDate}`);
+  await expect(page).toHaveURL(new RegExp(`/calendar\\?month=${month}&day=${isoDate}`));
+
+  const editButton = page.locator(`[data-day-editor-open="${isoDate}"]`).first();
+  await expect(editButton).toBeVisible();
+  await editButton.click();
+
+  const form = page.locator(`[data-day-editor-form][data-day-editor-date="${isoDate}"]`);
+  await expect(form).toBeVisible();
+  return form;
+}
+
 test.describe('Bug regressions', () => {
   test.describe('BUG-01: request-local date consistency', () => {
     test('dashboard date subtitle, cycle day and calendar today badge use request timezone', async ({
@@ -356,6 +370,76 @@ test.describe('Bug regressions', () => {
       const reloadedIdentityChip = page.locator('#nav-user-chip-desktop');
       await expect(reloadedIdentityChip).toContainText(newName);
       await expect(reloadedIdentityChip).not.toContainText('@');
+    });
+  });
+
+  test.describe('BUG-04: unpredictable cycle mode and short-cycle UI', () => {
+    test('unpredictable cycle hides dashboard predictions and suppresses the short-cycle warning in settings', async ({
+      page,
+    }) => {
+      await registerOwnerAndReachDashboard(page, 'bug04-unpredictable');
+
+      await page.goto('/settings');
+      await expect(page).toHaveURL(/\/settings$/);
+
+      const cycleForm = page.locator('section#settings-cycle form[action="/settings/cycle"]');
+      await expect(cycleForm).toBeVisible();
+
+      await setRangeValue('#settings-cycle-length', page, 15);
+      await setRangeValue('#settings-period-length', page, 5);
+      await fillDateField(cycleForm.locator('#settings-last-period-start'), await browserLocalISODate(page));
+
+      const shortCycleMessage = cycleForm.locator('[data-settings-cycle-message="cycle-short"]');
+      await expect(shortCycleMessage).toBeVisible();
+
+      await cycleForm.locator('input[name="unpredictable_cycle"]').check();
+      await expect(shortCycleMessage).toBeHidden();
+
+      await cycleForm.locator('button[data-save-button]').click();
+      await expect(page.locator('#settings-cycle-status .status-ok')).toBeVisible();
+
+      await page.goto('/dashboard');
+      await expect(page).toHaveURL(/\/dashboard$/);
+
+      const statusLine = page.locator('.dashboard-status-line');
+      await expect(statusLine).toContainText('Next period: unknown');
+      await expect(statusLine).toContainText('Keep tracking to spot patterns.');
+      await expect(statusLine).not.toContainText('Ovulation:');
+    });
+  });
+
+  test.describe('BUG-05: calendar warning toast encoding', () => {
+    test('Russian warning toast stays readable after saving a spotting day from calendar', async ({
+      page,
+    }) => {
+      const creds = await registerOwnerAndReachDashboard(page, 'bug05-calendar-toast');
+
+      await page.goto('/settings');
+      await expect(page).toHaveURL(/\/settings$/);
+      await page.locator('.lang-switch a[href^="/lang/ru"]').click();
+      await expect(page).toHaveURL(/\/settings$/);
+      await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
+
+      const csrfToken = (await page.locator('meta[name="csrf-token"]').getAttribute('content')) ?? '';
+      const clearResponse = await page.request.post('/api/settings/clear-data', {
+        form: {
+          csrf_token: csrfToken,
+          password: creds.password,
+        },
+        maxRedirects: 0,
+      });
+      expect([200, 303]).toContain(clearResponse.status());
+
+      const todayISO = await browserLocalISODate(page);
+      const dayEditorForm = await openCalendarDayEditor(page, todayISO);
+
+      await dayEditorForm.locator('input[name="is_period"]').check();
+      await dayEditorForm.locator('input[name="flow"][value="spotting"]').check({ force: true });
+      await dayEditorForm.locator('button[data-save-button]').click();
+
+      await expect(page.locator('.toast-stack .toast-message').last()).toHaveText(
+        'Мажущие выделения могут быть не днём 1. Уточни завтра.'
+      );
     });
   });
 });

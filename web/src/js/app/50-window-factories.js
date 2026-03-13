@@ -326,13 +326,7 @@
     var minValue = Number(input.getAttribute("data-temperature-min"));
     var maxValue = Number(input.getAttribute("data-temperature-max"));
     var errorMessage = String(input.getAttribute("data-temperature-range-error") || "");
-    var lastValid = String(input.dataset.temperatureLastValid || "");
     var numeric = parseTemperatureNumber(sanitized);
-
-    if (sanitized && isFinite(numeric) && isFinite(maxValue) && numeric > maxValue) {
-      sanitized = lastValid;
-      numeric = parseTemperatureNumber(sanitized);
-    }
 
     if (sanitized !== raw) {
       input.value = sanitized;
@@ -341,26 +335,33 @@
     if (!sanitized) {
       input.dataset.temperatureLastValid = "";
       input.setCustomValidity("");
+      input.removeAttribute("aria-invalid");
       return true;
     }
 
     if (isFinite(numeric) && (!isFinite(maxValue) || numeric <= maxValue)) {
       input.dataset.temperatureLastValid = sanitized;
+      input.setAttribute("aria-invalid", "false");
+    } else if (sanitized) {
+      input.removeAttribute("aria-invalid");
     }
 
     if (!finalize) {
       input.setCustomValidity("");
+      input.removeAttribute("aria-invalid");
       return true;
     }
 
     if (!isFinite(numeric) || (isFinite(minValue) && numeric < minValue) || (isFinite(maxValue) && numeric > maxValue)) {
       input.setCustomValidity(errorMessage);
+      input.setAttribute("aria-invalid", "true");
       return false;
     }
 
     input.value = numeric.toFixed(2);
     input.dataset.temperatureLastValid = input.value;
     input.setCustomValidity("");
+    input.setAttribute("aria-invalid", "false");
     return true;
   }
 
@@ -742,7 +743,9 @@
     if (!response || typeof response.headers.get !== "function" || typeof window.showToast !== "function") {
       return;
     }
-    notice = String(response.headers.get("X-Ovumcy-Notice") || "").trim();
+    notice = typeof window.__ovumcyDecodeResponseNoticeHeader === "function"
+      ? window.__ovumcyDecodeResponseNoticeHeader(response.headers.get("X-Ovumcy-Notice"))
+      : String(response.headers.get("X-Ovumcy-Notice") || "").trim();
     if (!notice) {
       return;
     }
@@ -861,17 +864,20 @@
     }
   }
 
-  function settleDashboardAutosaveState(form, successful) {
+  function finalizeDashboardManualSave(form, successful) {
     if (!form) {
       return;
     }
     clearDashboardAutosaveTimers(form);
     delete form.dataset.autosaveDirty;
-    setDashboardAutosaveIndicator(form, successful ? "saved" : "error");
-    scheduleDashboardAutosaveIdleReset(form);
+    if (!successful) {
+      setDashboardAutosaveIndicator(form, "idle");
+      return;
+    }
+    setDashboardAutosaveIndicator(form, "idle");
   }
 
-  window.__ovumcySetDashboardAutosaveState = settleDashboardAutosaveState;
+  window.__ovumcyFinalizeDashboardManualSave = finalizeDashboardManualSave;
 
   function bindDashboardAutosaveBeforeUnload() {
     if (document.body && document.body.dataset.dashboardAutosaveBeforeUnloadBound === "1") {
@@ -1002,6 +1008,7 @@
     var periodInput = root.querySelector("[data-settings-period-length]");
     var cycleValue = root.querySelector("[data-settings-cycle-length-value]");
     var periodValue = root.querySelector("[data-settings-period-length-value]");
+    var unpredictableInput = root.querySelector('input[name="unpredictable_cycle"]');
     if (!cycleInput || !periodInput) {
       return;
     }
@@ -1009,6 +1016,7 @@
     var cycleLength = clampInteger(cycleInput.value, 28, 15, 90);
     var periodLength = clampInteger(periodInput.value, 5, 1, 14);
     var guidance = cycleGuidanceState(cycleLength, periodLength);
+    var showShortCycleWarning = guidance.cycleShort && !(unpredictableInput && unpredictableInput.checked);
     periodLength = guidance.periodLength;
 
     cycleInput.value = String(cycleLength);
@@ -1024,7 +1032,7 @@
     setNodeHidden(root.querySelector("[data-settings-cycle-message='warning']"), !guidance.warning);
     setNodeHidden(root.querySelector("[data-settings-cycle-message='adjusted']"), !guidance.adjusted);
     setNodeHidden(root.querySelector("[data-settings-cycle-message='period-long']"), !guidance.periodLong);
-    setNodeHidden(root.querySelector("[data-settings-cycle-message='cycle-short']"), !guidance.cycleShort);
+    setNodeHidden(root.querySelector("[data-settings-cycle-message='cycle-short']"), !showShortCycleWarning);
   }
 
   function bindSettingsCycleForms() {
@@ -1041,7 +1049,7 @@
           if (!event.target || !event.target.matches) {
             return;
           }
-          if (event.target.matches("[data-settings-cycle-length], [data-settings-period-length]")) {
+          if (event.target.matches("[data-settings-cycle-length], [data-settings-period-length], input[name='unpredictable_cycle']")) {
             syncSettingsCycleForm(this);
           }
         });

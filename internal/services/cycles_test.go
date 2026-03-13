@@ -91,17 +91,17 @@ func TestBuildCycleStats_ShortCycleLongPeriodAllowsOverlapPredictions(t *testing
 	now := mustParseDay(t, "2026-02-12")
 	stats := BuildCycleStats(logs, now)
 
-	if got := stats.OvulationDate.Format("2006-01-02"); got != "2026-02-10" {
-		t.Fatalf("expected ovulation date 2026-02-10, got %s", got)
+	if got := stats.OvulationDate.Format("2006-01-02"); got != "2026-02-14" {
+		t.Fatalf("expected ovulation date 2026-02-14, got %s", got)
 	}
 	if got := stats.FertilityWindowStart.Format("2006-01-02"); got != "2026-02-10" {
 		t.Fatalf("expected fertility start 2026-02-10, got %s", got)
 	}
-	if got := stats.FertilityWindowEnd.Format("2006-01-02"); got != "2026-02-10" {
-		t.Fatalf("expected fertility end 2026-02-10, got %s", got)
+	if got := stats.FertilityWindowEnd.Format("2006-01-02"); got != "2026-02-14" {
+		t.Fatalf("expected fertility end 2026-02-14, got %s", got)
 	}
-	if !stats.OvulationExact {
-		t.Fatalf("expected ovulation exact flag=true for short cycle")
+	if stats.OvulationExact {
+		t.Fatalf("expected ovulation exact flag=false when short cycle prediction is clamped")
 	}
 	if stats.OvulationImpossible {
 		t.Fatalf("expected ovulation impossible flag=false for short cycle")

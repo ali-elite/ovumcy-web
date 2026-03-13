@@ -367,13 +367,21 @@ test.describe('Settings: profile and cycle', () => {
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/dashboard$/);
     const dashboardForm = page.locator('[data-dashboard-save-form]').first();
-    const bbtInput = dashboardForm.locator('input[name="bbt"]');
+    const bbtInput = dashboardForm.getByLabel('BBT');
     await expect(bbtInput).toBeVisible();
     await expect(dashboardForm.locator('.measurement-field-unit')).toContainText('°F');
     await expect(dashboardForm).toContainText('93.20-109.40 °F');
-    await bbtInput.fill('65555555');
+    await bbtInput.fill('150.0');
     await bbtInput.blur();
-    await expect(bbtInput).toHaveValue('');
+    const invalidState = await bbtInput.evaluate((node) => {
+      const input = node as HTMLInputElement;
+      return {
+        valid: input.checkValidity(),
+        validationMessage: input.validationMessage,
+      };
+    });
+    expect(invalidState.valid).toBe(false);
+    expect(invalidState.validationMessage).not.toBe('');
     await bbtInput.fill('98.6');
     await bbtInput.blur();
     await expect(bbtInput).toHaveValue('98.60');
@@ -386,7 +394,7 @@ test.describe('Settings: profile and cycle', () => {
     expect(todayAction).toMatch(/^\/api\/days\/\d{4}-\d{2}-\d{2}$/);
     const todayISO = String(todayAction).replace('/api/days/', '');
     const dayEditorForm = await openCalendarDayEditor(page, todayISO);
-    await expect(dayEditorForm.locator('input[name="bbt"]')).toHaveValue('98.60');
+    await expect(dayEditorForm.getByLabel('BBT')).toHaveValue('98.60');
     await expect(dayEditorForm.locator('.measurement-field-unit')).toContainText('°F');
 
     await page.goto('/settings');

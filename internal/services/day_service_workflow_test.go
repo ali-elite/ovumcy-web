@@ -210,7 +210,7 @@ func TestUpsertDayEntryWithAutoFillCreatesFollowingPeriodDays(t *testing.T) {
 	service := NewDayService(logs, users)
 
 	day := time.Date(2026, time.February, 10, 8, 0, 0, 0, time.UTC)
-	entry, err := service.UpsertDayEntryWithAutoFill(
+	entry, err := service.UpsertDayEntryWithAutoFillAt(
 		10,
 		day,
 		DayEntryInput{
@@ -218,6 +218,7 @@ func TestUpsertDayEntryWithAutoFillCreatesFollowingPeriodDays(t *testing.T) {
 			Flow:     models.FlowLight,
 			Notes:    "period",
 		},
+		time.Date(2026, time.February, 12, 8, 0, 0, 0, time.UTC),
 		time.UTC,
 	)
 	if err != nil {
@@ -238,6 +239,45 @@ func TestUpsertDayEntryWithAutoFillCreatesFollowingPeriodDays(t *testing.T) {
 		}
 	}
 
+}
+
+func TestUpsertDayEntryWithAutoFillStopsAtToday(t *testing.T) {
+	logs := newDayLogRepositoryStub()
+	users := &dayUserRepositoryStub{
+		settings: models.User{
+			PeriodLength:   4,
+			AutoPeriodFill: true,
+		},
+	}
+	service := NewDayService(logs, users)
+
+	day := time.Date(2026, time.February, 10, 8, 0, 0, 0, time.UTC)
+	_, err := service.UpsertDayEntryWithAutoFillAt(
+		10,
+		day,
+		DayEntryInput{
+			IsPeriod: true,
+			Flow:     models.FlowLight,
+		},
+		time.Date(2026, time.February, 11, 8, 0, 0, 0, time.UTC),
+		time.UTC,
+	)
+	if err != nil {
+		t.Fatalf("UpsertDayEntryWithAutoFillAt() unexpected error: %v", err)
+	}
+
+	if _, ok := logs.entries["2026-02-10"]; !ok {
+		t.Fatalf("expected start day to be persisted")
+	}
+	if _, ok := logs.entries["2026-02-11"]; !ok {
+		t.Fatalf("expected autofill to include today's follow-up day")
+	}
+	if _, ok := logs.entries["2026-02-12"]; ok {
+		t.Fatalf("did not expect autofill to create future day 2026-02-12")
+	}
+	if _, ok := logs.entries["2026-02-13"]; ok {
+		t.Fatalf("did not expect autofill to create future day 2026-02-13")
+	}
 }
 
 func TestUpsertDayEntryWithAutoFillReturnsTypedLoadError(t *testing.T) {
