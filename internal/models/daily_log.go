@@ -3,10 +3,11 @@ package models
 import "time"
 
 const (
-	FlowNone   = "none"
-	FlowLight  = "light"
-	FlowMedium = "medium"
-	FlowHeavy  = "heavy"
+	FlowNone     = "none"
+	FlowSpotting = "spotting"
+	FlowLight    = "light"
+	FlowMedium   = "medium"
+	FlowHeavy    = "heavy"
 
 	SexActivityNone        = "none"
 	SexActivityProtected   = "protected"

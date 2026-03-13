@@ -9,6 +9,7 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
+import { ensureNotesFieldVisible } from './support/note-helpers';
 
 type EnvCredentials = {
   email: string;
@@ -47,12 +48,7 @@ async function registerOwnerAndOpenSettings(page: Page, prefix: string): Promise
 }
 
 async function openTodayNotes(page: Page): Promise<void> {
-  const disclosure = page.locator('details.note-disclosure');
-  const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
-  if (!isOpen) {
-    await disclosure.locator('summary').click();
-  }
-  await expect(page.locator('#today-notes')).toBeVisible();
+  await ensureNotesFieldVisible(page, '#today-notes');
 }
 
 function todayISOInBrowser(): Promise<string> {

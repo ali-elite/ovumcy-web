@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -78,6 +79,8 @@ func buildExportPDFDocument(report services.ExportPDFReport, messages map[string
 		pdf.CellFormat(0, 5.5, line, "", 1, "", false, 0, "")
 	}
 
+	renderExportPDFCalendar(pdf, report, messages)
+
 	if len(report.Cycles) == 0 {
 		pdf.Ln(3)
 		pdf.MultiCell(0, 5.5, exportPDFText(messages, "export.pdf.no_cycles", "Not enough completed cycles to build a doctor-focused report yet."), "", "L", false)
@@ -150,6 +153,169 @@ func buildExportPDFDocument(report services.ExportPDFReport, messages map[string
 		return nil, err
 	}
 	return output.Bytes(), nil
+}
+
+func renderExportPDFCalendar(pdf *fpdf.Fpdf, report services.ExportPDFReport, messages map[string]string) {
+	months := exportPDFCalendarMonths(report.CalendarDays)
+	if len(months) == 0 {
+		pdf.Ln(3)
+		pdf.SetFont(exportPDFFontFamily, "", 9)
+		pdf.MultiCell(0, 5.5, exportPDFText(messages, "export.pdf.calendar_none", "No recorded days"), "", "L", false)
+		return
+	}
+
+	pdf.Ln(4)
+	pdf.SetFont(exportPDFFontFamily, "B", 11)
+	pdf.CellFormat(0, 7, exportPDFText(messages, "export.pdf.calendar_title", "Color calendar"), "", 1, "", false, 0, "")
+	pdf.SetFont(exportPDFFontFamily, "", 8)
+	pdf.SetFillColor(199, 117, 109)
+	pdf.Rect(pdf.GetX(), pdf.GetY()+1.6, 3.8, 3.8, "F")
+	pdf.SetX(pdf.GetX() + 5.4)
+	pdf.CellFormat(24, 7, exportPDFText(messages, "export.pdf.calendar_period", "Period"), "", 0, "L", false, 0, "")
+	pdf.SetFillColor(232, 196, 168)
+	pdf.Rect(pdf.GetX(), pdf.GetY()+1.6, 3.8, 3.8, "F")
+	pdf.SetX(pdf.GetX() + 5.4)
+	pdf.CellFormat(32, 7, exportPDFText(messages, "export.pdf.calendar_logged", "Logged day"), "", 1, "L", false, 0, "")
+
+	dayMap := make(map[string]services.ExportPDFCalendarDay, len(report.CalendarDays))
+	for _, day := range report.CalendarDays {
+		dayMap[day.Date] = day
+	}
+
+	pageWidth, pageHeight := pdf.GetPageSize()
+	leftMargin, _, rightMargin, _ := pdf.GetMargins()
+	topY := pdf.GetY()
+	usableWidth := pageWidth - leftMargin - rightMargin
+	gap := 4.0
+	columns := 3
+	monthWidth := (usableWidth - gap*float64(columns-1)) / float64(columns)
+	monthHeight := 51.0
+	requiredRows := float64((len(months) + columns - 1) / columns)
+	requiredHeight := requiredRows*monthHeight + gap*(requiredRows-1)
+	if topY+requiredHeight > pageHeight-12 {
+		pdf.AddPage()
+		topY = pdf.GetY()
+	}
+
+	for index, monthStart := range months {
+		column := index % columns
+		row := index / columns
+		x := leftMargin + float64(column)*(monthWidth+gap)
+		y := topY + float64(row)*(monthHeight+gap)
+		drawExportPDFMonth(pdf, monthStart, x, y, monthWidth, monthHeight, dayMap, messages)
+	}
+}
+
+func exportPDFCalendarMonths(days []services.ExportPDFCalendarDay) []time.Time {
+	if len(days) == 0 {
+		return nil
+	}
+
+	monthSet := make(map[string]time.Time)
+	for _, day := range days {
+		parsed, ok := parseExportPDFDate(day.Date)
+		if !ok {
+			continue
+		}
+		monthStart := time.Date(parsed.Year(), parsed.Month(), 1, 0, 0, 0, 0, time.UTC)
+		monthSet[monthStart.Format("2006-01")] = monthStart
+	}
+
+	months := make([]time.Time, 0, len(monthSet))
+	for _, month := range monthSet {
+		months = append(months, month)
+	}
+	sort.Slice(months, func(i, j int) bool {
+		return months[i].Before(months[j])
+	})
+	if len(months) > 6 {
+		months = months[len(months)-6:]
+	}
+	return months
+}
+
+func drawExportPDFMonth(pdf *fpdf.Fpdf, monthStart time.Time, x float64, y float64, width float64, height float64, dayMap map[string]services.ExportPDFCalendarDay, messages map[string]string) {
+	pdf.SetDrawColor(216, 204, 190)
+	pdf.SetFillColor(255, 255, 255)
+	pdf.RoundedRect(x, y, width, height, 2.2, "1234", "DF")
+
+	pdf.SetXY(x+2.2, y+2.4)
+	pdf.SetFont(exportPDFFontFamily, "B", 9)
+	pdf.CellFormat(width-4.4, 5, monthStart.Format("01/2006"), "", 1, "L", false, 0, "")
+
+	weekdayLabels := []string{
+		exportPDFWeekdayLabel(messages, "calendar.weekday.sun", "Sun"),
+		exportPDFWeekdayLabel(messages, "calendar.weekday.mon", "Mon"),
+		exportPDFWeekdayLabel(messages, "calendar.weekday.tue", "Tue"),
+		exportPDFWeekdayLabel(messages, "calendar.weekday.wed", "Wed"),
+		exportPDFWeekdayLabel(messages, "calendar.weekday.thu", "Thu"),
+		exportPDFWeekdayLabel(messages, "calendar.weekday.fri", "Fri"),
+		exportPDFWeekdayLabel(messages, "calendar.weekday.sat", "Sat"),
+	}
+	cellWidth := (width - 4.4) / 7
+	cellHeight := 6.0
+	headerY := y + 9
+
+	pdf.SetFont(exportPDFFontFamily, "", 6.5)
+	pdf.SetTextColor(120, 102, 84)
+	for index, label := range weekdayLabels {
+		pdf.SetXY(x+2.2+float64(index)*cellWidth, headerY)
+		pdf.CellFormat(cellWidth, 3.6, label, "", 0, "C", false, 0, "")
+	}
+
+	gridStart := monthStart.AddDate(0, 0, -int(monthStart.Weekday()))
+	for row := 0; row < 6; row++ {
+		for column := 0; column < 7; column++ {
+			currentDay := gridStart.AddDate(0, 0, row*7+column)
+			key := currentDay.Format("2006-01-02")
+			cellX := x + 2.2 + float64(column)*cellWidth
+			cellY := headerY + 4.5 + float64(row)*cellHeight
+			entry, hasEntry := dayMap[key]
+
+			pdf.SetDrawColor(228, 220, 210)
+			pdf.SetFillColor(255, 255, 255)
+			if hasEntry && entry.IsPeriod {
+				pdf.SetFillColor(199, 117, 109)
+			} else if hasEntry && entry.HasData {
+				pdf.SetFillColor(232, 196, 168)
+			}
+			fillMode := "D"
+			if hasEntry && (entry.IsPeriod || entry.HasData) {
+				fillMode = "DF"
+			}
+			pdf.Rect(cellX, cellY, cellWidth, cellHeight-0.6, fillMode)
+
+			if currentDay.Month() != monthStart.Month() {
+				pdf.SetTextColor(190, 182, 174)
+			} else if hasEntry && entry.IsPeriod {
+				pdf.SetTextColor(255, 255, 255)
+			} else {
+				pdf.SetTextColor(88, 74, 58)
+			}
+
+			pdf.SetXY(cellX, cellY+1)
+			pdf.CellFormat(cellWidth, 3.2, fmt.Sprintf("%d", currentDay.Day()), "", 0, "C", false, 0, "")
+		}
+	}
+
+	pdf.SetTextColor(88, 74, 58)
+}
+
+func exportPDFWeekdayLabel(messages map[string]string, key string, fallback string) string {
+	label := exportPDFText(messages, key, fallback)
+	runes := []rune(strings.TrimSpace(label))
+	if len(runes) <= 2 {
+		return string(runes)
+	}
+	return string(runes[:2])
+}
+
+func parseExportPDFDate(value string) (time.Time, bool) {
+	parsed, err := time.Parse("2006-01-02", strings.TrimSpace(value))
+	if err != nil {
+		return time.Time{}, false
+	}
+	return parsed, true
 }
 
 func exportPDFText(messages map[string]string, key string, fallback string) string {

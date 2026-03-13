@@ -7,6 +7,7 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
+import { ensureNotesFieldVisible } from './support/note-helpers';
 import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
 
 function shiftISODate(iso: string, days: number): string {
@@ -50,12 +51,7 @@ async function openCalendarDayEditor(page: Page, isoDate: string) {
 }
 
 async function openCalendarNotes(form: Locator): Promise<void> {
-  const disclosure = form.locator('details.note-disclosure');
-  const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
-  if (!isOpen) {
-    await disclosure.locator('summary').click();
-  }
-  await expect(form.locator('#calendar-notes')).toBeVisible();
+  await ensureNotesFieldVisible(form, '#calendar-notes');
 }
 
 async function openSexActivityDisclosure(form: Locator): Promise<void> {
@@ -108,9 +104,13 @@ test.describe('Calendar page', () => {
 
     await expect(page.locator('.legend-dot.legend-dot-period')).toHaveCount(1);
     await expect(page.locator('.legend-dot.legend-dot-predicted')).toHaveCount(1);
-    await expect(page.locator('.legend-dot.legend-dot-fertile')).toHaveCount(1);
+    await expect(page.locator('.legend-outline')).toHaveCount(1);
+    await expect(page.locator('.legend-dot.legend-dot-fertile-edge')).toHaveCount(1);
+    await expect(page.locator('.legend-dot.legend-dot-fertile-peak')).toHaveCount(1);
     const ovulationDot = page.locator('.legend-item .calendar-ovulation-dot');
+    const tentativeOvulation = page.locator('.legend-item .calendar-ovulation-dash');
     await expect(ovulationDot).toHaveCount(1);
+    await expect(tentativeOvulation).toHaveCount(1);
 
     const styles = await ovulationDot.evaluate((node) => {
       const computed = window.getComputedStyle(node);

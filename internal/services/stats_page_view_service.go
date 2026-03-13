@@ -49,6 +49,8 @@ type StatsPageViewData struct {
 	ShowIrregularityNotice              bool
 	ShowIrregularInsufficientDataNotice bool
 	ShowIrregularModeRecommendation     bool
+	ShowAgeVariabilityHint              bool
+	PredictionDisabled                  bool
 	IsIrregularMode                     bool
 	IsOwner                             bool
 }
@@ -129,6 +131,8 @@ func (service *StatsService) BuildStatsPageViewData(user *models.User, language 
 		ShowIrregularityNotice:              IsOwnerUser(user) && !user.IrregularCycle && flags.CompletedCycleCount >= 3 && IsIrregularCycleSpread(stats),
 		ShowIrregularInsufficientDataNotice: user != nil && user.IrregularCycle && flags.CompletedCycleCount < 3,
 		ShowIrregularModeRecommendation:     IsOwnerUser(user) && !user.IrregularCycle && flags.CompletedCycleCount >= 3 && IsIrregularCycleSpread(stats),
+		ShowAgeVariabilityHint:              user != nil && NormalizeAgeGroup(user.AgeGroup) == models.AgeGroup35Plus,
+		PredictionDisabled:                  user != nil && user.UnpredictableCycle,
 		IsIrregularMode:                     user != nil && user.IrregularCycle,
 		IsOwner:                             IsOwnerUser(user),
 	}, nil

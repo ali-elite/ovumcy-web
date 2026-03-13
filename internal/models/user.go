@@ -7,6 +7,13 @@ const (
 	RolePartner         = "partner"
 	DefaultCycleLength  = 28
 	DefaultPeriodLength = 5
+	AgeGroupUnknown     = ""
+	AgeGroupUnder20     = "under_20"
+	AgeGroup20To35      = "age_20_35"
+	AgeGroup35Plus      = "age_35_plus"
+	UsageGoalHealth     = "health"
+	UsageGoalAvoid      = "avoid_pregnancy"
+	UsageGoalTrying     = "trying_to_conceive"
 )
 
 type User struct {
@@ -28,6 +35,11 @@ type User struct {
 	TemperatureUnit     string     `gorm:"column:temperature_unit;not null;default:c"`
 	TrackCervicalMucus  bool       `gorm:"column:track_cervical_mucus;not null;default:false"`
 	HideSexChip         bool       `gorm:"column:hide_sex_chip;not null;default:false"`
+	ShownPeriodTip      bool       `gorm:"column:shown_period_tip;not null;default:false"`
+	AgeGroup            string     `gorm:"column:age_group;not null;default:''"`
+	UsageGoal           string     `gorm:"column:usage_goal;not null;default:health"`
+	UnpredictableCycle  bool       `gorm:"column:unpredictable_cycle;not null;default:false"`
+	LongPeriodWarnedAt  *time.Time `gorm:"column:long_period_warning_cycle_start;type:date"`
 	LastPeriodStart     *time.Time `gorm:"type:date"`
 	CreatedAt           time.Time  `gorm:"not null"`
 }

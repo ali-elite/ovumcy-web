@@ -19,7 +19,7 @@
     {{if lt .TrendPointCount 3}}
     <div class="journal-panel text-sm journal-muted">{{t .Messages "stats.data_notice"}}</div>
     {{end}}
-    {{if .ShowIrregularInsufficientDataNotice}}
+    {{if and (not .PredictionDisabled) .ShowIrregularInsufficientDataNotice}}
     <div class="journal-panel text-sm journal-muted">{{t .Messages "stats.irregular_insufficient_data"}}</div>
     {{end}}
     {{if .ShowIrregularityNotice}}
@@ -27,6 +27,12 @@
     {{end}}
     {{if .ShowIrregularModeRecommendation}}
     <div class="journal-panel text-sm journal-muted">{{t .Messages "stats.irregular_recommendation"}}</div>
+    {{end}}
+    {{if .PredictionDisabled}}
+    <div class="journal-panel text-sm journal-muted">{{t .Messages "stats.prediction_disabled"}}</div>
+    {{end}}
+    {{if .ShowAgeVariabilityHint}}
+    <div class="journal-panel text-sm journal-muted">{{t .Messages "stats.age_variability_hint"}}</div>
     {{end}}
 
     <div class="grid gap-4 lg:grid-cols-3">
@@ -41,12 +47,18 @@
       </article>
 
       <article class="journal-card stat-card reveal">
-        <p class="stat-label">{{t .Messages "dashboard.current_phase"}}</p>
-        {{if .CycleDataStale}}
-        <p class="stat-value mt-2"><span class="mr-2">{{phaseIcon "unknown"}}</span>{{phaseLabel .Messages "unknown"}}</p>
-        <p class="warning-amber mt-2 text-xs">{{t .Messages "dashboard.phase_estimated"}}</p>
+        {{if .PredictionDisabled}}
+        <p class="stat-label">{{t .Messages "stats.facts_only_title"}}</p>
+        <p class="stat-value mt-2">{{t .Messages "stats.facts_only_value"}}</p>
+        <p class="journal-muted mt-2 text-xs">{{t .Messages "stats.facts_only_hint"}}</p>
         {{else}}
-        <p class="stat-value mt-2"><span class="mr-2">{{phaseIcon .Stats.CurrentPhase}}</span>{{phaseLabel .Messages .Stats.CurrentPhase}}</p>
+        <p class="stat-label">{{t .Messages "dashboard.current_phase"}}</p>
+          {{if .CycleDataStale}}
+          <p class="stat-value mt-2"><span class="mr-2">{{phaseIcon "unknown"}}</span>{{phaseLabel .Messages "unknown"}}</p>
+          <p class="warning-amber mt-2 text-xs">{{t .Messages "dashboard.phase_estimated"}}</p>
+          {{else}}
+          <p class="stat-value mt-2"><span class="mr-2">{{phaseIcon .Stats.CurrentPhase}}</span>{{phaseLabel .Messages .Stats.CurrentPhase}}</p>
+          {{end}}
         {{end}}
       </article>
     </div>

@@ -1,0 +1,5 @@
+ALTER TABLE users ADD COLUMN shown_period_tip BOOLEAN NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN age_group TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN usage_goal TEXT NOT NULL DEFAULT 'health';
+ALTER TABLE users ADD COLUMN unpredictable_cycle BOOLEAN NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN long_period_warning_cycle_start DATE;

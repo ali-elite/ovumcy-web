@@ -21,7 +21,7 @@ var (
 type OnboardingUserRepository interface {
 	FindByID(userID uint) (models.User, error)
 	SaveOnboardingStep1(userID uint, start time.Time) error
-	SaveOnboardingStep2(userID uint, cycleLength int, periodLength int, autoPeriodFill bool, irregularCycle bool) error
+	SaveOnboardingStep2(userID uint, cycleLength int, periodLength int, autoPeriodFill bool, irregularCycle bool, ageGroup string, usageGoal string) error
 	CompleteOnboarding(userID uint, startDay time.Time, periodLength int) error
 }
 
@@ -67,26 +67,34 @@ func (service *OnboardingService) ValidateAndParseStep1StartDate(raw string, now
 	return parsed, nil
 }
 
-func (service *OnboardingService) SaveStep2(userID uint, cycleLength int, periodLength int, autoPeriodFill bool, irregularCycle bool) (int, int, error) {
+func (service *OnboardingService) SaveStep2(userID uint, cycleLength int, periodLength int, autoPeriodFill bool, irregularCycle bool, ageGroup string, usageGoal string) (int, int, error) {
 	safeCycleLength, safePeriodLength := SanitizeOnboardingCycleAndPeriod(cycleLength, periodLength)
-	if err := service.users.SaveOnboardingStep2(userID, safeCycleLength, safePeriodLength, autoPeriodFill, irregularCycle); err != nil {
+	if err := service.users.SaveOnboardingStep2(
+		userID,
+		safeCycleLength,
+		safePeriodLength,
+		autoPeriodFill,
+		irregularCycle,
+		NormalizeAgeGroup(ageGroup),
+		NormalizeUsageGoal(usageGoal),
+	); err != nil {
 		return 0, 0, err
 	}
 	return safeCycleLength, safePeriodLength, nil
 }
 
-func (service *OnboardingService) ParseAndNormalizeStep2Input(cycleRaw string, periodRaw string, autoPeriodFill bool, irregularCycle bool) (int, int, bool, bool, error) {
+func (service *OnboardingService) ParseAndNormalizeStep2Input(cycleRaw string, periodRaw string, autoPeriodFill bool, irregularCycle bool, ageGroup string, usageGoal string) (int, int, bool, bool, string, string, error) {
 	cycleLength, err := strconv.Atoi(strings.TrimSpace(cycleRaw))
 	if err != nil {
-		return 0, 0, false, false, ErrOnboardingStep2InputInvalid
+		return 0, 0, false, false, "", "", ErrOnboardingStep2InputInvalid
 	}
 	periodLength, err := strconv.Atoi(strings.TrimSpace(periodRaw))
 	if err != nil {
-		return 0, 0, false, false, ErrOnboardingStep2InputInvalid
+		return 0, 0, false, false, "", "", ErrOnboardingStep2InputInvalid
 	}
 
 	safeCycleLength, safePeriodLength := SanitizeOnboardingCycleAndPeriod(cycleLength, periodLength)
-	return safeCycleLength, safePeriodLength, autoPeriodFill, irregularCycle, nil
+	return safeCycleLength, safePeriodLength, autoPeriodFill, irregularCycle, NormalizeAgeGroup(ageGroup), NormalizeUsageGoal(usageGoal), nil
 }
 
 func (service *OnboardingService) CompleteOnboardingForUser(userID uint, location *time.Location) (time.Time, error) {

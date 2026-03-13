@@ -27,6 +27,8 @@
   data-confirm-delete="{{t .Messages "confirm.yes"}}"
   data-toast-close="{{t .Messages "common.close"}}"
   data-request-failed="{{t .Messages "common.error.request_failed"}}"
+  data-period-tip-message="{{t .Messages "dashboard.period_tip_once"}}"
+  data-period-tip-pending="{{if and .CurrentUser (not .CurrentUser.ShownPeriodTip)}}true{{else}}false{{end}}"
   data-theme-label-dark="{{t .Messages "theme.switch_to_dark"}}"
   data-theme-label-light="{{t .Messages "theme.switch_to_light"}}"
   data-theme-name-dark="{{t .Messages "theme.name.dark"}}"
@@ -401,7 +403,7 @@
     {{if .DisableWhenNotPeriod}}data-disable-without-period="true"{{if not .CurrentIsPeriod}} disabled{{end}}{{end}}
     {{if eq .SelectedFlow .Value}}checked{{end}}>
   <span class="{{if .Compact}}radio-tile radio-tile-sm radio-tile-inline{{else}}radio-tile radio-tile-inline{{end}}">
-    <span class="radio-icon radio-icon-inline">{{if eq .Value "none"}}○{{else if eq .Value "light"}}◔{{else if eq .Value "medium"}}◑{{else}}◕{{end}}</span>
+    <span class="radio-icon radio-icon-inline">{{if eq .Value "none"}}○{{else if eq .Value "spotting"}}◌{{else if eq .Value "light"}}◔{{else if eq .Value "medium"}}◑{{else}}◕{{end}}</span>
     <span>{{flowLabel .Messages .Value}}</span>
   </span>
 </label>
@@ -409,6 +411,7 @@
 {{define "period_flow_options"}}
 <div class="{{if .Compact}}flow-radio-row flow-radio-row-compact{{else}}flow-radio-row{{end}}">
   {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "none" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod "CurrentIsPeriod" .CurrentIsPeriod)}}
+  {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "spotting" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod "CurrentIsPeriod" .CurrentIsPeriod)}}
   {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "light" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod "CurrentIsPeriod" .CurrentIsPeriod)}}
   {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "medium" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod "CurrentIsPeriod" .CurrentIsPeriod)}}
   {{template "period_flow_option" (dict "Messages" .Messages "SelectedFlow" .SelectedFlow "Value" "heavy" "Compact" .Compact "DisableWhenNotPeriod" .DisableWhenNotPeriod "CurrentIsPeriod" .CurrentIsPeriod)}}

@@ -25,6 +25,8 @@ func PhaseTranslationKey(phase string) string {
 
 func FlowTranslationKey(flow string) string {
 	switch strings.ToLower(strings.TrimSpace(flow)) {
+	case models.FlowSpotting:
+		return "dashboard.flow.spotting"
 	case models.FlowLight:
 		return "dashboard.flow.light"
 	case models.FlowMedium:

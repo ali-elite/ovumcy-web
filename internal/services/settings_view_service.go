@@ -63,6 +63,10 @@ type SettingsPageViewData struct {
 	PeriodLength            int
 	AutoPeriodFill          bool
 	IrregularCycle          bool
+	UnpredictableCycle      bool
+	AgeGroup                string
+	UsageGoal               string
+	ShownPeriodTip          bool
 	TrackBBT                bool
 	TemperatureUnit         string
 	TrackCervicalMucus      bool
@@ -125,6 +129,10 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 	resolvedUser.PeriodLength = periodLength
 	resolvedUser.AutoPeriodFill = autoPeriodFill
 	resolvedUser.IrregularCycle = persisted.IrregularCycle
+	resolvedUser.UnpredictableCycle = persisted.UnpredictableCycle
+	resolvedUser.AgeGroup = NormalizeAgeGroup(persisted.AgeGroup)
+	resolvedUser.UsageGoal = NormalizeUsageGoal(persisted.UsageGoal)
+	resolvedUser.ShownPeriodTip = persisted.ShownPeriodTip
 	resolvedUser.TrackBBT = persisted.TrackBBT
 	resolvedUser.TemperatureUnit = NormalizeTemperatureUnit(persisted.TemperatureUnit)
 	resolvedUser.TrackCervicalMucus = persisted.TrackCervicalMucus
@@ -152,6 +160,10 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 		PeriodLength:           periodLength,
 		AutoPeriodFill:         autoPeriodFill,
 		IrregularCycle:         resolvedUser.IrregularCycle,
+		UnpredictableCycle:     resolvedUser.UnpredictableCycle,
+		AgeGroup:               resolvedUser.AgeGroup,
+		UsageGoal:              resolvedUser.UsageGoal,
+		ShownPeriodTip:         resolvedUser.ShownPeriodTip,
 		TrackBBT:               resolvedUser.TrackBBT,
 		TemperatureUnit:        resolvedUser.TemperatureUnit,
 		TrackCervicalMucus:     resolvedUser.TrackCervicalMucus,

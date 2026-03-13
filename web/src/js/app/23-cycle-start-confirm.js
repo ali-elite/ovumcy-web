@@ -74,6 +74,10 @@
         return;
       }
 
+       if (typeof window.__ovumcyMaybeAcknowledgePeriodTip === "function") {
+        window.__ovumcyMaybeAcknowledgePeriodTip(form);
+      }
+
       if (form.dataset.cycleStartConfirmBypass === "1") {
         form.dataset.cycleStartConfirmBypass = "";
         return;

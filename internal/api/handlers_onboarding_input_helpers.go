@@ -83,12 +83,16 @@ func (handler *Handler) parseOnboardingStep2Input(c *fiber.Ctx) (onboardingStep2
 			PeriodLength:   0,
 			AutoPeriodFill: services.ParseBoolLike(c.FormValue("auto_period_fill")),
 			IrregularCycle: services.ParseBoolLike(c.FormValue("irregular_cycle")),
+			AgeGroup:       strings.TrimSpace(c.FormValue("age_group")),
+			UsageGoal:      strings.TrimSpace(c.FormValue("usage_goal")),
 		}
-		cycleLength, periodLength, autoPeriodFill, irregularCycle, err := handler.onboardingSvc.ParseAndNormalizeStep2Input(
+		cycleLength, periodLength, autoPeriodFill, irregularCycle, ageGroup, usageGoal, err := handler.onboardingSvc.ParseAndNormalizeStep2Input(
 			c.FormValue("cycle_length"),
 			c.FormValue("period_length"),
 			input.AutoPeriodFill,
 			input.IrregularCycle,
+			input.AgeGroup,
+			input.UsageGoal,
 		)
 		if err != nil {
 			return onboardingStep2Input{}, "invalid input"
@@ -97,13 +101,17 @@ func (handler *Handler) parseOnboardingStep2Input(c *fiber.Ctx) (onboardingStep2
 		input.PeriodLength = periodLength
 		input.AutoPeriodFill = autoPeriodFill
 		input.IrregularCycle = irregularCycle
+		input.AgeGroup = ageGroup
+		input.UsageGoal = usageGoal
 		return input, ""
 	}
-	cycleLength, periodLength, autoPeriodFill, irregularCycle, err := handler.onboardingSvc.ParseAndNormalizeStep2Input(
+	cycleLength, periodLength, autoPeriodFill, irregularCycle, ageGroup, usageGoal, err := handler.onboardingSvc.ParseAndNormalizeStep2Input(
 		strconv.Itoa(input.CycleLength),
 		strconv.Itoa(input.PeriodLength),
 		input.AutoPeriodFill,
 		input.IrregularCycle,
+		input.AgeGroup,
+		input.UsageGoal,
 	)
 	if err != nil {
 		return onboardingStep2Input{}, "invalid input"
@@ -112,6 +120,8 @@ func (handler *Handler) parseOnboardingStep2Input(c *fiber.Ctx) (onboardingStep2
 	input.PeriodLength = periodLength
 	input.AutoPeriodFill = autoPeriodFill
 	input.IrregularCycle = irregularCycle
+	input.AgeGroup = ageGroup
+	input.UsageGoal = usageGoal
 
 	return input, ""
 }

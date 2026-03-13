@@ -57,7 +57,10 @@ type DashboardViewData struct {
 	AllowManualCycleStart    bool
 	ManualCycleStartPolicy   ManualCycleStartPolicy
 	ShowHighFertilityBadge   bool
+	ShowMissedDaysLink       bool
+	MissedDay                time.Time
 	ShowCycleStartSuggestion bool
+	ShowSpottingCycleWarning bool
 	IsOwner                  bool
 }
 
@@ -80,6 +83,7 @@ type DayEditorViewData struct {
 	ManualCycleStartPolicy     ManualCycleStartPolicy
 	ShowFutureCycleStartNotice bool
 	ShowCycleStartSuggestion   bool
+	ShowSpottingCycleWarning   bool
 	IsOwner                    bool
 }
 
@@ -103,6 +107,10 @@ func (service *DashboardViewService) BuildDashboardViewData(user *models.User, l
 	if err != nil {
 		return DashboardViewData{}, fmt.Errorf("%w: %v", ErrDashboardViewLoadTodayLog, err)
 	}
+	logs, err := service.entryContextLogs(user, symptoms)
+	if err != nil {
+		return DashboardViewData{}, err
+	}
 
 	cycleContext := BuildDashboardCycleContext(user, stats, today, location)
 	selectedSymptomID, rankedSymptoms, primarySymptoms, extraSymptoms, cycleStartPolicy, showCycleStartSuggestion, err := service.buildPickerViewState(
@@ -111,6 +119,7 @@ func (service *DashboardViewService) BuildDashboardViewData(user *models.User, l
 		now,
 		todayLog,
 		symptoms,
+		logs,
 		location,
 	)
 	if err != nil {
@@ -121,6 +130,7 @@ func (service *DashboardViewService) BuildDashboardViewData(user *models.User, l
 	if err != nil {
 		return DashboardViewData{}, fmt.Errorf("%w: %v", ErrDashboardViewLoadDayState, err)
 	}
+	missedDay, showMissedDaysLink := firstMissingTrackedDay(logs, today, 14, location)
 	allowManualCycleStart := IsOwnerUser(user) && IsAllowedManualCycleStartDate(today, now, location)
 
 	return DashboardViewData{
@@ -145,7 +155,10 @@ func (service *DashboardViewService) BuildDashboardViewData(user *models.User, l
 		AllowManualCycleStart:    allowManualCycleStart,
 		ManualCycleStartPolicy:   cycleStartPolicy,
 		ShowHighFertilityBadge:   IsOwnerUser(user) && NormalizeDayCervicalMucus(todayLog.CervicalMucus) == models.CervicalMucusEggWhite,
+		ShowMissedDaysLink:       showMissedDaysLink,
+		MissedDay:                missedDay,
 		ShowCycleStartSuggestion: showCycleStartSuggestion,
+		ShowSpottingCycleWarning: todayLog.IsPeriod && NormalizeDayFlow(todayLog.Flow) == models.FlowSpotting && !stats.LastPeriodStart.IsZero() && sameCalendarDay(DateAtLocation(stats.LastPeriodStart, location), today),
 		IsOwner:                  IsOwnerUser(user),
 	}, nil
 }
@@ -160,12 +173,17 @@ func (service *DashboardViewService) BuildDayEditorViewData(user *models.User, l
 	if err != nil {
 		return DayEditorViewData{}, fmt.Errorf("%w: %v", ErrDashboardViewLoadDayLog, err)
 	}
+	logs, err := service.entryContextLogs(user, symptoms)
+	if err != nil {
+		return DayEditorViewData{}, err
+	}
 	selectedSymptomID, rankedSymptoms, primarySymptoms, extraSymptoms, cycleStartPolicy, showCycleStartSuggestion, err := service.buildPickerViewState(
 		user,
 		day,
 		now,
 		logEntry,
 		symptoms,
+		logs,
 		location,
 	)
 	if err != nil {
@@ -173,6 +191,10 @@ func (service *DashboardViewService) BuildDayEditorViewData(user *models.User, l
 	}
 	isFutureDate := day.After(DateAtLocation(now.In(location), location))
 	allowManualCycleStart := IsOwnerUser(user) && IsAllowedManualCycleStartDate(day, now, location)
+	stats, _, err := service.stats.BuildCycleStatsForRange(user, day.AddDate(-2, 0, 0), day, now, location)
+	if err != nil {
+		return DayEditorViewData{}, fmt.Errorf("%w: %v", ErrDashboardViewLoadStats, err)
+	}
 
 	return DayEditorViewData{
 		Date:                       day,
@@ -193,24 +215,32 @@ func (service *DashboardViewService) BuildDayEditorViewData(user *models.User, l
 		ManualCycleStartPolicy:     cycleStartPolicy,
 		ShowFutureCycleStartNotice: isFutureDate && allowManualCycleStart,
 		ShowCycleStartSuggestion:   showCycleStartSuggestion,
+		ShowSpottingCycleWarning:   logEntry.IsPeriod && NormalizeDayFlow(logEntry.Flow) == models.FlowSpotting && !stats.LastPeriodStart.IsZero() && sameCalendarDay(DateAtLocation(stats.LastPeriodStart, location), day),
 		IsOwner:                    IsOwnerUser(user),
 	}, nil
 }
 
-func (service *DashboardViewService) buildPickerViewState(user *models.User, day time.Time, now time.Time, logEntry models.DailyLog, symptoms []models.SymptomType, location *time.Location) (map[uint]bool, []models.SymptomType, []models.SymptomType, []models.SymptomType, ManualCycleStartPolicy, bool, error) {
-	selectedSymptomID := SymptomIDSet(logEntry.SymptomIDs)
-	rankedSymptoms := symptoms
+func (service *DashboardViewService) entryContextLogs(user *models.User, symptoms []models.SymptomType) ([]models.DailyLog, error) {
 	requiresLogs := len(symptoms) >= 2 || IsOwnerUser(user)
 	if !requiresLogs {
-		primarySymptoms, extraSymptoms := SplitSymptomsForCollapsedPicker(rankedSymptoms, selectedSymptomID, 8)
-		return selectedSymptomID, rankedSymptoms, primarySymptoms, extraSymptoms, ManualCycleStartPolicy{}, false, nil
+		return nil, nil
 	}
 
 	logs, err := service.days.FetchAllLogsForUser(user.ID)
 	if err != nil {
-		return nil, nil, nil, nil, ManualCycleStartPolicy{}, false, fmt.Errorf("%w: %v", ErrDashboardViewLoadLogs, err)
+		return nil, fmt.Errorf("%w: %v", ErrDashboardViewLoadLogs, err)
 	}
-	if len(symptoms) >= 2 {
+	return logs, nil
+}
+
+func (service *DashboardViewService) buildPickerViewState(user *models.User, day time.Time, now time.Time, logEntry models.DailyLog, symptoms []models.SymptomType, logs []models.DailyLog, location *time.Location) (map[uint]bool, []models.SymptomType, []models.SymptomType, []models.SymptomType, ManualCycleStartPolicy, bool, error) {
+	selectedSymptomID := SymptomIDSet(logEntry.SymptomIDs)
+	rankedSymptoms := symptoms
+	if len(logs) == 0 {
+		primarySymptoms, extraSymptoms := SplitSymptomsForCollapsedPicker(rankedSymptoms, selectedSymptomID, 8)
+		return selectedSymptomID, rankedSymptoms, primarySymptoms, extraSymptoms, ManualCycleStartPolicy{}, false, nil
+	}
+	if len(symptoms) >= 2 && completedCycleCountFromLogs(logs) >= 2 {
 		rankedSymptoms = RankSymptomsForEntryPicker(symptoms, logs)
 	}
 
@@ -221,4 +251,39 @@ func (service *DashboardViewService) buildPickerViewState(user *models.User, day
 		cycleStartPolicy = ResolveManualCycleStartPolicy(user, logs, day, now, location)
 	}
 	return selectedSymptomID, rankedSymptoms, primarySymptoms, extraSymptoms, cycleStartPolicy, showCycleStartSuggestion, nil
+}
+
+func completedCycleCountFromLogs(logs []models.DailyLog) int {
+	starts := ObservedCycleStarts(logs)
+	if len(starts) < 2 {
+		return 0
+	}
+	return len(starts) - 1
+}
+
+func firstMissingTrackedDay(logs []models.DailyLog, today time.Time, lookbackDays int, location *time.Location) (time.Time, bool) {
+	if lookbackDays < 3 {
+		lookbackDays = 3
+	}
+	logByDay := make(map[string]bool, len(logs))
+	for _, logEntry := range logs {
+		logByDay[DateAtLocation(logEntry.Date, location).Format("2006-01-02")] = true
+	}
+
+	startDay := today.AddDate(0, 0, -lookbackDays)
+	missedCount := 0
+	firstMissing := time.Time{}
+	for day := startDay; day.Before(today); day = day.AddDate(0, 0, 1) {
+		if logByDay[day.Format("2006-01-02")] {
+			continue
+		}
+		missedCount++
+		if firstMissing.IsZero() {
+			firstMissing = day
+		}
+	}
+	if missedCount < 3 || firstMissing.IsZero() {
+		return time.Time{}, false
+	}
+	return firstMissing, true
 }

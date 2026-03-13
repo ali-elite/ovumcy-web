@@ -134,6 +134,11 @@ func (repo *UserRepository) LoadSettingsByID(userID uint) (models.User, error) {
 			"temperature_unit",
 			"track_cervical_mucus",
 			"hide_sex_chip",
+			"shown_period_tip",
+			"age_group",
+			"usage_goal",
+			"unpredictable_cycle",
+			"long_period_warning_cycle_start",
 			"last_period_start",
 		).
 		First(&user, userID).Error; err != nil {
@@ -156,13 +161,15 @@ func (repo *UserRepository) SaveOnboardingStep1(userID uint, start time.Time) er
 	}).Error
 }
 
-func (repo *UserRepository) SaveOnboardingStep2(userID uint, cycleLength int, periodLength int, autoPeriodFill bool, irregularCycle bool) error {
+func (repo *UserRepository) SaveOnboardingStep2(userID uint, cycleLength int, periodLength int, autoPeriodFill bool, irregularCycle bool, ageGroup string, usageGoal string) error {
 	return repo.database.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]any{
 		"cycle_length":     cycleLength,
 		"period_length":    periodLength,
 		"luteal_phase":     14,
 		"auto_period_fill": autoPeriodFill,
 		"irregular_cycle":  irregularCycle,
+		"age_group":        ageGroup,
+		"usage_goal":       usageGoal,
 	}).Error
 }
 
@@ -175,16 +182,21 @@ func (repo *UserRepository) ClearAllDataAndResetSettings(userID uint) error {
 			return err
 		}
 		return tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]any{
-			"cycle_length":         models.DefaultCycleLength,
-			"period_length":        models.DefaultPeriodLength,
-			"luteal_phase":         14,
-			"auto_period_fill":     true,
-			"irregular_cycle":      false,
-			"track_bbt":            false,
-			"temperature_unit":     "c",
-			"track_cervical_mucus": false,
-			"hide_sex_chip":        false,
-			"last_period_start":    nil,
+			"cycle_length":                    models.DefaultCycleLength,
+			"period_length":                   models.DefaultPeriodLength,
+			"luteal_phase":                    14,
+			"auto_period_fill":                true,
+			"irregular_cycle":                 false,
+			"track_bbt":                       false,
+			"temperature_unit":                "c",
+			"track_cervical_mucus":            false,
+			"hide_sex_chip":                   false,
+			"shown_period_tip":                false,
+			"age_group":                       models.AgeGroupUnknown,
+			"usage_goal":                      models.UsageGoalHealth,
+			"unpredictable_cycle":             false,
+			"long_period_warning_cycle_start": nil,
+			"last_period_start":               nil,
 		}).Error
 	})
 }

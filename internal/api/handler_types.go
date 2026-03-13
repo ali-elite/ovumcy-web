@@ -42,23 +42,28 @@ type Handler struct {
 }
 
 type CalendarDay struct {
-	Date         time.Time
-	DateString   string
-	Day          int
-	InMonth      bool
-	IsToday      bool
-	IsPeriod     bool
-	IsPredicted  bool
-	IsPreFertile bool
-	IsFertility  bool
-	IsOvulation  bool
-	HasData      bool
-	HasSex       bool
-	CellClass    string
-	TextClass    string
-	BadgeClass   string
-	StateKey     string
-	OvulationDot bool
+	Date                   time.Time
+	DateString             string
+	Day                    int
+	InMonth                bool
+	IsToday                bool
+	OpenEditDirectly       bool
+	IsPeriod               bool
+	IsPredicted            bool
+	IsPreFertile           bool
+	IsFertility            bool
+	IsFertilityPeak        bool
+	IsFertilityEdge        bool
+	IsOvulation            bool
+	IsTentativeOvulation   bool
+	HasData                bool
+	HasSex                 bool
+	CellClass              string
+	TextClass              string
+	BadgeClass             string
+	StateKey               string
+	OvulationDot           bool
+	TentativeOvulationMark bool
 }
 
 type FlashPayload struct {

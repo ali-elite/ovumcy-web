@@ -21,6 +21,14 @@
     --period-color: #c7756d;
     --ovulation-color: #f4d58d;
     --fertile-color: #b8d4c1;
+    --fertile-edge-color: #d9ebc6;
+    --fertile-peak-color: #8ecb86;
+    --fertile-warning-edge: #f4d8ac;
+    --fertile-warning-peak: #e09b4d;
+    --fertile-positive-edge: #d9f0cf;
+    --fertile-positive-peak: #63b768;
+    --phase-fertile-accent: #6aa46b;
+    --phase-luteal-accent: #9270b4;
     --line-soft: #ecd9c6;
     --shadow-soft: 0 10px 24px rgba(174, 126, 73, 0.16);
     --shadow-hover: 0 18px 30px rgba(174, 126, 73, 0.22);
@@ -54,6 +62,14 @@
     --period-color: #de8f88;
     --ovulation-color: #d6b062;
     --fertile-color: #89b39a;
+    --fertile-edge-color: #6e946d;
+    --fertile-peak-color: #98d494;
+    --fertile-warning-edge: #8d7047;
+    --fertile-warning-peak: #d49d59;
+    --fertile-positive-edge: #5f8f62;
+    --fertile-positive-peak: #88c884;
+    --phase-fertile-accent: #97c98f;
+    --phase-luteal-accent: #b99ce1;
     --line-soft: rgba(116, 96, 145, 0.58);
     --shadow-soft: 0 14px 28px rgba(8, 5, 12, 0.45);
     --shadow-hover: 0 20px 36px rgba(6, 4, 10, 0.6);
@@ -116,6 +132,16 @@
   a {
     color: inherit;
     text-decoration: none;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid rgba(186, 131, 80, 0.58);
+    outline-offset: 2px;
   }
 }
 
@@ -529,6 +555,60 @@
     gap: 0.34rem;
   }
 
+  .dashboard-status-item-warning,
+  .dashboard-status-item-positive {
+    border-radius: 999px;
+    padding: 0.18rem 0.56rem;
+    font-weight: 700;
+  }
+
+  .dashboard-status-item-warning {
+    background: rgba(233, 164, 74, 0.16);
+    color: #9b5f19;
+  }
+
+  .dashboard-status-item-positive {
+    background: rgba(102, 168, 104, 0.16);
+    color: #48794b;
+  }
+
+  .dashboard-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .dashboard-quick-action {
+    width: 2.9rem;
+    min-width: 2.9rem;
+    padding-inline: 0;
+    font-size: 1.05rem;
+  }
+
+  .dashboard-once-tip {
+    border-left: 3px solid rgba(212, 165, 116, 0.55);
+    padding-left: 0.7rem;
+  }
+
+  .dashboard-autosave-indicator[data-autosave-state="saving"] {
+    color: var(--accent-strong);
+  }
+
+  .dashboard-autosave-indicator[data-autosave-state="saved"] {
+    color: #4d6e57;
+  }
+
+  .dashboard-autosave-indicator[data-autosave-state="error"] {
+    color: #8d4b45;
+  }
+
+  .dashboard-section-quick-focus {
+    border-radius: 1rem;
+    box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.18);
+    padding: 0.4rem 0.55rem;
+    margin-inline: -0.55rem;
+  }
+
   .dashboard-status-separator {
     color: rgba(172, 136, 96, 0.72);
   }
@@ -760,6 +840,10 @@
   .btn-soft,
   .btn-warning,
   .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
     border-radius: 999px;
     padding: 0.58rem 1.12rem;
     font-size: 0.88rem;
@@ -961,6 +1045,7 @@
   .mood-chip {
     display: inline-flex;
     width: 100%;
+    min-height: 2.75rem;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
@@ -982,7 +1067,7 @@
   }
 
   .radio-tile-sm {
-    min-height: 2.65rem;
+    min-height: 2.75rem;
     font-size: 0.8rem;
   }
 
@@ -992,7 +1077,6 @@
 
   .check-chip {
     justify-content: flex-start;
-    min-height: 2.65rem;
     position: relative;
     min-width: 0;
     overflow: hidden;
@@ -1007,7 +1091,7 @@
   }
 
   .mood-chip-sm {
-    min-height: 2.4rem;
+    min-height: 2.75rem;
     max-width: 3.2rem;
     padding: 0.34rem 0.72rem;
   }
@@ -1048,7 +1132,7 @@
   }
 
   .check-chip-sm {
-    min-height: 2.3rem;
+    min-height: 2.75rem;
     font-size: 0.78rem;
   }
 
@@ -1523,6 +1607,15 @@
       0 3px 8px rgba(176, 128, 38, 0.18);
   }
 
+  .calendar-ovulation-dash {
+    display: inline-flex;
+    width: 0.92rem;
+    height: 0.18rem;
+    border-radius: 999px;
+    background: rgba(120, 120, 120, 0.88);
+    box-shadow: 0 0 0 2px rgba(160, 160, 160, 0.18);
+  }
+
   .calendar-sex-marker {
     display: inline-flex;
     align-items: center;
@@ -1806,12 +1899,21 @@
 
   .calendar-cell-period {
     border-color: rgba(199, 117, 109, 0.7);
-    background: rgba(199, 117, 109, 0.2);
+    background:
+      repeating-linear-gradient(
+        180deg,
+        rgba(199, 117, 109, 0.18) 0,
+        rgba(199, 117, 109, 0.18) 5px,
+        rgba(255, 255, 255, 0) 5px,
+        rgba(255, 255, 255, 0) 10px
+      ),
+      rgba(199, 117, 109, 0.18);
   }
 
   .calendar-cell-predicted {
     border-color: rgba(212, 165, 116, 0.8);
-    background: rgba(232, 196, 168, 0.35);
+    border-style: dashed;
+    background: rgba(232, 196, 168, 0.28);
   }
 
   .calendar-cell-pre-fertile {
@@ -1823,7 +1925,32 @@
 
   .calendar-cell-fertile {
     border-color: rgba(137, 170, 145, 0.7);
-    background: rgba(184, 212, 193, 0.37);
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
+      repeating-linear-gradient(
+        45deg,
+        rgba(112, 155, 120, 0.16) 0,
+        rgba(112, 155, 120, 0.16) 6px,
+        rgba(255, 255, 255, 0) 6px,
+        rgba(255, 255, 255, 0) 14px
+      ),
+      rgba(184, 212, 193, 0.37);
+  }
+
+  .calendar-cell-fertile-edge {
+    border-color: rgba(154, 184, 132, 0.78);
+    background-color: color-mix(in srgb, var(--fertile-edge-color) 76%, white 24%);
+  }
+
+  .calendar-cell-fertile-peak {
+    border-color: rgba(93, 147, 95, 0.82);
+    background-color: color-mix(in srgb, var(--fertile-peak-color) 82%, white 18%);
+  }
+
+  .calendar-cell-ovulation-tentative {
+    border-style: dashed;
+    border-color: rgba(149, 149, 149, 0.78);
+    background: rgba(216, 216, 216, 0.14);
   }
 
   .calendar-cell-out {
@@ -1939,7 +2066,17 @@
   }
 
   .legend-dot-fertile {
-    background: #7b9f87;
+    background: var(--fertile-peak-color);
+  }
+
+  .legend-dot-fertile-edge {
+    background: var(--fertile-edge-color);
+    border-radius: 0.2rem;
+  }
+
+  .legend-dot-fertile-peak {
+    background: var(--fertile-peak-color);
+    border-radius: 0.2rem;
   }
 
   .legend-outline {
@@ -1949,6 +2086,38 @@
     border: 1px dashed rgba(172, 136, 96, 0.65);
     background: rgba(255, 255, 255, 0.94);
     display: inline-block;
+  }
+
+  [data-dashboard-editor][data-phase="follicular"] .btn-primary {
+    background: linear-gradient(135deg, #d2b48c, #ead7bc);
+  }
+
+  [data-dashboard-editor][data-phase="fertile"] .btn-primary {
+    background: linear-gradient(135deg, var(--phase-fertile-accent), #96d08e);
+  }
+
+  [data-dashboard-editor][data-phase="luteal"] .btn-primary {
+    background: linear-gradient(135deg, var(--phase-luteal-accent), #c3a6dd);
+  }
+
+  [data-calendar-view][data-usage-goal="avoid_pregnancy"] .calendar-cell-fertile-edge {
+    border-color: rgba(203, 139, 54, 0.78);
+    background-color: color-mix(in srgb, var(--fertile-warning-edge) 78%, white 22%);
+  }
+
+  [data-calendar-view][data-usage-goal="avoid_pregnancy"] .calendar-cell-fertile-peak {
+    border-color: rgba(196, 116, 33, 0.82);
+    background-color: color-mix(in srgb, var(--fertile-warning-peak) 82%, white 18%);
+  }
+
+  [data-calendar-view][data-usage-goal="trying_to_conceive"] .calendar-cell-fertile-edge {
+    border-color: rgba(103, 154, 101, 0.78);
+    background-color: color-mix(in srgb, var(--fertile-positive-edge) 78%, white 22%);
+  }
+
+  [data-calendar-view][data-usage-goal="trying_to_conceive"] .calendar-cell-fertile-peak {
+    border-color: rgba(63, 133, 71, 0.82);
+    background-color: color-mix(in srgb, var(--fertile-positive-peak) 82%, white 18%);
   }
 
   .chart-shell {
@@ -2565,12 +2734,20 @@
 
   :root[data-theme="dark"] .calendar-cell-period {
     border-color: rgba(222, 143, 136, 0.82);
-    background: rgba(130, 73, 70, 0.38);
+    background:
+      repeating-linear-gradient(
+        180deg,
+        rgba(181, 101, 97, 0.34) 0,
+        rgba(181, 101, 97, 0.34) 5px,
+        rgba(255, 255, 255, 0) 5px,
+        rgba(255, 255, 255, 0) 10px
+      ),
+      rgba(130, 73, 70, 0.34);
   }
 
   :root[data-theme="dark"] .calendar-cell-predicted {
     border-color: rgba(216, 176, 98, 0.82);
-    background: rgba(124, 97, 49, 0.34);
+    background: rgba(124, 97, 49, 0.28);
   }
 
   :root[data-theme="dark"] .calendar-cell-pre-fertile {
@@ -2581,7 +2758,29 @@
 
   :root[data-theme="dark"] .calendar-cell-fertile {
     border-color: rgba(137, 179, 154, 0.8);
-    background: rgba(69, 109, 88, 0.42);
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
+      repeating-linear-gradient(
+        45deg,
+        rgba(164, 203, 174, 0.12) 0,
+        rgba(164, 203, 174, 0.12) 6px,
+        rgba(255, 255, 255, 0) 6px,
+        rgba(255, 255, 255, 0) 14px
+      ),
+      rgba(69, 109, 88, 0.34);
+  }
+
+  :root[data-theme="dark"] .calendar-cell-fertile-edge {
+    background-color: rgba(92, 125, 86, 0.5);
+  }
+
+  :root[data-theme="dark"] .calendar-cell-fertile-peak {
+    background-color: rgba(78, 136, 79, 0.58);
+  }
+
+  :root[data-theme="dark"] .calendar-cell-ovulation-tentative {
+    border-color: rgba(170, 170, 170, 0.72);
+    background: rgba(121, 121, 121, 0.18);
   }
 
   :root[data-theme="dark"] .calendar-data-marker {
@@ -2596,6 +2795,11 @@
       0 3px 10px rgba(8, 6, 14, 0.3);
   }
 
+  :root[data-theme="dark"] .calendar-ovulation-dash {
+    background: rgba(209, 209, 209, 0.88);
+    box-shadow: 0 0 0 2px rgba(209, 209, 209, 0.12);
+  }
+
   :root[data-theme="dark"] .calendar-today-pill {
     background: rgba(216, 176, 98, 0.25);
     color: #ffe0b0;
@@ -2608,6 +2812,17 @@
 
   :root[data-theme="dark"] .chart-shell {
     background: rgba(33, 27, 44, 0.88);
+  }
+
+  :root[data-theme="dark"] .stats-empty-progress {
+    background: rgba(216, 176, 98, 0.34);
+    border-color: rgba(216, 176, 98, 0.24);
+  }
+
+  :root[data-theme="dark"] .stats-empty-progress-fill,
+  :root[data-theme="dark"] .phase-mood-meter::-webkit-progress-value,
+  :root[data-theme="dark"] .phase-mood-meter::-moz-progress-bar {
+    background: linear-gradient(135deg, #f0c38c, #d9aa74);
   }
 
   :root[data-theme="dark"] .status-ok {
@@ -2704,7 +2919,7 @@
     }
 
     .calendar-day-editor-form .radio-tile-sm {
-      min-height: 2.1rem;
+      min-height: 2.75rem;
       flex-direction: row;
       justify-content: center;
       gap: 0.3rem;
@@ -2719,7 +2934,7 @@
     .radio-tile:not(.radio-tile-sm) {
       flex-direction: row;
       justify-content: flex-start;
-      min-height: 2.45rem;
+      min-height: 2.75rem;
       padding: 0.38rem 0.52rem;
       gap: 0.36rem;
     }
@@ -2740,7 +2955,7 @@
     }
 
     .mood-chip {
-      min-height: 2.55rem;
+      min-height: 2.75rem;
       max-width: none;
       padding-inline: 0;
     }

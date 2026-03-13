@@ -23,6 +23,12 @@ type ExportPDFCycleDay struct {
 	Notes         string
 }
 
+type ExportPDFCalendarDay struct {
+	Date     string
+	IsPeriod bool
+	HasData  bool
+}
+
 type ExportPDFCycle struct {
 	StartDate    string
 	EndDate      string
@@ -43,9 +49,10 @@ type ExportPDFSummary struct {
 }
 
 type ExportPDFReport struct {
-	GeneratedAt string
-	Summary     ExportPDFSummary
-	Cycles      []ExportPDFCycle
+	GeneratedAt  string
+	Summary      ExportPDFSummary
+	CalendarDays []ExportPDFCalendarDay
+	Cycles       []ExportPDFCycle
 }
 
 func (service *ExportService) BuildPDFReport(userID uint, from *time.Time, to *time.Time, now time.Time, location *time.Location) (ExportPDFReport, error) {
@@ -55,9 +62,10 @@ func (service *ExportService) BuildPDFReport(userID uint, from *time.Time, to *t
 	}
 
 	report := ExportPDFReport{
-		GeneratedAt: now.In(location).Format(time.RFC3339),
-		Summary:     buildExportPDFSummary(logs, location),
-		Cycles:      []ExportPDFCycle{},
+		GeneratedAt:  now.In(location).Format(time.RFC3339),
+		Summary:      buildExportPDFSummary(logs, location),
+		CalendarDays: buildExportPDFCalendarDays(logs, location),
+		Cycles:       []ExportPDFCycle{},
 	}
 	if len(logs) == 0 {
 		return report, nil
@@ -193,4 +201,20 @@ func exportPDFSymptoms(symptomIDs []uint, symptomNames map[uint]string) []string
 	}
 	sort.Strings(names)
 	return names
+}
+
+func buildExportPDFCalendarDays(logs []models.DailyLog, location *time.Location) []ExportPDFCalendarDay {
+	if len(logs) == 0 {
+		return nil
+	}
+
+	result := make([]ExportPDFCalendarDay, 0, len(logs))
+	for _, logEntry := range logs {
+		result = append(result, ExportPDFCalendarDay{
+			Date:     DateAtLocation(logEntry.Date, location).Format(exportDateLayout),
+			IsPeriod: logEntry.IsPeriod,
+			HasData:  DayHasData(logEntry),
+		})
+	}
+	return result
 }

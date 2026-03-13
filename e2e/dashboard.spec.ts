@@ -7,6 +7,7 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
+import { ensureNotesFieldVisible } from './support/note-helpers';
 import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
 
 async function registerOwnerOnDashboard(page: Page, prefix: string): Promise<void> {
@@ -33,13 +34,20 @@ function todaySaveForm(page: Page) {
   return page.locator('[data-dashboard-save-form]');
 }
 
+function todaySymptomOptions(page: Page) {
+  return page.locator('fieldset[data-dashboard-section="symptoms"] label.choice-option');
+}
+
+function symptomInputForOption(option: ReturnType<typeof todaySymptomOptions>) {
+  return option.locator('input[name="symptom_ids"]');
+}
+
+function symptomChipForOption(option: ReturnType<typeof todaySymptomOptions>) {
+  return option.locator('.check-chip');
+}
+
 async function openTodayNotes(page: Page): Promise<void> {
-  const disclosure = page.locator('details.note-disclosure');
-  const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
-  if (!isOpen) {
-    await disclosure.locator('summary').click();
-  }
-  await expect(page.locator('#today-notes')).toBeVisible();
+  await ensureNotesFieldVisible(page, '#today-notes');
 }
 
 async function clientLocalISODate(page: Page): Promise<string> {
@@ -72,31 +80,23 @@ test.describe('Dashboard: today editor', () => {
     await expect(dateLabel).not.toHaveText(/^$/);
   });
 
-  test('note disclosure toggles between add, hide, and edit labels and can collapse again', async ({
+  test('notes field stays visible without an extra disclosure click', async ({
     page,
   }) => {
     await registerOwnerOnDashboard(page, 'dashboard-note-disclosure');
 
-    const disclosure = page.locator('details.note-disclosure');
-    const summary = disclosure.locator('summary');
-    const label = disclosure.locator('[data-note-disclosure-label]');
-    const emptyText = String(await disclosure.getAttribute('data-note-empty-text'));
-    const openText = String(await disclosure.getAttribute('data-note-open-text'));
-    const filledText = String(await disclosure.getAttribute('data-note-filled-text'));
+    const notes = page.locator('#today-notes');
+    await expect(page.locator('details.note-disclosure')).toHaveCount(0);
+    await expect(notes).toBeVisible();
+    await expect(notes).toHaveAttribute('rows', '2');
+    await expect(notes).toHaveAttribute('placeholder', /.+/);
 
-    await expect(label).toHaveText(emptyText);
-    await expect(summary).toHaveAttribute('aria-expanded', 'false');
+    const noteText = `toggle-note-${Date.now()}`;
+    await notes.fill(noteText);
+    await saveToday(page);
 
-    await summary.click();
-    await expect(disclosure).toHaveAttribute('open', '');
-    await expect(summary).toHaveAttribute('aria-expanded', 'true');
-    await expect(label).toHaveText(openText);
-
-    await page.locator('#today-notes').fill(`toggle-note-${Date.now()}`);
-    await summary.click();
-    await expect(disclosure).not.toHaveAttribute('open', '');
-    await expect(summary).toHaveAttribute('aria-expanded', 'false');
-    await expect(label).toHaveText(filledText);
+    await page.reload();
+    await expect(page.locator('#today-notes')).toHaveValue(noteText);
   });
 
   test('period/flow/symptoms/notes save and persist after reload; flow is single-select', async ({ page }) => {
@@ -106,7 +106,8 @@ test.describe('Dashboard: today editor', () => {
     const flowMedium = page.locator('input[name="flow"][value="medium"]');
     const flowHeavy = page.locator('input[name="flow"][value="heavy"]');
     const notes = page.locator('#today-notes');
-    const symptoms = page.locator('input[name="symptom_ids"]');
+    const firstSymptom = todaySymptomOptions(page).nth(0);
+    const secondSymptom = todaySymptomOptions(page).nth(1);
 
     await periodToggle.check();
     await expect(flowMedium).toBeEnabled();
@@ -118,21 +119,22 @@ test.describe('Dashboard: today editor', () => {
     await expect(flowHeavy).toBeChecked();
     await expect(flowMedium).not.toBeChecked();
 
-    await expect(symptoms.first()).toBeEnabled();
-    const firstSymptomValue = await symptoms.nth(0).getAttribute('value');
-    const secondSymptomValue = await symptoms.nth(1).getAttribute('value');
+    await expect(firstSymptom).toBeVisible();
+    await expect(secondSymptom).toBeVisible();
+    const firstSymptomValue = await symptomInputForOption(firstSymptom).getAttribute('value');
+    const secondSymptomValue = await symptomInputForOption(secondSymptom).getAttribute('value');
 
     expect(firstSymptomValue).toBeTruthy();
     expect(secondSymptomValue).toBeTruthy();
 
-    await symptoms.nth(0).check({ force: true });
-    await symptoms.nth(1).check({ force: true });
-    await expect(symptoms.nth(0)).toBeChecked();
-    await expect(symptoms.nth(1)).toBeChecked();
+    await symptomChipForOption(firstSymptom).click();
+    await symptomChipForOption(secondSymptom).click();
+    await expect(symptomInputForOption(firstSymptom)).toBeChecked();
+    await expect(symptomInputForOption(secondSymptom)).toBeChecked();
 
-    await symptoms.nth(1).uncheck({ force: true });
-    await expect(symptoms.nth(0)).toBeChecked();
-    await expect(symptoms.nth(1)).not.toBeChecked();
+    await symptomChipForOption(secondSymptom).click();
+    await expect(symptomInputForOption(firstSymptom)).toBeChecked();
+    await expect(symptomInputForOption(secondSymptom)).not.toBeChecked();
 
     const noteText = `dashboard-note-${Date.now()}`;
     await openTodayNotes(page);
@@ -146,8 +148,8 @@ test.describe('Dashboard: today editor', () => {
     await expect(periodToggle).toBeChecked();
     await expect(flowHeavy).toBeChecked();
     await expect(flowMedium).not.toBeChecked();
-    await expect(page.locator(`input[name="symptom_ids"][value="${firstSymptomValue}"]`)).toBeChecked();
-    await expect(page.locator(`input[name="symptom_ids"][value="${secondSymptomValue}"]`)).not.toBeChecked();
+    await expect(page.locator(`label.choice-option:has(input[name="symptom_ids"][value="${firstSymptomValue}"]) input[name="symptom_ids"]`)).toBeChecked();
+    await expect(page.locator(`label.choice-option:has(input[name="symptom_ids"][value="${secondSymptomValue}"]) input[name="symptom_ids"]`)).not.toBeChecked();
     await expect(notes).toHaveValue(noteText);
   });
 
@@ -156,12 +158,12 @@ test.describe('Dashboard: today editor', () => {
 
     const periodToggle = page.locator('input[name="is_period"]');
     const flowLight = page.locator('input[name="flow"][value="light"]');
-    const symptoms = page.locator('input[name="symptom_ids"]');
+    const firstSymptom = todaySymptomOptions(page).nth(0);
 
     await periodToggle.check();
     await flowLight.check({ force: true });
-    await symptoms.nth(0).check({ force: true });
-    await expect(symptoms.nth(0)).toBeChecked();
+    await symptomChipForOption(firstSymptom).click();
+    await expect(symptomInputForOption(firstSymptom)).toBeChecked();
 
     await saveToday(page);
     await page.reload();
@@ -169,14 +171,14 @@ test.describe('Dashboard: today editor', () => {
     await expect(periodToggle).toBeChecked();
     await periodToggle.uncheck();
 
-    await expect(symptoms.nth(0)).toBeChecked();
+    await expect(symptomInputForOption(firstSymptom)).toBeChecked();
     await expect(flowLight).toBeDisabled();
 
     await saveToday(page);
     await page.reload();
 
     await expect(periodToggle).not.toBeChecked();
-    await expect(symptoms.nth(0)).toBeChecked();
+    await expect(symptomInputForOption(firstSymptom)).toBeChecked();
     await expect(flowLight).not.toBeChecked();
   });
 
@@ -185,12 +187,12 @@ test.describe('Dashboard: today editor', () => {
 
     const periodToggle = page.locator('input[name="is_period"]');
     const flowMedium = page.locator('input[name="flow"][value="medium"]');
-    const symptoms = page.locator('input[name="symptom_ids"]');
+    const firstSymptom = todaySymptomOptions(page).nth(0);
     const notes = page.locator('#today-notes');
 
     await periodToggle.check();
     await flowMedium.check({ force: true });
-    await symptoms.nth(0).check({ force: true });
+    await symptomChipForOption(firstSymptom).click();
     await openTodayNotes(page);
     await notes.fill(`to-clear-${Date.now()}`);
     await saveToday(page);
@@ -252,19 +254,15 @@ test.describe('Dashboard: today editor', () => {
     await registerOwnerOnDashboard(page, 'dashboard-mood-symptoms-sync');
 
     const moodFour = page.locator('input[name="mood"][value="4"]');
-    const symptoms = page.locator('input[name="symptom_ids"]');
-    const firstSymptomValue = await symptoms.nth(0).getAttribute('value');
-    const firstSymptomLabel = await symptoms.nth(0).evaluate((input) => {
-      const label = input.closest('label');
-      const chip = label ? label.querySelector('.check-chip') : null;
-      return chip ? chip.getAttribute('title') : null;
-    });
+    const firstSymptom = todaySymptomOptions(page).nth(0);
+    const firstSymptomValue = await symptomInputForOption(firstSymptom).getAttribute('value');
+    const firstSymptomLabel = await firstSymptom.locator('.check-chip').getAttribute('title');
 
     expect(firstSymptomValue).toBeTruthy();
     expect(firstSymptomLabel).toBeTruthy();
 
     await moodFour.check({ force: true });
-    await symptoms.nth(0).check({ force: true });
+    await symptomChipForOption(firstSymptom).click();
     await saveToday(page);
 
     const todayAction = await todaySaveForm(page).first().getAttribute('hx-post');

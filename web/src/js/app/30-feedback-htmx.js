@@ -209,6 +209,19 @@
     window.showToast(message, "ok");
   }
 
+  function showResponseNotice(xhr) {
+    var message;
+    if (!xhr || typeof xhr.getResponseHeader !== "function" || typeof window.showToast !== "function") {
+      return;
+    }
+
+    message = String(xhr.getResponseHeader("X-Ovumcy-Notice") || "").trim();
+    if (!message) {
+      return;
+    }
+    window.showToast(message, "error");
+  }
+
   function maybeRefreshDayEditor(target) {
     var dayEditor = document.getElementById("day-editor");
     var form = target.closest("form[data-save-feedback]");
@@ -311,7 +324,13 @@
     });
 
     document.body.addEventListener("htmx:afterRequest", function (event) {
-      setSaveButtonState(getSaveFeedbackFormFromEvent(event), false);
+      var form = getSaveFeedbackFormFromEvent(event);
+      var xhr = event && event.detail ? event.detail.xhr : null;
+      setSaveButtonState(form, false);
+      showResponseNotice(xhr);
+      if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcySetDashboardAutosaveState === "function") {
+        window.__ovumcySetDashboardAutosaveState(form, !!(event && event.detail && event.detail.successful));
+      }
     });
 
     document.body.addEventListener("htmx:afterSwap", function (event) {
@@ -357,7 +376,11 @@
 
     document.body.addEventListener("htmx:responseError", function (event) {
       var target = event && event.detail ? event.detail.target : null;
+      var form = getSaveFeedbackFormFromEvent(event);
       if (!target || !target.classList || !target.classList.contains("save-status")) {
+        if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcySetDashboardAutosaveState === "function") {
+          window.__ovumcySetDashboardAutosaveState(form, false);
+        }
         return;
       }
 
@@ -370,5 +393,8 @@
 
       var fallback = document.body.getAttribute("data-request-failed") || "Request failed. Please try again.";
       renderErrorStatus(target, fallback);
+      if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcySetDashboardAutosaveState === "function") {
+        window.__ovumcySetDashboardAutosaveState(form, false);
+      }
     });
   }

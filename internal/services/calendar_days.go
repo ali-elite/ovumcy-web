@@ -7,18 +7,22 @@ import (
 )
 
 type CalendarDayState struct {
-	Date         time.Time
-	DateString   string
-	Day          int
-	InMonth      bool
-	IsToday      bool
-	IsPeriod     bool
-	IsPredicted  bool
-	IsPreFertile bool
-	IsFertility  bool
-	IsOvulation  bool
-	HasData      bool
-	HasSex       bool
+	Date                 time.Time
+	DateString           string
+	Day                  int
+	InMonth              bool
+	IsToday              bool
+	OpenEditDirectly     bool
+	IsPeriod             bool
+	IsPredicted          bool
+	IsPreFertile         bool
+	IsFertility          bool
+	IsFertilityPeak      bool
+	IsFertilityEdge      bool
+	IsOvulation          bool
+	IsTentativeOvulation bool
+	HasData              bool
+	HasSex               bool
 }
 
 func CalendarLogRange(monthStart time.Time) (time.Time, time.Time) {
@@ -26,16 +30,16 @@ func CalendarLogRange(monthStart time.Time) (time.Time, time.Time) {
 	return monthStart.AddDate(0, 0, -70), monthEnd.AddDate(0, 0, 70)
 }
 
-func BuildCalendarDayStates(monthStart time.Time, logs []models.DailyLog, stats CycleStats, now time.Time, location *time.Location) []CalendarDayState {
+func BuildCalendarDayStates(user *models.User, monthStart time.Time, logs []models.DailyLog, stats CycleStats, now time.Time, location *time.Location) []CalendarDayState {
 	gridStart, gridEnd := calendarGridBounds(monthStart)
 	latestLogByDate, hasDataMap := buildCalendarLogMaps(logs, location)
-	predictedPeriodMap, preFertileMap, fertilityMap, ovulationMap := buildCalendarPredictionMaps(stats, gridEnd, location)
+	predictedPeriodMap, preFertileMap, fertilityEdgeMap, fertilityPeakMap, ovulationMap, tentativeOvulationMap := buildCalendarPredictionMaps(user, logs, stats, gridEnd, now, location)
 
 	todayKey := DateAtLocation(now, location).Format("2006-01-02")
 
 	days := make([]CalendarDayState, 0, 42)
 	for day := gridStart; !day.After(gridEnd); day = day.AddDate(0, 0, 1) {
-		days = append(days, buildCalendarDayState(day, monthStart, todayKey, latestLogByDate, hasDataMap, predictedPeriodMap, preFertileMap, fertilityMap, ovulationMap))
+		days = append(days, buildCalendarDayState(day, monthStart, todayKey, latestLogByDate, hasDataMap, predictedPeriodMap, preFertileMap, fertilityEdgeMap, fertilityPeakMap, ovulationMap, tentativeOvulationMap))
 	}
 
 	return days
@@ -62,19 +66,26 @@ func buildCalendarLogMaps(logs []models.DailyLog, location *time.Location) (map[
 	return latestLogByDate, hasDataMap
 }
 
-func buildCalendarPredictionMaps(stats CycleStats, gridEnd time.Time, location *time.Location) (map[string]bool, map[string]bool, map[string]bool, map[string]bool) {
+func buildCalendarPredictionMaps(user *models.User, logs []models.DailyLog, stats CycleStats, gridEnd time.Time, now time.Time, location *time.Location) (map[string]bool, map[string]bool, map[string]bool, map[string]bool, map[string]bool, map[string]bool) {
 	predictedPeriodMap := make(map[string]bool)
 	preFertileMap := make(map[string]bool)
-	fertilityMap := make(map[string]bool)
+	fertilityEdgeMap := make(map[string]bool)
+	fertilityPeakMap := make(map[string]bool)
 	ovulationMap := make(map[string]bool)
+	tentativeOvulationMap := make(map[string]bool)
+
+	if DashboardPredictionDisabled(user) {
+		return predictedPeriodMap, preFertileMap, fertilityEdgeMap, fertilityPeakMap, ovulationMap, tentativeOvulationMap
+	}
 
 	appendCurrentBaselinePeriod(predictedPeriodMap, stats, location)
 	appendCurrentBaselinePreFertile(preFertileMap, stats, location)
-	appendCalendarDateRange(fertilityMap, stats.FertilityWindowStart, stats.FertilityWindowEnd)
+	appendFertilityWindow(fertilityEdgeMap, fertilityPeakMap, stats.FertilityWindowStart, stats.FertilityWindowEnd, stats.OvulationDate)
 	appendCalendarSingleDate(ovulationMap, stats.OvulationDate)
-	appendPredictedCycles(predictedPeriodMap, preFertileMap, fertilityMap, ovulationMap, stats, gridEnd, location)
+	appendPredictedCycles(predictedPeriodMap, preFertileMap, fertilityEdgeMap, fertilityPeakMap, ovulationMap, stats, gridEnd, location)
+	appendCurrentCycleBBTSignal(user, logs, stats, now, ovulationMap, tentativeOvulationMap, location)
 
-	return predictedPeriodMap, preFertileMap, fertilityMap, ovulationMap
+	return predictedPeriodMap, preFertileMap, fertilityEdgeMap, fertilityPeakMap, ovulationMap, tentativeOvulationMap
 }
 
 func appendCurrentBaselinePeriod(predictedPeriodMap map[string]bool, stats CycleStats, location *time.Location) {
@@ -95,7 +106,7 @@ func appendCurrentBaselinePreFertile(preFertileMap map[string]bool, stats CycleS
 	periodLength := predictedPeriodLength(stats.AveragePeriodLength)
 	preFertileStart := cycleStart.AddDate(0, 0, periodLength)
 
-		fertilityStart := DateAtLocation(stats.FertilityWindowStart, location)
+	fertilityStart := DateAtLocation(stats.FertilityWindowStart, location)
 	if fertilityStart.IsZero() {
 		cycleLength := predictedCycleLength(stats.MedianCycleLength, stats.AverageCycleLength)
 		_, computedFertilityStart, _, _, calculable := PredictCycleWindow(cycleStart, cycleLength, stats.LutealPhase)
@@ -127,7 +138,21 @@ func appendCalendarSingleDate(target map[string]bool, day time.Time) {
 	}
 }
 
-func appendPredictedCycles(predictedPeriodMap map[string]bool, preFertileMap map[string]bool, fertilityMap map[string]bool, ovulationMap map[string]bool, stats CycleStats, gridEnd time.Time, location *time.Location) {
+func appendFertilityWindow(fertilityEdgeMap map[string]bool, fertilityPeakMap map[string]bool, start time.Time, end time.Time, ovulationDate time.Time) {
+	if start.IsZero() || end.IsZero() || end.Before(start) {
+		return
+	}
+	for day := start; !day.After(end); day = day.AddDate(0, 0, 1) {
+		offset := int(ovulationDate.Sub(day).Hours() / 24)
+		if offset >= 0 && offset <= 2 {
+			fertilityPeakMap[day.Format("2006-01-02")] = true
+			continue
+		}
+		fertilityEdgeMap[day.Format("2006-01-02")] = true
+	}
+}
+
+func appendPredictedCycles(predictedPeriodMap map[string]bool, preFertileMap map[string]bool, fertilityEdgeMap map[string]bool, fertilityPeakMap map[string]bool, ovulationMap map[string]bool, stats CycleStats, gridEnd time.Time, location *time.Location) {
 	if stats.NextPeriodStart.IsZero() {
 		return
 	}
@@ -136,7 +161,7 @@ func appendPredictedCycles(predictedPeriodMap map[string]bool, preFertileMap map
 	predictedPeriodLength := predictedPeriodLength(stats.AveragePeriodLength)
 	for cycleStart := DateAtLocation(stats.NextPeriodStart, location); !cycleStart.After(gridEnd); cycleStart = cycleStart.AddDate(0, 0, predictedCycleLength) {
 		appendPredictedPeriod(predictedPeriodMap, cycleStart, predictedPeriodLength)
-		appendPredictedWindow(preFertileMap, fertilityMap, ovulationMap, cycleStart, predictedCycleLength, predictedPeriodLength, stats.LutealPhase)
+		appendPredictedWindow(preFertileMap, fertilityEdgeMap, fertilityPeakMap, ovulationMap, cycleStart, predictedCycleLength, predictedPeriodLength, stats.LutealPhase)
 	}
 }
 
@@ -147,7 +172,7 @@ func appendPredictedPeriod(predictedPeriodMap map[string]bool, cycleStart time.T
 	}
 }
 
-func appendPredictedWindow(preFertileMap map[string]bool, fertilityMap map[string]bool, ovulationMap map[string]bool, cycleStart time.Time, predictedCycleLength int, predictedPeriodLength int, lutealPhase int) {
+func appendPredictedWindow(preFertileMap map[string]bool, fertilityEdgeMap map[string]bool, fertilityPeakMap map[string]bool, ovulationMap map[string]bool, cycleStart time.Time, predictedCycleLength int, predictedPeriodLength int, lutealPhase int) {
 	ovulationDate, fertilityStart, fertilityEnd, _, calculable := PredictCycleWindow(cycleStart, predictedCycleLength, ResolveLutealPhase(lutealPhase))
 	if !calculable {
 		return
@@ -157,26 +182,55 @@ func appendPredictedWindow(preFertileMap map[string]bool, fertilityMap map[strin
 	preFertileEnd := fertilityStart.AddDate(0, 0, -1)
 	appendCalendarDateRange(preFertileMap, preFertileStart, preFertileEnd)
 	ovulationMap[ovulationDate.Format("2006-01-02")] = true
-	appendCalendarDateRange(fertilityMap, fertilityStart, fertilityEnd)
+	appendFertilityWindow(fertilityEdgeMap, fertilityPeakMap, fertilityStart, fertilityEnd, ovulationDate)
 }
 
-func buildCalendarDayState(day time.Time, monthStart time.Time, todayKey string, latestLogByDate map[string]models.DailyLog, hasDataMap map[string]bool, predictedPeriodMap map[string]bool, preFertileMap map[string]bool, fertilityMap map[string]bool, ovulationMap map[string]bool) CalendarDayState {
+func appendCurrentCycleBBTSignal(user *models.User, logs []models.DailyLog, stats CycleStats, now time.Time, ovulationMap map[string]bool, tentativeOvulationMap map[string]bool, location *time.Location) {
+	if user == nil || !user.TrackBBT || stats.LastPeriodStart.IsZero() || stats.OvulationDate.IsZero() || stats.NextPeriodStart.IsZero() {
+		return
+	}
+
+	cycleStart := DateAtLocation(stats.LastPeriodStart, location)
+	today := DateAtLocation(now, location)
+	if today.Before(cycleStart) {
+		return
+	}
+
+	ovulationSignal := inferBBTOvulationDate(filterLogsNotAfter(logs, today), cycleStart, DateAtLocation(stats.NextPeriodStart, location), location)
+	if !ovulationSignal.IsZero() {
+		return
+	}
+
+	key := DateAtLocation(stats.OvulationDate, location).Format("2006-01-02")
+	delete(ovulationMap, key)
+	tentativeOvulationMap[key] = true
+}
+
+func buildCalendarDayState(day time.Time, monthStart time.Time, todayKey string, latestLogByDate map[string]models.DailyLog, hasDataMap map[string]bool, predictedPeriodMap map[string]bool, preFertileMap map[string]bool, fertilityEdgeMap map[string]bool, fertilityPeakMap map[string]bool, ovulationMap map[string]bool, tentativeOvulationMap map[string]bool) CalendarDayState {
 	key := day.Format("2006-01-02")
 	entry, hasEntry := latestLogByDate[key]
 	isOvulation := ovulationMap[key]
+	isTentativeOvulation := tentativeOvulationMap[key]
+	isFertilityPeak := fertilityPeakMap[key]
+	isFertilityEdge := fertilityEdgeMap[key]
+	openEditDirectly := !hasDataMap[key] && key <= todayKey
 
 	return CalendarDayState{
-		Date:         day,
-		DateString:   key,
-		Day:          day.Day(),
-		InMonth:      day.Month() == monthStart.Month(),
-		IsToday:      key == todayKey,
-		IsPeriod:     hasEntry && entry.IsPeriod,
-		IsPredicted:  predictedPeriodMap[key],
-		IsPreFertile: preFertileMap[key],
-		IsFertility:  fertilityMap[key] && !isOvulation,
-		IsOvulation:  isOvulation,
-		HasData:      hasDataMap[key],
-		HasSex:       hasEntry && NormalizeDaySexActivity(entry.SexActivity) != models.SexActivityNone,
+		Date:                 day,
+		DateString:           key,
+		Day:                  day.Day(),
+		InMonth:              day.Month() == monthStart.Month(),
+		IsToday:              key == todayKey,
+		OpenEditDirectly:     openEditDirectly,
+		IsPeriod:             hasEntry && entry.IsPeriod,
+		IsPredicted:          predictedPeriodMap[key],
+		IsPreFertile:         preFertileMap[key],
+		IsFertility:          (isFertilityEdge || isFertilityPeak) && !isOvulation && !isTentativeOvulation,
+		IsFertilityPeak:      isFertilityPeak,
+		IsFertilityEdge:      isFertilityEdge,
+		IsOvulation:          isOvulation,
+		IsTentativeOvulation: isTentativeOvulation,
+		HasData:              hasDataMap[key],
+		HasSex:               hasEntry && NormalizeDaySexActivity(entry.SexActivity) != models.SexActivityNone,
 	}
 }

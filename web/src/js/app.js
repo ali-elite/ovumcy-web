@@ -889,6 +889,10 @@
         return;
       }
 
+       if (typeof window.__ovumcyMaybeAcknowledgePeriodTip === "function") {
+        window.__ovumcyMaybeAcknowledgePeriodTip(form);
+      }
+
       if (form.dataset.cycleStartConfirmBypass === "1") {
         form.dataset.cycleStartConfirmBypass = "";
         return;
@@ -1426,6 +1430,19 @@
     window.showToast(message, "ok");
   }
 
+  function showResponseNotice(xhr) {
+    var message;
+    if (!xhr || typeof xhr.getResponseHeader !== "function" || typeof window.showToast !== "function") {
+      return;
+    }
+
+    message = String(xhr.getResponseHeader("X-Ovumcy-Notice") || "").trim();
+    if (!message) {
+      return;
+    }
+    window.showToast(message, "error");
+  }
+
   function maybeRefreshDayEditor(target) {
     var dayEditor = document.getElementById("day-editor");
     var form = target.closest("form[data-save-feedback]");
@@ -1528,7 +1545,13 @@
     });
 
     document.body.addEventListener("htmx:afterRequest", function (event) {
-      setSaveButtonState(getSaveFeedbackFormFromEvent(event), false);
+      var form = getSaveFeedbackFormFromEvent(event);
+      var xhr = event && event.detail ? event.detail.xhr : null;
+      setSaveButtonState(form, false);
+      showResponseNotice(xhr);
+      if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcySetDashboardAutosaveState === "function") {
+        window.__ovumcySetDashboardAutosaveState(form, !!(event && event.detail && event.detail.successful));
+      }
     });
 
     document.body.addEventListener("htmx:afterSwap", function (event) {
@@ -1574,7 +1597,11 @@
 
     document.body.addEventListener("htmx:responseError", function (event) {
       var target = event && event.detail ? event.detail.target : null;
+      var form = getSaveFeedbackFormFromEvent(event);
       if (!target || !target.classList || !target.classList.contains("save-status")) {
+        if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcySetDashboardAutosaveState === "function") {
+          window.__ovumcySetDashboardAutosaveState(form, false);
+        }
         return;
       }
 
@@ -1587,6 +1614,9 @@
 
       var fallback = document.body.getAttribute("data-request-failed") || "Request failed. Please try again.";
       renderErrorStatus(target, fallback);
+      if (form && form.matches && form.matches("[data-dashboard-save-form]") && typeof window.__ovumcySetDashboardAutosaveState === "function") {
+        window.__ovumcySetDashboardAutosaveState(form, false);
+      }
     });
   }
 
@@ -2557,33 +2587,411 @@
     }
   }
 
+  function safeLocalStorageGet(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return "";
+    }
+  }
+
+  function safeLocalStorageSet(key, value) {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      // Ignore privacy mode and quota failures.
+    }
+  }
+
+  function revealOnceTips(root) {
+    if (!root || !root.querySelectorAll) {
+      return;
+    }
+
+    var tips = root.querySelectorAll("[data-once-tip]");
+    for (var index = 0; index < tips.length; index++) {
+      var tip = tips[index];
+      var key = String(tip.getAttribute("data-once-tip") || "").trim();
+      if (!key) {
+        continue;
+      }
+
+      if (safeLocalStorageGet("ovumcy_once_tip:" + key) === "1") {
+        setNodeHidden(tip, true);
+        continue;
+      }
+
+      setNodeHidden(tip, false);
+      safeLocalStorageSet("ovumcy_once_tip:" + key, "1");
+    }
+  }
+
+  function autosizeNoteField(field) {
+    if (!field || !field.style) {
+      return;
+    }
+    field.style.height = "auto";
+    field.style.height = Math.min(field.scrollHeight, 320) + "px";
+  }
+
+  function bindAutosizeNoteFields(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var fields = scope.querySelectorAll(".dashboard-notes-field");
+    for (var index = 0; index < fields.length; index++) {
+      var field = fields[index];
+      if (field.dataset.autosizeBound !== "1") {
+        field.dataset.autosizeBound = "1";
+        field.addEventListener("input", function () {
+          autosizeNoteField(this);
+        });
+      }
+      autosizeNoteField(field);
+    }
+  }
+
+  function periodTipPending() {
+    return !!document.body && document.body.getAttribute("data-period-tip-pending") === "true";
+  }
+
+  function setPeriodTipAcknowledged(scope) {
+    if (!scope || !scope.querySelectorAll) {
+      return;
+    }
+
+    var inputs = scope.querySelectorAll("[data-period-tip-ack]");
+    for (var index = 0; index < inputs.length; index++) {
+      inputs[index].value = "true";
+    }
+    if (document.body) {
+      document.body.setAttribute("data-period-tip-pending", "false");
+    }
+  }
+
+  function revealPeriodTip(scope) {
+    var message = document.body ? String(document.body.getAttribute("data-period-tip-message") || "").trim() : "";
+    var copy = scope && scope.querySelector ? scope.querySelector("[data-period-tip-copy]") : null;
+
+    if (copy) {
+      setNodeHidden(copy, false);
+    }
+    if (!copy && message && typeof window.showToast === "function") {
+      window.showToast(message, "ok");
+    }
+  }
+
+  function maybeAcknowledgePeriodTip(scope) {
+    if (!periodTipPending()) {
+      return;
+    }
+    setPeriodTipAcknowledged(scope);
+    revealPeriodTip(scope);
+  }
+
+  window.__ovumcyMaybeAcknowledgePeriodTip = maybeAcknowledgePeriodTip;
+
+  function showQuickFocus(section) {
+    if (!section || !section.classList) {
+      return;
+    }
+
+    section.classList.add("dashboard-section-quick-focus");
+    if (section.__ovumcyQuickFocusTimer) {
+      window.clearTimeout(section.__ovumcyQuickFocusTimer);
+    }
+    section.__ovumcyQuickFocusTimer = window.setTimeout(function () {
+      section.classList.remove("dashboard-section-quick-focus");
+      section.__ovumcyQuickFocusTimer = 0;
+    }, 1800);
+  }
+
+  function focusSectionControl(section, selector) {
+    if (!section || !section.querySelector) {
+      return;
+    }
+
+    var target = section.querySelector(selector);
+    if (!target) {
+      return;
+    }
+
+    if (target.closest && target.closest("details")) {
+      target.closest("details").open = true;
+    }
+    if (typeof target.focus === "function") {
+      target.focus();
+    }
+    if (typeof section.scrollIntoView === "function") {
+      section.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    showQuickFocus(section);
+  }
+
+  function dashboardAutosaveIndicator(form) {
+    if (!form || !form.querySelector) {
+      return null;
+    }
+    return form.querySelector("[data-dashboard-autosave-indicator]");
+  }
+
+  function dashboardAutosaveMessage(form, key, fallback) {
+    if (!form || !form.getAttribute) {
+      return fallback || "";
+    }
+    return String(form.getAttribute("data-autosave-" + key) || fallback || "");
+  }
+
+  function setDashboardAutosaveIndicator(form, key) {
+    var indicator = dashboardAutosaveIndicator(form);
+    if (!indicator) {
+      return;
+    }
+    indicator.textContent = dashboardAutosaveMessage(form, key, indicator.textContent);
+    indicator.setAttribute("data-autosave-state", key);
+  }
+
+  function clearDashboardAutosaveTimers(form) {
+    if (!form) {
+      return;
+    }
+    if (form.__ovumcyAutosaveTimer) {
+      window.clearTimeout(form.__ovumcyAutosaveTimer);
+      form.__ovumcyAutosaveTimer = 0;
+    }
+    if (form.__ovumcyAutosaveResetTimer) {
+      window.clearTimeout(form.__ovumcyAutosaveResetTimer);
+      form.__ovumcyAutosaveResetTimer = 0;
+    }
+  }
+
+  function scheduleDashboardAutosaveIdleReset(form) {
+    if (!form) {
+      return;
+    }
+    if (form.__ovumcyAutosaveResetTimer) {
+      window.clearTimeout(form.__ovumcyAutosaveResetTimer);
+    }
+    form.__ovumcyAutosaveResetTimer = window.setTimeout(function () {
+      setDashboardAutosaveIndicator(form, "idle");
+      form.__ovumcyAutosaveResetTimer = 0;
+    }, 2200);
+  }
+
+  function notifyAutosaveNotice(response) {
+    var notice;
+    if (!response || typeof response.headers.get !== "function" || typeof window.showToast !== "function") {
+      return;
+    }
+    notice = String(response.headers.get("X-Ovumcy-Notice") || "").trim();
+    if (!notice) {
+      return;
+    }
+    window.showToast(notice, "error");
+  }
+
+  function buildDashboardAutosaveBody(form) {
+    return new URLSearchParams(new FormData(form));
+  }
+
+  function runDashboardAutosave(form, keepalive) {
+    var requestVersion;
+    var url;
+    var headers;
+    var body;
+    var timezone;
+
+    if (!form || form.dataset.autosaveDirty !== "true") {
+      return Promise.resolve(true);
+    }
+    if (form.__ovumcyAutosaveInFlight) {
+      return form.__ovumcyAutosaveInFlight;
+    }
+
+    clearDashboardAutosaveTimers(form);
+    setDashboardAutosaveIndicator(form, "saving");
+
+    requestVersion = form.__ovumcyAutosaveVersion || 0;
+    url = String(form.getAttribute("hx-post") || form.getAttribute("action") || "").trim();
+    headers = {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      "HX-Request": "true"
+    };
+    body = buildDashboardAutosaveBody(form);
+    timezone = currentClientTimezone();
+
+    if (document.querySelector('meta[name="csrf-token"]')) {
+      headers["X-CSRF-Token"] = document.querySelector('meta[name="csrf-token"]').getAttribute("content") || "";
+    }
+    if (timezone) {
+      headers[TIMEZONE_HEADER_NAME] = timezone;
+    }
+
+    form.__ovumcyAutosaveInFlight = window.fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      keepalive: !!keepalive,
+      headers: headers,
+      body: body.toString()
+    }).then(function (response) {
+      if (!response.ok) {
+        throw new Error("autosave_failed");
+      }
+      notifyAutosaveNotice(response);
+      if ((form.__ovumcyAutosaveVersion || 0) === requestVersion) {
+        delete form.dataset.autosaveDirty;
+      }
+      setDashboardAutosaveIndicator(form, "saved");
+      scheduleDashboardAutosaveIdleReset(form);
+      return true;
+    }).catch(function () {
+      setDashboardAutosaveIndicator(form, "error");
+      scheduleDashboardAutosaveIdleReset(form);
+      return false;
+    }).finally(function () {
+      form.__ovumcyAutosaveInFlight = null;
+      if (form.dataset.autosaveDirty === "true") {
+        form.__ovumcyAutosaveTimer = window.setTimeout(function () {
+          runDashboardAutosave(form, false);
+        }, 2000);
+      }
+    });
+
+    return form.__ovumcyAutosaveInFlight;
+  }
+
+  function markDashboardAutosaveDirty(form) {
+    if (!form) {
+      return;
+    }
+    form.__ovumcyAutosaveVersion = (form.__ovumcyAutosaveVersion || 0) + 1;
+    form.dataset.autosaveDirty = "true";
+    if (form.__ovumcyAutosaveInFlight) {
+      return;
+    }
+    if (form.__ovumcyAutosaveTimer) {
+      window.clearTimeout(form.__ovumcyAutosaveTimer);
+    }
+    form.__ovumcyAutosaveTimer = window.setTimeout(function () {
+      runDashboardAutosave(form, false);
+    }, 2000);
+  }
+
+  function handleDashboardQuickAction(root, action) {
+    var periodToggle = root.querySelector("[data-period-toggle]");
+    var moodSection = root.querySelector("[data-dashboard-section='mood']");
+    var symptomSection = root.querySelector("[data-dashboard-section='symptoms']");
+
+    switch (action) {
+      case "period":
+        if (!periodToggle) {
+          return;
+        }
+        periodToggle.checked = !periodToggle.checked;
+        periodToggle.dispatchEvent(new Event("change", { bubbles: true }));
+        if (periodToggle.checked) {
+          maybeAcknowledgePeriodTip(root);
+        }
+        break;
+      case "mood":
+        focusSectionControl(moodSection, "input[name='mood']:checked, input[name='mood']");
+        break;
+      case "symptom":
+        focusSectionControl(symptomSection, "input[name='symptom_ids']:checked, input[name='symptom_ids']");
+        break;
+    }
+  }
+
+  function settleDashboardAutosaveState(form, successful) {
+    if (!form) {
+      return;
+    }
+    clearDashboardAutosaveTimers(form);
+    delete form.dataset.autosaveDirty;
+    setDashboardAutosaveIndicator(form, successful ? "saved" : "error");
+    scheduleDashboardAutosaveIdleReset(form);
+  }
+
+  window.__ovumcySetDashboardAutosaveState = settleDashboardAutosaveState;
+
+  function bindDashboardAutosaveBeforeUnload() {
+    if (document.body && document.body.dataset.dashboardAutosaveBeforeUnloadBound === "1") {
+      return;
+    }
+    if (document.body) {
+      document.body.dataset.dashboardAutosaveBeforeUnloadBound = "1";
+    }
+
+    window.addEventListener("beforeunload", function () {
+      var forms = document.querySelectorAll("[data-dashboard-save-form]");
+      for (var index = 0; index < forms.length; index++) {
+        if (forms[index].dataset.autosaveDirty === "true") {
+          runDashboardAutosave(forms[index], true);
+        }
+      }
+    });
+  }
+
   function bindDashboardEditors() {
     var roots = document.querySelectorAll("[data-dashboard-editor]");
     for (var index = 0; index < roots.length; index++) {
       var root = roots[index];
+      var form = root.querySelector("[data-dashboard-save-form]");
       if (root.dataset.dashboardEditorBound !== "1") {
         root.dataset.dashboardEditorBound = "1";
 
         root.addEventListener("change", function (event) {
+          var currentForm = this.querySelector("[data-dashboard-save-form]");
           var periodToggle = event.target && event.target.matches && event.target.matches("[data-period-toggle]") ? event.target : null;
           if (periodToggle || (event.target && (event.target.name === "symptom_ids" || event.target.name === "mood"))) {
             syncDashboardPreview(this);
           }
+          if (periodToggle && periodToggle.checked) {
+            maybeAcknowledgePeriodTip(this);
+          }
+          if (currentForm && event.target && event.target.name !== "csrf_token") {
+            markDashboardAutosaveDirty(currentForm);
+          }
         });
 
         root.addEventListener("input", function (event) {
+          var currentForm = this.querySelector("[data-dashboard-save-form]");
           if (event.target && event.target.matches && event.target.matches("[data-dashboard-notes]")) {
             syncDashboardPreview(this);
             syncNoteDisclosure(this);
           }
+          if (currentForm && event.target && event.target.name !== "csrf_token") {
+            markDashboardAutosaveDirty(currentForm);
+          }
         });
 
+        root.addEventListener("click", function (event) {
+          var actionButton = closestFromEvent(event, "[data-quick-action]");
+          var cycleStartButton = closestFromEvent(event, "[data-dashboard-cycle-start-button]");
+          if (actionButton && this.contains(actionButton)) {
+            event.preventDefault();
+            handleDashboardQuickAction(this, actionButton.getAttribute("data-quick-action"));
+            return;
+          }
+          if (cycleStartButton && this.contains(cycleStartButton)) {
+            maybeAcknowledgePeriodTip(cycleStartButton.form || this);
+          }
+        });
+
+        if (form) {
+          form.addEventListener("submit", function () {
+            clearDashboardAutosaveTimers(this);
+          });
+        }
       }
 
       bindNoteDisclosures(root);
+      bindAutosizeNoteFields(root);
+      revealOnceTips(root);
       syncDashboardPreview(root);
       syncNoteDisclosure(root);
+      setDashboardAutosaveIndicator(form, "idle");
     }
+
+    bindDashboardAutosaveBeforeUnload();
   }
 
   function syncDayEditorForm(form) {
@@ -2606,11 +3014,24 @@
             return;
           }
 
+          if (event.target.checked) {
+            maybeAcknowledgePeriodTip(this);
+          }
           syncDayEditorForm(this);
+        });
+
+        form.addEventListener("click", function (event) {
+          var cycleStartButton = closestFromEvent(event, "[data-day-cycle-start-button]");
+          if (!cycleStartButton || !this.contains(cycleStartButton)) {
+            return;
+          }
+          maybeAcknowledgePeriodTip(cycleStartButton.form || this);
         });
       }
 
       bindNoteDisclosures(form);
+      bindAutosizeNoteFields(form);
+      revealOnceTips(form);
       syncDayEditorForm(form);
     }
   }

@@ -29,6 +29,9 @@ type CycleSettingsUpdate struct {
 	PeriodLength       int
 	AutoPeriodFill     bool
 	IrregularCycle     bool
+	UnpredictableCycle bool
+	AgeGroup           string
+	UsageGoal          string
 	LastPeriodStartSet bool
 	LastPeriodStart    *time.Time
 }
@@ -62,10 +65,13 @@ func (service *SettingsService) ValidateDeleteAccountPassword(passwordHash strin
 
 func (service *SettingsService) SaveCycleSettings(userID uint, settings CycleSettingsUpdate) error {
 	updates := map[string]any{
-		"cycle_length":     settings.CycleLength,
-		"period_length":    settings.PeriodLength,
-		"auto_period_fill": settings.AutoPeriodFill,
-		"irregular_cycle":  settings.IrregularCycle,
+		"cycle_length":        settings.CycleLength,
+		"period_length":       settings.PeriodLength,
+		"auto_period_fill":    settings.AutoPeriodFill,
+		"irregular_cycle":     settings.IrregularCycle,
+		"unpredictable_cycle": settings.UnpredictableCycle,
+		"age_group":           NormalizeAgeGroup(settings.AgeGroup),
+		"usage_goal":          NormalizeUsageGoal(settings.UsageGoal),
 	}
 	if settings.LastPeriodStartSet {
 		if settings.LastPeriodStart == nil {

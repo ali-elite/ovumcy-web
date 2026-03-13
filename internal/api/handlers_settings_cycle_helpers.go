@@ -35,6 +35,9 @@ func (handler *Handler) parseCycleSettingsInput(c *fiber.Ctx) (services.CycleSet
 			PeriodLength:       periodLength,
 			AutoPeriodFill:     services.ParseBoolLike(c.FormValue("auto_period_fill")),
 			IrregularCycle:     services.ParseBoolLike(c.FormValue("irregular_cycle")),
+			UnpredictableCycle: services.ParseBoolLike(c.FormValue("unpredictable_cycle")),
+			AgeGroup:           strings.TrimSpace(c.FormValue("age_group")),
+			UsageGoal:          strings.TrimSpace(c.FormValue("usage_goal")),
 			LastPeriodStart:    strings.TrimSpace(c.FormValue("last_period_start")),
 			LastPeriodStartSet: c.Request().PostArgs().Has("last_period_start"),
 		}
@@ -44,6 +47,9 @@ func (handler *Handler) parseCycleSettingsInput(c *fiber.Ctx) (services.CycleSet
 		PeriodLength:       input.PeriodLength,
 		AutoPeriodFill:     input.AutoPeriodFill,
 		IrregularCycle:     input.IrregularCycle,
+		UnpredictableCycle: input.UnpredictableCycle,
+		AgeGroup:           input.AgeGroup,
+		UsageGoal:          input.UsageGoal,
 		LastPeriodStartRaw: input.LastPeriodStart,
 		LastPeriodStartSet: input.LastPeriodStartSet,
 	}, time.Now().In(location), location)

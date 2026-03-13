@@ -20,6 +20,9 @@ type CycleSettingsValidationInput struct {
 	PeriodLength       int
 	AutoPeriodFill     bool
 	IrregularCycle     bool
+	UnpredictableCycle bool
+	AgeGroup           string
+	UsageGoal          string
 	LastPeriodStartRaw string
 	LastPeriodStartSet bool
 }
@@ -41,6 +44,9 @@ func (service *SettingsService) ValidateCycleSettings(input CycleSettingsValidat
 		PeriodLength:       input.PeriodLength,
 		AutoPeriodFill:     input.AutoPeriodFill,
 		IrregularCycle:     input.IrregularCycle,
+		UnpredictableCycle: input.UnpredictableCycle,
+		AgeGroup:           NormalizeAgeGroup(input.AgeGroup),
+		UsageGoal:          NormalizeUsageGoal(input.UsageGoal),
 		LastPeriodStartSet: input.LastPeriodStartSet,
 	}
 
@@ -81,6 +87,9 @@ func (service *SettingsService) ApplyCycleSettings(user *models.User, update Cyc
 	user.PeriodLength = update.PeriodLength
 	user.AutoPeriodFill = update.AutoPeriodFill
 	user.IrregularCycle = update.IrregularCycle
+	user.UnpredictableCycle = update.UnpredictableCycle
+	user.AgeGroup = NormalizeAgeGroup(update.AgeGroup)
+	user.UsageGoal = NormalizeUsageGoal(update.UsageGoal)
 
 	if !update.LastPeriodStartSet {
 		return

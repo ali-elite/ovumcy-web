@@ -40,10 +40,31 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 	if err != nil {
 		return handler.respondMappedError(c, upsertDayPersistenceErrorSpec(err))
 	}
+	if !user.ShownPeriodTip && payload.IsPeriod && services.ParseBoolLike(c.FormValue("ack_period_tip")) {
+		if err := handler.dayService.AcknowledgePeriodTip(user.ID); err == nil {
+			user.ShownPeriodTip = true
+		}
+	}
+
+	feedback, feedbackErr := handler.dayService.ResolveDayFeedback(user, day, time.Now().In(location), location)
+	if feedbackErr == nil && feedback.ShowLongPeriodWarning && !feedback.LongPeriodCycleStart.IsZero() {
+		if err := handler.dayService.AcknowledgeLongPeriodWarning(user.ID, feedback.LongPeriodCycleStart, location); err == nil {
+			warnedAt := feedback.LongPeriodCycleStart
+			user.LongPeriodWarnedAt = &warnedAt
+		}
+	}
 
 	if isHTMX(c) {
 		c.Set("HX-Trigger", "calendar-day-updated")
-		return handler.sendDaySaveStatus(c)
+		if feedbackErr == nil {
+			if feedback.ShowSpottingCycleWarning {
+				c.Set("X-Ovumcy-Notice", translateMessage(currentMessages(c), "dashboard.spotting_cycle_warning"))
+			} else if feedback.ShowLongPeriodWarning {
+				c.Set("X-Ovumcy-Notice", translateMessage(currentMessages(c), "dashboard.long_period_warning"))
+			}
+			return handler.sendDaySaveStatus(c, feedback.MessageKey)
+		}
+		return handler.sendDaySaveStatus(c, "")
 	}
 
 	return c.JSON(entry)
@@ -61,6 +82,8 @@ func (handler *Handler) MarkCycleStart(c *fiber.Ctx) error {
 		return handler.respondMappedError(c, invalidDateErrorSpec())
 	}
 
+	cycleStartPolicy, _ := handler.dayService.ResolveManualCycleStartPolicy(user, day, time.Now().In(location), location)
+
 	if err := handler.dayService.MarkCycleStartManually(
 		user.ID,
 		day,
@@ -73,10 +96,18 @@ func (handler *Handler) MarkCycleStart(c *fiber.Ctx) error {
 	); err != nil {
 		return handler.respondMappedError(c, upsertDayPersistenceErrorSpec(err))
 	}
+	if !user.ShownPeriodTip && services.ParseBoolLike(c.FormValue("ack_period_tip")) {
+		if err := handler.dayService.AcknowledgePeriodTip(user.ID); err == nil {
+			user.ShownPeriodTip = true
+		}
+	}
 
 	if isHTMX(c) {
 		c.Set("HX-Trigger", "calendar-day-updated")
 		c.Set("HX-Refresh", "true")
+		if cycleStartPolicy.PotentialImplantation {
+			c.Set("X-Ovumcy-Notice", translateMessage(currentMessages(c), "dashboard.implantation_warning"))
+		}
 		return c.SendStatus(fiber.StatusNoContent)
 	}
 	if acceptsJSON(c) {

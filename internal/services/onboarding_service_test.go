@@ -28,7 +28,7 @@ func (stub *stubOnboardingRepo) SaveOnboardingStep1(uint, time.Time) error {
 	return nil
 }
 
-func (stub *stubOnboardingRepo) SaveOnboardingStep2(uint, int, int, bool, bool) error {
+func (stub *stubOnboardingRepo) SaveOnboardingStep2(uint, int, int, bool, bool, string, string) error {
 	return nil
 }
 

@@ -38,7 +38,7 @@ func TestBuildCalendarDayStatesUsesLatestLogPerDateDeterministically(t *testing.
 		},
 	}
 
-	days := BuildCalendarDayStates(monthStart, logs, CycleStats{}, now, time.UTC)
+	days := BuildCalendarDayStates(nil, monthStart, logs, CycleStats{}, now, time.UTC)
 
 	day17 := findCalendarDayStateByDateString(t, days, "2026-02-17")
 	if day17.IsPeriod {
@@ -77,7 +77,7 @@ func TestBuildCalendarDayStatesProjectsOvulationIntoFutureCycles(t *testing.T) {
 		FertilityWindowEnd:   time.Date(2026, time.February, 24, 0, 0, 0, 0, time.UTC),
 	}
 
-	days := BuildCalendarDayStates(monthStart, nil, stats, now, time.UTC)
+	days := BuildCalendarDayStates(nil, monthStart, nil, stats, now, time.UTC)
 
 	ovulationDay := findCalendarDayStateByDateString(t, days, "2026-03-23")
 	if !ovulationDay.IsOvulation {
@@ -108,7 +108,7 @@ func TestBuildCalendarDayStatesIncludesCurrentBaselinePeriodWindow(t *testing.T)
 		LastPeriodStart:     time.Date(2026, time.March, 8, 0, 0, 0, 0, time.UTC),
 	}
 
-	days := BuildCalendarDayStates(monthStart, nil, stats, now, time.UTC)
+	days := BuildCalendarDayStates(nil, monthStart, nil, stats, now, time.UTC)
 
 	for _, dateString := range []string{"2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12"} {
 		day := findCalendarDayStateByDateString(t, days, dateString)
@@ -137,4 +137,61 @@ func findCalendarDayStateByDateString(t *testing.T, days []CalendarDayState, dat
 	}
 	t.Fatalf("calendar day %s not found", date)
 	return CalendarDayState{}
+}
+
+func TestBuildCalendarDayStatesDisablesPredictionsForUnpredictableCycle(t *testing.T) {
+	monthStart := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC)
+	now := time.Date(2026, time.March, 12, 0, 0, 0, 0, time.UTC)
+
+	stats := CycleStats{
+		AveragePeriodLength:  5,
+		LastPeriodStart:      time.Date(2026, time.March, 8, 0, 0, 0, 0, time.UTC),
+		NextPeriodStart:      time.Date(2026, time.April, 5, 0, 0, 0, 0, time.UTC),
+		FertilityWindowStart: time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		FertilityWindowEnd:   time.Date(2026, time.March, 23, 0, 0, 0, 0, time.UTC),
+		OvulationDate:        time.Date(2026, time.March, 23, 0, 0, 0, 0, time.UTC),
+	}
+
+	days := BuildCalendarDayStates(&models.User{UnpredictableCycle: true}, monthStart, nil, stats, now, time.UTC)
+
+	for _, dateString := range []string{"2026-03-08", "2026-03-18", "2026-03-23", "2026-04-04"} {
+		day := findCalendarDayStateByDateString(t, days, dateString)
+		if day.IsPredicted || day.IsPreFertile || day.IsFertility || day.IsOvulation || day.IsTentativeOvulation {
+			t.Fatalf("expected unpredictable cycle mode to suppress predictions on %s, got %#v", dateString, day)
+		}
+	}
+}
+
+func TestBuildCalendarDayStatesMarksTentativeOvulationWhenBBTHasNoShift(t *testing.T) {
+	monthStart := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC)
+	now := time.Date(2026, time.March, 14, 0, 0, 0, 0, time.UTC)
+
+	logs := []models.DailyLog{
+		{Date: time.Date(2026, time.March, 1, 7, 0, 0, 0, time.UTC), BBT: 36.40},
+		{Date: time.Date(2026, time.March, 2, 7, 0, 0, 0, time.UTC), BBT: 36.42},
+		{Date: time.Date(2026, time.March, 3, 7, 0, 0, 0, time.UTC), BBT: 36.41},
+		{Date: time.Date(2026, time.March, 4, 7, 0, 0, 0, time.UTC), BBT: 36.39},
+		{Date: time.Date(2026, time.March, 5, 7, 0, 0, 0, time.UTC), BBT: 36.43},
+		{Date: time.Date(2026, time.March, 6, 7, 0, 0, 0, time.UTC), BBT: 36.44},
+		{Date: time.Date(2026, time.March, 7, 7, 0, 0, 0, time.UTC), BBT: 36.45},
+		{Date: time.Date(2026, time.March, 8, 7, 0, 0, 0, time.UTC), BBT: 36.43},
+	}
+
+	stats := CycleStats{
+		LastPeriodStart:      time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC),
+		NextPeriodStart:      time.Date(2026, time.March, 29, 0, 0, 0, 0, time.UTC),
+		OvulationDate:        time.Date(2026, time.March, 15, 0, 0, 0, 0, time.UTC),
+		FertilityWindowStart: time.Date(2026, time.March, 10, 0, 0, 0, 0, time.UTC),
+		FertilityWindowEnd:   time.Date(2026, time.March, 15, 0, 0, 0, 0, time.UTC),
+	}
+
+	days := BuildCalendarDayStates(&models.User{TrackBBT: true}, monthStart, logs, stats, now, time.UTC)
+
+	ovulationDay := findCalendarDayStateByDateString(t, days, "2026-03-15")
+	if !ovulationDay.IsTentativeOvulation {
+		t.Fatalf("expected tentative ovulation marker on 2026-03-15, got %#v", ovulationDay)
+	}
+	if ovulationDay.IsOvulation {
+		t.Fatalf("expected confirmed ovulation marker to be removed when no BBT shift is present")
+	}
 }

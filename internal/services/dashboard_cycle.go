@@ -11,6 +11,7 @@ type DashboardCycleContext struct {
 	CycleDayReference           int
 	CycleDayWarning             bool
 	CycleDataStale              bool
+	PredictionDisabled          bool
 	DisplayNextPeriodStart      time.Time
 	DisplayNextPeriodRangeStart time.Time
 	DisplayNextPeriodRangeEnd   time.Time
@@ -22,6 +23,20 @@ type DashboardCycleContext struct {
 	DisplayOvulationImpossible  bool
 	NextPeriodInPast            bool
 	OvulationInPast             bool
+}
+
+func DashboardPredictionDisabled(user *models.User) bool {
+	return user != nil && user.UnpredictableCycle
+}
+
+func dashboardPredictionExtraSpanDays(user *models.User) int {
+	if user == nil {
+		return 0
+	}
+	if NormalizeAgeGroup(user.AgeGroup) == models.AgeGroup35Plus {
+		return 1
+	}
+	return 0
 }
 
 func DashboardCycleReferenceLength(user *models.User, stats CycleStats) int {
@@ -89,6 +104,7 @@ func DashboardPredictionRange(user *models.User, stats CycleStats, predictedStar
 	}
 
 	spanDays := predictionRangeSpanDays(stats)
+	spanDays += dashboardPredictionExtraSpanDays(user)
 	return DateAtLocation(predictedStart.AddDate(0, 0, -spanDays), location),
 		DateAtLocation(predictedStart.AddDate(0, 0, spanDays), location),
 		true
@@ -131,6 +147,15 @@ func DashboardUpcomingPredictions(stats CycleStats, user *models.User, today tim
 }
 
 func BuildDashboardCycleContext(user *models.User, stats CycleStats, today time.Time, location *time.Location) DashboardCycleContext {
+	if DashboardPredictionDisabled(user) {
+		return DashboardCycleContext{
+			CycleDayReference:  DashboardCycleReferenceLength(user, stats),
+			CycleDayWarning:    false,
+			CycleDataStale:     false,
+			PredictionDisabled: true,
+		}
+	}
+
 	cycleDayReference := DashboardCycleReferenceLength(user, stats)
 	cycleDayWarning := DashboardCycleDayLooksLong(stats.CurrentCycleDay, cycleDayReference)
 	cycleStaleAnchor := DashboardCycleStaleAnchor(user, stats, location)
@@ -155,6 +180,7 @@ func BuildDashboardCycleContext(user *models.User, stats CycleStats, today time.
 		CycleDayReference:           cycleDayReference,
 		CycleDayWarning:             cycleDayWarning,
 		CycleDataStale:              cycleDataStale,
+		PredictionDisabled:          false,
 		DisplayNextPeriodStart:      displayNextPeriodStart,
 		DisplayNextPeriodRangeStart: displayNextPeriodRangeStart,
 		DisplayNextPeriodRangeEnd:   displayNextPeriodRangeEnd,

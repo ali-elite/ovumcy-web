@@ -148,6 +148,60 @@
           </span>
         </label>
         <p class="journal-muted text-sm">{{t .Messages "settings.cycle.irregular_cycle_hint"}}</p>
+        <p class="journal-muted text-sm">{{t .Messages "settings.cycle.irregular_cycle_explainer"}}</p>
+      </div>
+
+      <div class="space-y-2">
+        <label class="period-toggle" data-binary-toggle data-active="{{if .UnpredictableCycle}}true{{else}}false{{end}}">
+          <input type="checkbox" name="unpredictable_cycle" value="true" data-binary-toggle-input {{if .UnpredictableCycle}}checked{{end}}>
+          <span class="period-toggle-copy">
+            <span class="period-toggle-main">∞ {{t .Messages "settings.cycle.unpredictable_cycle"}}</span>
+            <span class="period-toggle-state" data-binary-toggle-state data-state-on="{{t .Messages "common.switch_on"}}" data-state-off="{{t .Messages "common.switch_off"}}">{{if .UnpredictableCycle}}{{t .Messages "common.switch_on"}}{{else}}{{t .Messages "common.switch_off"}}{{end}}</span>
+          </span>
+        </label>
+        <p class="journal-muted text-sm">{{t .Messages "settings.cycle.unpredictable_cycle_hint"}}</p>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <p class="field-label">{{t .Messages "settings.age_group.title"}}</p>
+          <p class="journal-muted text-sm">{{t .Messages "settings.age_group.hint"}}</p>
+        </div>
+        <div class="grid gap-2 sm:grid-cols-3">
+          <label class="choice-option">
+            <input type="radio" name="age_group" value="under_20" class="choice-input" {{if eq .AgeGroup "under_20"}}checked{{end}}>
+            <span class="radio-tile radio-tile-inline"><span>{{t .Messages "settings.age_group.under_20"}}</span></span>
+          </label>
+          <label class="choice-option">
+            <input type="radio" name="age_group" value="age_20_35" class="choice-input" {{if or (eq .AgeGroup "age_20_35") (eq .AgeGroup "")}}checked{{end}}>
+            <span class="radio-tile radio-tile-inline"><span>{{t .Messages "settings.age_group.20_35"}}</span></span>
+          </label>
+          <label class="choice-option">
+            <input type="radio" name="age_group" value="age_35_plus" class="choice-input" {{if eq .AgeGroup "age_35_plus"}}checked{{end}}>
+            <span class="radio-tile radio-tile-inline"><span>{{t .Messages "settings.age_group.35_plus"}}</span></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <p class="field-label">{{t .Messages "settings.goal.title"}}</p>
+          <p class="journal-muted text-sm">{{t .Messages "settings.goal.hint"}}</p>
+        </div>
+        <div class="grid gap-2">
+          <label class="choice-option">
+            <input type="radio" name="usage_goal" value="avoid_pregnancy" class="choice-input" {{if eq .UsageGoal "avoid_pregnancy"}}checked{{end}}>
+            <span class="radio-tile"><span>{{t .Messages "settings.goal.avoid"}}</span></span>
+          </label>
+          <label class="choice-option">
+            <input type="radio" name="usage_goal" value="trying_to_conceive" class="choice-input" {{if eq .UsageGoal "trying_to_conceive"}}checked{{end}}>
+            <span class="radio-tile"><span>{{t .Messages "settings.goal.trying"}}</span></span>
+          </label>
+          <label class="choice-option">
+            <input type="radio" name="usage_goal" value="health" class="choice-input" {{if or (eq .UsageGoal "health") (eq .UsageGoal "")}}checked{{end}}>
+            <span class="radio-tile"><span>{{t .Messages "settings.goal.health"}}</span></span>
+          </label>
+        </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
@@ -200,6 +254,7 @@
             <span class="period-toggle-state" data-binary-toggle-state data-state-on="{{t .Messages "common.switch_on"}}" data-state-off="{{t .Messages "common.switch_off"}}">{{if .TrackCervicalMucus}}{{t .Messages "common.switch_on"}}{{else}}{{t .Messages "common.switch_off"}}{{end}}</span>
           </span>
         </label>
+        <p class="journal-muted text-sm">{{t .Messages "settings.tracking.cervical_mucus_explainer"}}</p>
 
         <label class="period-toggle" data-binary-toggle data-active="{{if .HideSexChip}}true{{else}}false{{end}}">
           <input type="checkbox" name="hide_sex_chip" value="true" data-binary-toggle-input {{if .HideSexChip}}checked{{end}}>
@@ -236,6 +291,31 @@
         <div id="settings-tracking-status" class="save-status text-sm"></div>
       </div>
     </form>
+  </section>
+  {{end}}
+
+  {{if eq .CurrentUser.Role "owner"}}
+  <section class="journal-card p-5 sm:p-6 space-y-5" id="settings-reminders">
+    <div>
+      <h2 class="journal-subtitle">⏰ {{t .Messages "settings.reminders.title"}}</h2>
+      <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.reminders.subtitle"}}</p>
+    </div>
+    <div class="settings-toggle-list">
+      <label class="period-toggle" data-binary-toggle data-active="false" aria-disabled="true">
+        <input type="checkbox" disabled>
+        <span class="period-toggle-copy">
+          <span class="period-toggle-main">{{t .Messages "settings.reminders.log_days"}}</span>
+          <span class="period-toggle-state">{{t .Messages "settings.reminders.coming_soon"}}</span>
+        </span>
+      </label>
+      <label class="period-toggle" data-binary-toggle data-active="false" aria-disabled="true">
+        <input type="checkbox" disabled>
+        <span class="period-toggle-copy">
+          <span class="period-toggle-main">{{t .Messages "settings.reminders.period_window"}}</span>
+          <span class="period-toggle-state">{{t .Messages "settings.reminders.coming_soon"}}</span>
+        </span>
+      </label>
+    </div>
   </section>
   {{end}}
 
@@ -455,11 +535,13 @@
       <button type="button" data-export-action data-export-endpoint="/api/export/json" data-export-type="json" class="btn-secondary inline-flex items-center justify-center"><span class="mr-2" aria-hidden="true">🧾</span><span>{{t .Messages "settings.export_json"}}</span></button>
       <button type="button" data-export-action data-export-endpoint="/api/export/pdf" data-export-type="pdf" class="btn-secondary inline-flex items-center justify-center"><span class="mr-2" aria-hidden="true">📄</span><span>{{t .Messages "settings.export_pdf"}}</span></button>
     </div>
+    <p class="journal-muted text-sm">{{t .Messages "settings.export_pdf_hint"}}</p>
     <p class="journal-muted text-sm" data-export-summary-total>{{printf (t .Messages "settings.export_summary_total") .ExportTotalEntries}}</p>
     <p class="journal-muted text-sm" data-export-summary-range>
       {{if .HasExportSummaryData}}{{printf (t .Messages "settings.export_summary_range") .ExportDateFromDisplay .ExportDateToDisplay}}{{else}}{{t .Messages "settings.export_summary_range_empty"}}{{end}}
     </p>
     <p class="journal-muted mt-3 text-xs">{{t .Messages "settings.export_data_hint"}}</p>
+    <p class="journal-muted text-xs">{{t .Messages "settings.local_data_hint"}}</p>
 
   </section>
   {{end}}
@@ -479,7 +561,7 @@
         action="/api/settings/clear-data"
         method="post"
         data-confirm="{{t .Messages "settings.confirm_clear_data"}}"
-        data-confirm-accept="{{t .Messages "settings.clear_data.submit"}}">
+        data-confirm-accept="{{t .Messages "settings.clear_data.confirm_accept"}}">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <button type="submit" class="btn-secondary">{{t .Messages "settings.clear_data.submit"}}</button>
       </form>

@@ -357,6 +357,8 @@ func csvYesNo(value bool) string {
 
 func csvFlowLabel(flow string) string {
 	switch strings.ToLower(strings.TrimSpace(flow)) {
+	case models.FlowSpotting:
+		return "Spotting"
 	case models.FlowLight:
 		return "Light"
 	case models.FlowMedium:
@@ -370,6 +372,8 @@ func csvFlowLabel(flow string) string {
 
 func normalizeExportFlow(flow string) string {
 	switch strings.ToLower(strings.TrimSpace(flow)) {
+	case models.FlowSpotting:
+		return models.FlowSpotting
 	case models.FlowLight:
 		return models.FlowLight
 	case models.FlowMedium:

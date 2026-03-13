@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/terraincognita07/ovumcy/internal/models"
 )
@@ -40,6 +41,7 @@ func NormalizeDayEntryInput(input DayEntryInput) (DayEntryInput, error) {
 	if !input.IsPeriod {
 		input.Flow = models.FlowNone
 	}
+	input.Flow = NormalizeDayFlow(input.Flow)
 	input.SexActivity = NormalizeDaySexActivity(input.SexActivity)
 	input.CervicalMucus = NormalizeDayCervicalMucus(input.CervicalMucus)
 	input.BBT = normalizeStoredDayBBT(input.BBT)
@@ -47,9 +49,24 @@ func NormalizeDayEntryInput(input DayEntryInput) (DayEntryInput, error) {
 	return input, nil
 }
 
+func NormalizeDayFlow(flow string) string {
+	switch strings.ToLower(strings.TrimSpace(flow)) {
+	case models.FlowSpotting:
+		return models.FlowSpotting
+	case models.FlowLight:
+		return models.FlowLight
+	case models.FlowMedium:
+		return models.FlowMedium
+	case models.FlowHeavy:
+		return models.FlowHeavy
+	default:
+		return models.FlowNone
+	}
+}
+
 func IsValidDayFlow(flow string) bool {
 	switch flow {
-	case models.FlowNone, models.FlowLight, models.FlowMedium, models.FlowHeavy:
+	case models.FlowNone, models.FlowSpotting, models.FlowLight, models.FlowMedium, models.FlowHeavy:
 		return true
 	default:
 		return false

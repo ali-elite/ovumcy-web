@@ -17,9 +17,11 @@ var (
 )
 
 type ManualCycleStartPolicy struct {
-	ConflictDate  time.Time
-	PreviousStart time.Time
-	ShortGapDays  int
+	ConflictDate          time.Time
+	PreviousStart         time.Time
+	ShortGapDays          int
+	PotentialImplantation bool
+	ImplantationGapDays   int
 }
 
 func manualCycleStartMaxDate(now time.Time, location *time.Location) time.Time {
@@ -66,8 +68,35 @@ func ResolveManualCycleStartPolicy(user *models.User, logs []models.DailyLog, da
 		policy.PreviousStart = previousStart
 		policy.ShortGapDays = gapDays
 	}
+	if implantationGapDays, ok := potentialImplantationGapDays(user, logs, targetDay, previousStart, location); ok {
+		policy.PotentialImplantation = true
+		policy.ImplantationGapDays = implantationGapDays
+	}
 
 	return policy
+}
+
+func potentialImplantationGapDays(user *models.User, logs []models.DailyLog, targetDay time.Time, previousStart time.Time, location *time.Location) (int, bool) {
+	filtered := filterLogsNotAfter(logs, targetDay.AddDate(0, 0, -1))
+	stats := BuildCycleStats(filtered, targetDay.Add(-time.Second))
+	cycleLength := predictedCycleLength(stats.MedianCycleLength, stats.AverageCycleLength)
+	if cycleLength <= 0 {
+		cycleLength = DashboardCycleReferenceLength(user, stats)
+	}
+	if cycleLength <= 0 {
+		return 0, false
+	}
+
+	ovulationDate, _, _, _, calculable := PredictCycleWindow(previousStart, cycleLength, stats.LutealPhase)
+	if !calculable || ovulationDate.IsZero() {
+		return 0, false
+	}
+
+	gapDays := int(targetDay.Sub(DateAtLocation(ovulationDate, location)).Hours() / 24)
+	if gapDays >= 6 && gapDays <= 12 {
+		return gapDays, true
+	}
+	return 0, false
 }
 
 func LatestCycleStartAnchorBeforeOrOn(user *models.User, logs []models.DailyLog, day time.Time, location *time.Location) time.Time {

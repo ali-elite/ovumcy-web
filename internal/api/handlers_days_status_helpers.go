@@ -16,12 +16,23 @@ func htmxDismissibleSuccessStatusMarkup(messages map[string]string, message stri
 	return httpx.DismissibleStatusOKMarkup(message, closeLabel)
 }
 
-func (handler *Handler) sendDaySaveStatus(c *fiber.Ctx) error {
+func (handler *Handler) sendDaySaveStatus(c *fiber.Ctx, messageKey string) error {
 	timestamp := time.Now().In(handler.requestLocation(c)).Format("15:04")
-	pattern := translateMessage(currentMessages(c), "common.saved_at")
-	if pattern == "common.saved_at" {
-		pattern = "Saved at %s"
+	patternKey := messageKey
+	if patternKey == "" {
+		patternKey = "common.saved_at"
 	}
-	message := fmt.Sprintf(pattern, timestamp)
+	pattern := translateMessage(currentMessages(c), patternKey)
+	if pattern == "" || pattern == patternKey {
+		if patternKey == "common.saved_at" {
+			pattern = "Saved at %s"
+		} else {
+			pattern = "Saved."
+		}
+	}
+	message := pattern
+	if patternKey == "common.saved_at" {
+		message = fmt.Sprintf(pattern, timestamp)
+	}
 	return c.SendString(htmxDismissibleSuccessStatusMarkup(currentMessages(c), message))
 }

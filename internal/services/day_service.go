@@ -218,6 +218,23 @@ func (service *DayService) DeleteDayEntry(userID uint, day time.Time, location *
 	return nil
 }
 
+func (service *DayService) ResolveManualCycleStartPolicy(user *models.User, day time.Time, now time.Time, location *time.Location) (ManualCycleStartPolicy, error) {
+	logs, err := service.logs.ListByUser(user.ID)
+	if err != nil {
+		return ManualCycleStartPolicy{}, err
+	}
+	return ResolveManualCycleStartPolicy(user, logs, day, now, location), nil
+}
+
+func (service *DayService) AcknowledgePeriodTip(userID uint) error {
+	if service == nil || service.users == nil {
+		return nil
+	}
+	return service.users.UpdateByID(userID, map[string]any{
+		"shown_period_tip": true,
+	})
+}
+
 func (service *DayService) MarkCycleStartManually(userID uint, day time.Time, now time.Time, location *time.Location, options ManualCycleStartOptions) error {
 	if !IsAllowedManualCycleStartDate(day, now, location) {
 		return ErrManualCycleStartDateInvalid

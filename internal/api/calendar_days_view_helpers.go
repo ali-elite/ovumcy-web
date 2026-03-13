@@ -19,10 +19,22 @@ func (handler *Handler) buildCalendarDays(states []services.CalendarDayState) []
 			cellClass += " calendar-cell-predicted"
 			badgeClass += " calendar-tag-predicted"
 			stateKey = "predicted-period"
+		} else if state.IsTentativeOvulation {
+			cellClass += " calendar-cell-ovulation-tentative"
+			badgeClass += " calendar-tag-ovulation-tentative"
+			stateKey = "tentative-ovulation"
 		} else if state.IsOvulation {
 			cellClass += " calendar-cell-fertile"
 			badgeClass += " calendar-tag-ovulation"
 			stateKey = "ovulation"
+		} else if state.IsFertilityPeak {
+			cellClass += " calendar-cell-fertile calendar-cell-fertile-peak"
+			badgeClass += " calendar-tag-fertile"
+			stateKey = "fertile-peak"
+		} else if state.IsFertilityEdge {
+			cellClass += " calendar-cell-fertile calendar-cell-fertile-edge"
+			badgeClass += " calendar-tag-fertile"
+			stateKey = "fertile-edge"
 		} else if state.IsFertility {
 			cellClass += " calendar-cell-fertile"
 			badgeClass += " calendar-tag-fertile"
@@ -41,23 +53,28 @@ func (handler *Handler) buildCalendarDays(states []services.CalendarDayState) []
 		}
 
 		days = append(days, CalendarDay{
-			Date:         state.Date,
-			DateString:   state.DateString,
-			Day:          state.Day,
-			InMonth:      state.InMonth,
-			IsToday:      state.IsToday,
-			IsPeriod:     state.IsPeriod,
-			IsPredicted:  state.IsPredicted,
-			IsPreFertile: state.IsPreFertile,
-			IsFertility:  state.IsFertility,
-			IsOvulation:  state.IsOvulation,
-			HasData:      state.HasData,
-			HasSex:       state.HasSex,
-			CellClass:    cellClass,
-			TextClass:    textClass,
-			BadgeClass:   badgeClass,
-			StateKey:     stateKey,
-			OvulationDot: state.IsOvulation,
+			Date:                   state.Date,
+			DateString:             state.DateString,
+			Day:                    state.Day,
+			InMonth:                state.InMonth,
+			IsToday:                state.IsToday,
+			OpenEditDirectly:       state.OpenEditDirectly,
+			IsPeriod:               state.IsPeriod,
+			IsPredicted:            state.IsPredicted,
+			IsPreFertile:           state.IsPreFertile,
+			IsFertility:            state.IsFertility,
+			IsFertilityPeak:        state.IsFertilityPeak,
+			IsFertilityEdge:        state.IsFertilityEdge,
+			IsOvulation:            state.IsOvulation,
+			IsTentativeOvulation:   state.IsTentativeOvulation,
+			HasData:                state.HasData,
+			HasSex:                 state.HasSex,
+			CellClass:              cellClass,
+			TextClass:              textClass,
+			BadgeClass:             badgeClass,
+			StateKey:               stateKey,
+			OvulationDot:           state.IsOvulation,
+			TentativeOvulationMark: state.IsTentativeOvulation,
 		})
 	}
 	return days

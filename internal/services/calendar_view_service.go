@@ -58,7 +58,7 @@ func (service *CalendarViewService) BuildCalendarPageViewData(user *models.User,
 	}
 
 	prevMonth, nextMonth := CalendarAdjacentMonthValues(monthStart)
-	dayStates := BuildCalendarDayStates(monthStart, logs, stats, now, location)
+	dayStates := BuildCalendarDayStates(user, monthStart, logs, stats, now, location)
 
 	return CalendarPageViewData{
 		MonthLabel:   LocalizedMonthYear(language, monthStart),

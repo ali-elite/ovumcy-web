@@ -90,6 +90,8 @@ func (handler *Handler) buildStatsPageData(user *models.User, language string, m
 		"ShowIrregularityNotice":              viewData.ShowIrregularityNotice,
 		"ShowIrregularInsufficientDataNotice": viewData.ShowIrregularInsufficientDataNotice,
 		"ShowIrregularModeRecommendation":     viewData.ShowIrregularModeRecommendation,
+		"ShowAgeVariabilityHint":              viewData.ShowAgeVariabilityHint,
+		"PredictionDisabled":                  viewData.PredictionDisabled,
 		"IsIrregularMode":                     viewData.IsIrregularMode,
 		"IsOwner":                             viewData.IsOwner,
 	}

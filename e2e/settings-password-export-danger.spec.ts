@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { clearDateField, fillDateField } from './support/date-field-helpers';
+import { ensureNotesFieldVisible } from './support/note-helpers';
 import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
 import {
   completeOnboardingIfPresent,
@@ -87,12 +88,7 @@ async function openCalendarDayEditor(page: Page, isoDate: string): Promise<Locat
 }
 
 async function openCalendarNotes(form: Locator): Promise<void> {
-  const disclosure = form.locator('details.note-disclosure');
-  const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
-  if (!isOpen) {
-    await disclosure.locator('summary').click();
-  }
-  await expect(form.locator('#calendar-notes')).toBeVisible();
+  await ensureNotesFieldVisible(form, '#calendar-notes');
 }
 
 async function saveTodayEntry(page: Page, note: string): Promise<void> {
@@ -101,12 +97,7 @@ async function saveTodayEntry(page: Page, note: string): Promise<void> {
 
   await page.locator('input[name="is_period"]').check();
   await page.locator('input[name="flow"][value="medium"]').check({ force: true });
-  const disclosure = page.locator('details.note-disclosure');
-  const isOpen = await disclosure.evaluate((element) => element.hasAttribute('open'));
-  if (!isOpen) {
-    await disclosure.locator('summary').click();
-  }
-  await expect(page.locator('#today-notes')).toBeVisible();
+  await ensureNotesFieldVisible(page, '#today-notes');
   await page.locator('#today-notes').fill(note);
 
   await page.locator('[data-dashboard-save-form] button[data-save-button]').click();
