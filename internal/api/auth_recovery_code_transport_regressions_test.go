@@ -88,9 +88,11 @@ func TestRegenerateRecoveryCodeRedirectsToDedicatedRecoveryPage(t *testing.T) {
 	assertBodyContainsAll(t, recoveryPage,
 		bodyStringMatch{fragment: `id="recovery-code"`, message: "expected dedicated recovery code page after regeneration"},
 		bodyStringMatch{fragment: `form action="/settings"`, message: "expected regeneration flow to return to settings after confirmation"},
+		bodyStringMatch{fragment: `data-recovery-code-checkbox`, message: "expected recovery confirmation checkbox hook on recovery page"},
 	)
 	assertBodyNotContainsAll(t, recoveryPage,
 		bodyStringMatch{fragment: "settings.success.recovery_code_regenerated", message: "did not expect raw settings success key on recovery page"},
+		bodyStringMatch{fragment: `name="saved"`, message: "did not expect recovery confirmation checkbox to submit a saved query parameter"},
 	)
 }
 

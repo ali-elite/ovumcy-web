@@ -149,7 +149,7 @@ test.describe('Onboarding flow', () => {
     await expect(page.locator('#settings-last-period-start')).toHaveValue(String(selectedValue));
   });
 
-  test('step 1 enforces min/max bounds and clamps out-of-range values', async ({ page }) => {
+  test('step 1 rejects out-of-range manual dates instead of clamping them', async ({ page }) => {
     await registerAndOpenOnboarding(page, 'onboarding-step1-bounds');
 
     const input = page.locator('#last-period-start');
@@ -160,11 +160,25 @@ test.describe('Onboarding flow', () => {
     expect(max).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(min! <= max!).toBe(true);
 
-    await fillDateField(input, shiftISODate(min!, -1));
-    await expect(input).toHaveValue(min!);
+    const tooOldDate = shiftISODate(min!, -1);
+    const futureDate = shiftISODate(max!, 1);
+    const stepTwoForm = page.locator('form[hx-post="/onboarding/step2"]');
+    const submitButton = page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]');
+    const stepOneStatus = page.locator('#onboarding-step1-status');
 
-    await fillDateField(input, shiftISODate(max!, 1));
-    await expect(input).toHaveValue(max!);
+    await fillDateField(input, tooOldDate);
+    await expect(input).toHaveValue(tooOldDate);
+    await submitButton.click();
+    await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
+    await expect(stepTwoForm).not.toBeVisible();
+    await expect(stepOneStatus.locator('.status-error')).toBeVisible();
+
+    await fillDateField(input, futureDate);
+    await expect(input).toHaveValue(futureDate);
+    await submitButton.click();
+    await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
+    await expect(stepTwoForm).not.toBeVisible();
+    await expect(stepOneStatus.locator('.status-error')).toBeVisible();
   });
 
   test('step 2 sliders and auto-fill toggle update state, and Back preserves values', async ({ page }) => {

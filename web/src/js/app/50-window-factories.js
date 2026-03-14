@@ -1306,15 +1306,6 @@
 
   function syncOnboardingStartDate(state) {
     var selectedDate = parseDateValue(state.selectedDate);
-    var minDate = parseDateValue(state.minDate);
-    var maxDate = parseDateValue(state.maxDate);
-
-    if (selectedDate && minDate && selectedDate < minDate) {
-      selectedDate = minDate;
-    }
-    if (selectedDate && maxDate && selectedDate > maxDate) {
-      selectedDate = maxDate;
-    }
 
     state.selectedDate = selectedDate ? formatDateValue(selectedDate) : "";
     if (state.startDateField) {
@@ -1652,15 +1643,15 @@
       return;
     }
 
-    var checkbox = form.querySelector("#recovery-code-saved");
+    var checkbox = form.querySelector("[data-recovery-code-checkbox], #recovery-code-saved");
     var submit = form.querySelector("[data-recovery-code-submit]");
     var enabled = !!(checkbox && checkbox.checked);
     if (!submit) {
       return;
     }
 
-    submit.disabled = !enabled;
-    submit.classList.toggle("btn--disabled", !enabled);
+    submit.setAttribute("aria-disabled", enabled ? "false" : "true");
+    submit.dataset.recoveryCodeReady = enabled ? "true" : "false";
   }
 
   function bindRecoveryCodeConfirmForms() {
@@ -1669,9 +1660,33 @@
       var form = forms[index];
       if (form.dataset.recoveryConfirmBound !== "1") {
         form.dataset.recoveryConfirmBound = "1";
-        form.addEventListener("change", function (event) {
-          if (event.target && event.target.id === "recovery-code-saved") {
+        form.addEventListener("input", function () {
+          syncRecoveryCodeConfirmForm(this);
+        });
+        form.addEventListener("change", function () {
+          syncRecoveryCodeConfirmForm(this);
+        });
+        form.addEventListener("click", function () {
+          var currentForm = this;
+          window.setTimeout(function () {
+            syncRecoveryCodeConfirmForm(currentForm);
+          }, 0);
+        });
+        form.addEventListener("submit", function (event) {
+          var checkbox = this.querySelector("[data-recovery-code-checkbox], #recovery-code-saved");
+          if (!checkbox || checkbox.checked) {
             syncRecoveryCodeConfirmForm(this);
+            return;
+          }
+
+          event.preventDefault();
+          syncRecoveryCodeConfirmForm(this);
+          if (typeof checkbox.reportValidity === "function") {
+            checkbox.reportValidity();
+            return;
+          }
+          if (typeof checkbox.focus === "function") {
+            checkbox.focus();
           }
         });
       }

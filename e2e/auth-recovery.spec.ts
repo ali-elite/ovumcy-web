@@ -29,7 +29,7 @@ test.describe('Auth: recovery and reset password', () => {
     const recoveryCode = await readRecoveryCode(page);
 
     const continueButton = page.locator('form[data-recovery-code-confirm] button[type="submit"]');
-    await expect(continueButton).toBeDisabled();
+    await expect(continueButton).toHaveAttribute('aria-disabled', 'true');
     await expectInlineRegisterRecoveryStep(page);
     await expect(page.locator('#recovery-code-saved')).not.toBeChecked();
 
@@ -59,8 +59,13 @@ test.describe('Auth: recovery and reset password', () => {
     expect(downloadedContent).toContain(recoveryCode);
 
     await page.locator('#recovery-code-saved').check();
-    await expect(continueButton).toBeEnabled();
-    await continueButton.click();
+    await expect(continueButton).toHaveAttribute('aria-disabled', 'false');
+    const continueButtonBox = await continueButton.boundingBox();
+    expect(continueButtonBox).toBeTruthy();
+    await page.mouse.click(
+      continueButtonBox!.x + continueButtonBox!.width / 2,
+      continueButtonBox!.y + continueButtonBox!.height / 2
+    );
     await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
   });
 

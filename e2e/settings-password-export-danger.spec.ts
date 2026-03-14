@@ -169,6 +169,14 @@ test.describe('Settings: password, export, clear data, delete account', () => {
     page,
   }) => {
     const state = await registerOwnerAndOpenSettings(page, 'settings-recovery-regenerate');
+    const cycleForm = page.locator('section#settings-cycle form[action="/settings/cycle"]');
+
+    await expect(cycleForm).toBeVisible();
+    await setRangeValue(page.locator('#settings-cycle-length'), 28);
+    await setRangeValue(page.locator('#settings-period-length'), 5);
+    await page.locator('input[name="unpredictable_cycle"]').uncheck();
+    await cycleForm.locator('button[data-save-button]').click();
+    await expect(page.locator('#settings-cycle-status .status-ok')).toBeVisible();
 
     await page
       .locator('form[action="/api/settings/regenerate-recovery-code"] button[type="submit"]')
@@ -187,6 +195,8 @@ test.describe('Settings: password, export, clear data, delete account', () => {
 
     await expect(page).toHaveURL(/\/settings(?:\?.*)?$/);
     await expect(page.locator('.recovery-code-box')).toHaveCount(0);
+    await expect(page.locator('#settings-period-length')).toHaveValue('5');
+    await expect(page.locator('input[name="unpredictable_cycle"]')).not.toBeChecked();
   });
 
   test('export CSV, JSON, and PDF from settings return attachment responses with expected structure', async ({
