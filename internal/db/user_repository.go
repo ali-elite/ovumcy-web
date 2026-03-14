@@ -24,6 +24,19 @@ func (repo *UserRepository) CountUsers() (int64, error) {
 	return count, nil
 }
 
+func (repo *UserRepository) ListOperatorUserSummaries() ([]models.OperatorUserSummary, error) {
+	summaries := make([]models.OperatorUserSummary, 0)
+	if err := repo.database.
+		Model(&models.User{}).
+		Select("id", "display_name", "email", "role", "onboarding_completed", "created_at").
+		Order("created_at ASC").
+		Order("id ASC").
+		Find(&summaries).Error; err != nil {
+		return nil, err
+	}
+	return summaries, nil
+}
+
 func (repo *UserRepository) FindByID(userID uint) (models.User, error) {
 	var user models.User
 	if err := repo.database.First(&user, userID).Error; err != nil {

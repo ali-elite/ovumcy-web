@@ -384,22 +384,49 @@ func buildRevision() string {
 }
 
 func tryRunCLICommand() (bool, error) {
-	if len(os.Args) < 2 {
+	return tryRunCLICommandWithHandlers(os.Args[1:], cliCommandHandlers{
+		runResetPassword: cli.RunResetPasswordCommand,
+		runUsers:         cli.RunUsersCommand,
+	})
+}
+
+type cliCommandHandlers struct {
+	runResetPassword func(databaseConfig db.Config, email string) error
+	runUsers         func(databaseConfig db.Config, args []string) error
+}
+
+func tryRunCLICommandWithHandlers(args []string, handlers cliCommandHandlers) (bool, error) {
+	if len(args) == 0 {
 		return false, nil
 	}
 
-	command := strings.TrimSpace(os.Args[1])
+	command := strings.TrimSpace(args[0])
 	switch command {
 	case "reset-password":
-		if len(os.Args) != 3 {
+		if len(args) != 2 {
 			return true, fmt.Errorf("usage: ovumcy reset-password <email>")
+		}
+		if handlers.runResetPassword == nil {
+			return true, fmt.Errorf("reset-password handler is required")
 		}
 		databaseConfig, err := resolveDatabaseConfig()
 		if err != nil {
 			return true, fmt.Errorf("invalid database config: %w", err)
 		}
-		email := strings.TrimSpace(os.Args[2])
-		return true, cli.RunResetPasswordCommand(databaseConfig, email)
+		email := strings.TrimSpace(args[1])
+		return true, handlers.runResetPassword(databaseConfig, email)
+	case "users":
+		if len(args) < 2 {
+			return true, fmt.Errorf("usage: ovumcy users <list|delete>")
+		}
+		if handlers.runUsers == nil {
+			return true, fmt.Errorf("users handler is required")
+		}
+		databaseConfig, err := resolveDatabaseConfig()
+		if err != nil {
+			return true, fmt.Errorf("invalid database config: %w", err)
+		}
+		return true, handlers.runUsers(databaseConfig, args[1:])
 	default:
 		return false, nil
 	}

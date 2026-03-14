@@ -225,7 +225,7 @@ Important notes:
 
 - Always set a strong `SECRET_KEY`.
 - `DEFAULT_LANGUAGE` supports `en`, `ru`, and `es`.
-- `REGISTRATION_MODE` supports `open` and `closed`; use `closed` for invite-controlled or pre-provisioned internet-facing instances.
+- `REGISTRATION_MODE` supports `open` and `closed`; use `closed` for pre-provisioned or otherwise operator-restricted internet-facing instances where self-service sign-up must stay disabled.
 - Set `COOKIE_SECURE=true` when serving over HTTPS.
 - Enable `TRUST_PROXY_ENABLED` only when running behind a trusted reverse proxy.
 - SQLite is the supported baseline default; Postgres is an advanced self-hosted path that requires `DATABASE_URL`.
@@ -233,6 +233,22 @@ Important notes:
 - Full deployment, backup, reverse-proxy, and Postgres guidance lives in [docs/self-hosted.md](docs/self-hosted.md).
 
 For deployment paths, reverse-proxy examples, backups, restores, and advanced Postgres setups, see [docs/self-hosted.md](docs/self-hosted.md).
+
+## Operator CLI
+
+For self-hosted operators, the binary includes a small local-only CLI for account audit and removal:
+
+```bash
+go run ./cmd/ovumcy users list
+go run ./cmd/ovumcy users delete owner@example.com
+go run ./cmd/ovumcy users delete owner@example.com --yes
+```
+
+Notes:
+
+- `users list` prints a minimal account audit table: `id`, `email`, `role`, `display name`, onboarding state, and creation time.
+- `users delete <email>` removes the selected account together with related health data and prompts for an explicit `DELETE` confirmation unless `--yes` is provided.
+- Treat CLI usage as operator-only access. It is intended for local shell access on the instance, not for browser or remote public administration.
 
 ## Development
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -424,6 +425,72 @@ func TestLogStartupDoesNotLogForgotPasswordRateLimitDetail(t *testing.T) {
 	}
 	if !strings.Contains(logLine, "api=700/2m0s") {
 		t.Fatalf("expected api rate limit detail in startup log, got %q", logLine)
+	}
+}
+
+func TestTryRunCLICommandWithHandlersDispatchesUsersCommand(t *testing.T) {
+	t.Setenv("DB_DRIVER", "sqlite")
+	t.Setenv("DB_PATH", filepath.Join(t.TempDir(), "cli-users.db"))
+	t.Setenv("DATABASE_URL", "")
+
+	called := false
+	handled, err := tryRunCLICommandWithHandlers([]string{"users", "list"}, cliCommandHandlers{
+		runResetPassword: func(db.Config, string) error {
+			t.Fatal("did not expect reset-password handler")
+			return nil
+		},
+		runUsers: func(databaseConfig db.Config, args []string) error {
+			called = true
+			if databaseConfig.Driver != db.DriverSQLite {
+				t.Fatalf("expected sqlite driver, got %q", databaseConfig.Driver)
+			}
+			if len(args) != 1 || args[0] != "list" {
+				t.Fatalf("unexpected users args: %#v", args)
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !handled {
+		t.Fatal("expected CLI command to be handled")
+	}
+	if !called {
+		t.Fatal("expected users handler to be called")
+	}
+}
+
+func TestTryRunCLICommandWithHandlersRejectsMissingUsersSubcommand(t *testing.T) {
+	handled, err := tryRunCLICommandWithHandlers([]string{"users"}, cliCommandHandlers{})
+	if !handled {
+		t.Fatal("expected users command to be handled")
+	}
+	if err == nil || !strings.Contains(err.Error(), "usage: ovumcy users <list|delete>") {
+		t.Fatalf("expected users usage error, got %v", err)
+	}
+}
+
+func TestTryRunCLICommandWithHandlersPropagatesUsersError(t *testing.T) {
+	t.Setenv("DB_DRIVER", "sqlite")
+	t.Setenv("DB_PATH", filepath.Join(t.TempDir(), "cli-users.db"))
+	t.Setenv("DATABASE_URL", "")
+
+	expectedErr := errors.New("delete failed")
+	handled, err := tryRunCLICommandWithHandlers([]string{"users", "delete", "owner@example.com", "--yes"}, cliCommandHandlers{
+		runResetPassword: func(db.Config, string) error {
+			t.Fatal("did not expect reset-password handler")
+			return nil
+		},
+		runUsers: func(db.Config, []string) error {
+			return expectedErr
+		},
+	})
+	if !handled {
+		t.Fatal("expected users command to be handled")
+	}
+	if !errors.Is(err, expectedErr) {
+		t.Fatalf("expected propagated users error, got %v", err)
 	}
 }
 
