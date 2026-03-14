@@ -83,6 +83,10 @@ No. Ovumcy provides estimates and logs based on recorded data. It is not a medic
 
 ![Ovumcy calendar screen](docs/screenshots/calendar.jpg)
 
+### Export What You Need
+
+![Ovumcy export settings screen](docs/screenshots/settings-export.jpg)
+
 ### Use a Comfortable Dark Theme
 
 ![Ovumcy dark theme screen](docs/screenshots/dark-theme.jpg)
