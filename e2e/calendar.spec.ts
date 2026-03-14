@@ -7,6 +7,7 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
+import { expectElementAboveMobileTabbar } from './support/mobile-layout-helpers';
 import { ensureNotesFieldVisible } from './support/note-helpers';
 import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
 
@@ -129,6 +130,17 @@ test.describe('Calendar page', () => {
     });
     expect(styles.width).toBeGreaterThanOrEqual(12);
     expect(styles.boxShadow).not.toBe('none');
+  });
+
+  test('mobile calendar keeps the legend scrollable above the bottom tabbar', async ({ page }) => {
+    await registerOwnerOnCalendar(page, 'calendar-mobile-safe-area');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await expect(page).toHaveURL(/\/calendar(?:\?.*)?$/);
+
+    const legend = page.locator('.calendar-legend');
+    await legend.scrollIntoViewIfNeeded();
+    await expectElementAboveMobileTabbar(page, legend);
   });
 
   test('past day entry can be edited from calendar and persists after reload', async ({ page }) => {

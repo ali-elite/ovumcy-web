@@ -7,6 +7,7 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
+import { expectElementAboveMobileTabbar } from './support/mobile-layout-helpers';
 import { ensureNotesFieldVisible } from './support/note-helpers';
 import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
 
@@ -242,6 +243,17 @@ test.describe('Dashboard: today editor', () => {
     await lastSymptom.scrollIntoViewIfNeeded();
     await symptomChipForOption(lastSymptom).click();
     await expect(symptomInputForOption(lastSymptom)).toBeChecked();
+  });
+
+  test('mobile dashboard keeps lower actions scrollable above the bottom tabbar', async ({ page }) => {
+    await registerOwnerOnDashboard(page, 'dashboard-mobile-safe-area');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await expect(page).toHaveURL(/\/dashboard$/);
+
+    const clearButton = clearTodayButton(page);
+    await clearButton.scrollIntoViewIfNeeded();
+    await expectElementAboveMobileTabbar(page, clearButton);
   });
 
   test('switching Period day off keeps symptoms but clears flow for saved state', async ({ page }) => {

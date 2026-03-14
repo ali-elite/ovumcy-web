@@ -116,6 +116,24 @@ async function createCustomSymptom(page: Page, name: string): Promise<void> {
 }
 
 test.describe('Settings: password, export, clear data, delete account', () => {
+  test('password-only settings forms include hidden username context for autocomplete', async ({
+    page,
+  }) => {
+    const creds = await registerOwnerAndOpenSettings(page, 'settings-password-context');
+
+    const forms = [
+      page.locator('#settings-change-password-form'),
+      page.locator('form[action="/api/settings/clear-data"]'),
+      page.locator('form[hx-delete="/api/settings/delete-account"]'),
+    ];
+
+    for (const form of forms) {
+      const usernameContext = form.locator('input[autocomplete="username"][name="username"]');
+      await expect(usernameContext).toHaveCount(1);
+      await expect(usernameContext).toHaveValue(creds.email);
+    }
+  });
+
   test('change password success rotates credentials: old password rejected, new password works', async ({
     page,
   }) => {

@@ -350,7 +350,6 @@
           <div class="journal-panel space-y-1" data-profile-email-panel>
             <p class="field-label">{{t .Messages "settings.profile.email"}}</p>
             <p class="text-sm break-all">{{.CurrentUser.Email}}</p>
-            <p class="settings-locked-copy text-xs"><span aria-hidden="true">🔒</span><span>{{t .Messages "settings.profile.email_locked"}}</span></p>
           </div>
 
           <div class="settings-form-actions">
@@ -380,6 +379,7 @@
           data-weak-password-message="{{t .Messages "auth.password_requirements"}}"
           data-save-feedback>
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          {{template "password_username_context_field" (dict "Value" .CurrentUser.Email)}}
 
           {{template "password_toggle_field" (dict
             "Messages" .Messages
@@ -566,6 +566,7 @@
         data-clear-data-invalid-password="{{t .Messages "settings.error.invalid_password"}}"
         data-clear-data-request-failed="{{t .Messages "common.error.request_failed"}}">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        {{template "password_username_context_field" (dict "Value" .CurrentUser.Email)}}
         {{template "password_toggle_field" (dict
           "Messages" .Messages
           "LabelKey" "settings.delete_account.password"
@@ -588,6 +589,7 @@
         data-confirm-accept="{{t .Messages "settings.delete_account.submit"}}"
         class="space-y-4">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        {{template "password_username_context_field" (dict "Value" .CurrentUser.Email)}}
 
         {{template "password_toggle_field" (dict
           "Messages" .Messages

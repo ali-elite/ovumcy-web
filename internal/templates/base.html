@@ -129,7 +129,7 @@
     {{end}}
 
     {{if not (isActiveRoute .CurrentPath "/privacy")}}
-    <footer class="container-main pb-8 pt-2">
+    <footer class="container-main pb-8 pt-2{{if and .CurrentUser (not .HideNavigation)}} footer-with-mobile-nav{{end}}">
       <nav class="flex items-center justify-center">
         <a href="/privacy?back={{urlquery .CurrentPath}}" class="nav-link text-sm">{{t .Messages "nav.privacy"}}</a>
       </nav>
@@ -182,6 +182,17 @@
     </span>
   </button>
 </div>
+{{end}}
+{{define "password_username_context_field"}}
+<input
+  type="email"
+  name="username"
+  value="{{.Value}}"
+  autocomplete="username"
+  tabindex="-1"
+  aria-hidden="true"
+  readonly
+  class="sr-only">
 {{end}}
 {{define "password_requirements_checklist"}}
 <div class="password-requirements" data-password-guidance>

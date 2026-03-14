@@ -42,6 +42,7 @@
     --bg-glow-1: rgba(232, 196, 168, 0.44);
     --bg-glow-2: rgba(212, 165, 116, 0.24);
     --bg-stripes: rgba(207, 167, 128, 0.06);
+    --mobile-tabbar-safe-space: calc(8rem + env(safe-area-inset-bottom));
   }
 
   :root[data-theme="dark"] {
@@ -3165,7 +3166,21 @@
     }
 
     .main-with-mobile-nav {
-      padding-bottom: 6.6rem;
+      padding-bottom: var(--mobile-tabbar-safe-space);
+      scroll-padding-bottom: var(--mobile-tabbar-safe-space);
+    }
+
+    .main-with-mobile-nav .journal-card,
+    .main-with-mobile-nav .journal-panel {
+      scroll-margin-bottom: var(--mobile-tabbar-safe-space);
+    }
+
+    .main-with-mobile-nav .calendar-legend {
+      scroll-margin-bottom: var(--mobile-tabbar-safe-space);
+    }
+
+    .footer-with-mobile-nav {
+      padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
     }
 
     .journal-title {

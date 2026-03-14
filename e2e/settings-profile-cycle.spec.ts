@@ -210,7 +210,8 @@ test.describe('Settings: profile and cycle', () => {
 
     const profileAccountPanel = page.locator('[data-profile-email-panel]');
     await expect(profileAccountPanel).toContainText(creds.email);
-    await expect(profileAccountPanel).toContainText('Cannot be changed.');
+    await expect(profileAccountPanel).not.toContainText('Cannot be changed.');
+    await expect(profileAccountPanel).not.toContainText('Эл. почту нельзя изменить.');
     await expect(page.locator('#settings-account input#settings-profile-email')).toHaveCount(0);
 
     const displayNameInput = page.locator('#settings-display-name');
