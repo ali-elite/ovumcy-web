@@ -14,14 +14,15 @@ func TestPasswordResetServiceStartRecoveryRateLimited(t *testing.T) {
 	authService := NewAuthService(repo)
 	limiter := NewAttemptLimiter()
 	service := NewPasswordResetService(authService, limiter)
+	secretKey := []byte("test-secret")
 
 	now := time.Date(2026, time.March, 1, 10, 0, 0, 0, time.UTC)
 	key := "127.0.0.1"
 	for index := 0; index < DefaultRecoveryAttemptsLimit; index++ {
-		service.recoveryPolicy.AddFailure(key, "owner@example.com", now.Add(-1*time.Minute))
+		service.recoveryPolicy.AddFailure(secretKey, key, "owner@example.com", now.Add(-1*time.Minute))
 	}
 
-	_, err := service.StartRecovery([]byte("test-secret"), key, "owner@example.com", "OVUM-ABCD-2345-EFGH", now, 30*time.Minute)
+	_, err := service.StartRecovery(secretKey, key, "owner@example.com", "OVUM-ABCD-2345-EFGH", now, 30*time.Minute)
 	if !errors.Is(err, ErrPasswordRecoveryRateLimited) {
 		t.Fatalf("expected ErrPasswordRecoveryRateLimited, got %v", err)
 	}
@@ -33,15 +34,16 @@ func TestPasswordResetServiceStartRecoveryInvalidEmailAddsFailure(t *testing.T) 
 	limiter := NewAttemptLimiter()
 	service := NewPasswordResetService(authService, limiter)
 	service.ConfigureRecoveryAttemptLimits(1, DefaultRecoveryAttemptsWindow)
+	secretKey := []byte("test-secret")
 
 	now := time.Date(2026, time.March, 1, 10, 0, 0, 0, time.UTC)
 	key := "127.0.0.1"
 
-	_, err := service.StartRecovery([]byte("test-secret"), key, "invalid-email", "OVUM-ABCD-2345-EFGH", now, 30*time.Minute)
+	_, err := service.StartRecovery(secretKey, key, "invalid-email", "OVUM-ABCD-2345-EFGH", now, 30*time.Minute)
 	if !errors.Is(err, ErrPasswordRecoveryInputInvalid) {
 		t.Fatalf("expected ErrPasswordRecoveryInputInvalid, got %v", err)
 	}
-	if !service.recoveryPolicy.TooManyRecent(key, "", now) {
+	if !service.recoveryPolicy.TooManyRecent(secretKey, key, "", now) {
 		t.Fatalf("expected limiter to record failed recovery attempt")
 	}
 }
@@ -52,15 +54,16 @@ func TestPasswordResetServiceStartRecoveryInvalidCodeAddsFailure(t *testing.T) {
 	limiter := NewAttemptLimiter()
 	service := NewPasswordResetService(authService, limiter)
 	service.ConfigureRecoveryAttemptLimits(1, DefaultRecoveryAttemptsWindow)
+	secretKey := []byte("test-secret")
 
 	now := time.Date(2026, time.March, 1, 10, 0, 0, 0, time.UTC)
 	key := "127.0.0.1"
 
-	_, err := service.StartRecovery([]byte("test-secret"), key, "owner@example.com", "invalid", now, 30*time.Minute)
+	_, err := service.StartRecovery(secretKey, key, "owner@example.com", "invalid", now, 30*time.Minute)
 	if !errors.Is(err, ErrPasswordRecoveryCodeInvalid) {
 		t.Fatalf("expected ErrPasswordRecoveryCodeInvalid, got %v", err)
 	}
-	if !service.recoveryPolicy.TooManyRecent(key, "owner@example.com", now) {
+	if !service.recoveryPolicy.TooManyRecent(secretKey, key, "owner@example.com", now) {
 		t.Fatalf("expected limiter to record failed recovery attempt")
 	}
 }
@@ -70,17 +73,18 @@ func TestPasswordResetServiceStartRecoveryRateLimitsByIdentityAcrossIPs(t *testi
 	authService := NewAuthService(repo)
 	service := NewPasswordResetService(authService, NewAttemptLimiter())
 	service.ConfigureRecoveryAttemptLimits(2, time.Hour)
+	secretKey := []byte("test-secret")
 
 	now := time.Date(2026, time.March, 1, 10, 0, 0, 0, time.UTC)
 	code := "invalid"
 
-	if _, err := service.StartRecovery([]byte("test-secret"), "10.0.0.1", "owner@example.com", code, now, 30*time.Minute); !errors.Is(err, ErrPasswordRecoveryCodeInvalid) {
+	if _, err := service.StartRecovery(secretKey, "10.0.0.1", "owner@example.com", code, now, 30*time.Minute); !errors.Is(err, ErrPasswordRecoveryCodeInvalid) {
 		t.Fatalf("expected invalid recovery code on first attempt, got %v", err)
 	}
-	if _, err := service.StartRecovery([]byte("test-secret"), "10.0.0.2", "owner@example.com", code, now.Add(time.Minute), 30*time.Minute); !errors.Is(err, ErrPasswordRecoveryCodeInvalid) {
+	if _, err := service.StartRecovery(secretKey, "10.0.0.2", "owner@example.com", code, now.Add(time.Minute), 30*time.Minute); !errors.Is(err, ErrPasswordRecoveryCodeInvalid) {
 		t.Fatalf("expected invalid recovery code on second attempt, got %v", err)
 	}
-	if _, err := service.StartRecovery([]byte("test-secret"), "10.0.0.3", "owner@example.com", code, now.Add(2*time.Minute), 30*time.Minute); !errors.Is(err, ErrPasswordRecoveryRateLimited) {
+	if _, err := service.StartRecovery(secretKey, "10.0.0.3", "owner@example.com", code, now.Add(2*time.Minute), 30*time.Minute); !errors.Is(err, ErrPasswordRecoveryRateLimited) {
 		t.Fatalf("expected ErrPasswordRecoveryRateLimited after distributed attempts, got %v", err)
 	}
 }
@@ -107,19 +111,20 @@ func TestPasswordResetServiceStartRecoverySuccessResetsLimiter(t *testing.T) {
 	limiter := NewAttemptLimiter()
 	service := NewPasswordResetService(authService, limiter)
 	service.ConfigureRecoveryAttemptLimits(2, DefaultRecoveryAttemptsWindow)
+	secretKey := []byte("test-secret")
 
 	now := time.Date(2026, time.March, 1, 10, 0, 0, 0, time.UTC)
 	key := "127.0.0.1"
-	service.recoveryPolicy.AddFailure(key, "owner@example.com", now.Add(-1*time.Minute))
+	service.recoveryPolicy.AddFailure(secretKey, key, "owner@example.com", now.Add(-1*time.Minute))
 
-	token, err := service.StartRecovery([]byte("test-secret"), key, "owner@example.com", recoveryCode, now, 30*time.Minute)
+	token, err := service.StartRecovery(secretKey, key, "owner@example.com", recoveryCode, now, 30*time.Minute)
 	if err != nil {
 		t.Fatalf("StartRecovery() unexpected error: %v", err)
 	}
 	if token == "" {
 		t.Fatalf("expected non-empty reset token")
 	}
-	if service.recoveryPolicy.limiter.TooManyRecentAny(service.recoveryPolicy.keys(key, "owner@example.com"), now, 1, DefaultRecoveryAttemptsWindow) {
+	if service.recoveryPolicy.limiter.TooManyRecentAny(service.recoveryPolicy.keys(secretKey, key, "owner@example.com"), now, 1, DefaultRecoveryAttemptsWindow) {
 		t.Fatalf("expected limiter reset after successful recovery flow")
 	}
 }

@@ -57,24 +57,24 @@ func (service *PasswordResetService) StartRecovery(secretKey []byte, limiterKey 
 	}
 
 	normalizedEmail := NormalizeAuthEmail(email)
-	if service.recoveryPolicy.TooManyRecent(limiterKey, normalizedEmail, now) {
+	if service.recoveryPolicy.TooManyRecent(secretKey, limiterKey, normalizedEmail, now) {
 		return "", ErrPasswordRecoveryRateLimited
 	}
 	if normalizedEmail == "" {
-		service.recoveryPolicy.AddFailure(limiterKey, "", now)
+		service.recoveryPolicy.AddFailure(secretKey, limiterKey, "", now)
 		return "", ErrPasswordRecoveryInputInvalid
 	}
 
 	code := NormalizeRecoveryCode(rawRecoveryCode)
 	if err := ValidateRecoveryCodeFormat(code); err != nil {
-		service.recoveryPolicy.AddFailure(limiterKey, normalizedEmail, now)
+		service.recoveryPolicy.AddFailure(secretKey, limiterKey, normalizedEmail, now)
 		return "", ErrPasswordRecoveryCodeInvalid
 	}
 
 	user, err := service.auth.FindUserByEmailAndRecoveryCode(normalizedEmail, code)
 	if err != nil {
 		if errors.Is(err, ErrRecoveryCodeNotFound) {
-			service.recoveryPolicy.AddFailure(limiterKey, normalizedEmail, now)
+			service.recoveryPolicy.AddFailure(secretKey, limiterKey, normalizedEmail, now)
 			return "", ErrPasswordRecoveryCodeInvalid
 		}
 		return "", err
@@ -85,7 +85,7 @@ func (service *PasswordResetService) StartRecovery(secretKey []byte, limiterKey 
 		return "", err
 	}
 
-	service.recoveryPolicy.Reset(limiterKey, normalizedEmail)
+	service.recoveryPolicy.Reset(secretKey, limiterKey, normalizedEmail)
 	return token, nil
 }
 

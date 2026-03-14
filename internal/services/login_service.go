@@ -51,19 +51,19 @@ func (service *LoginService) Authenticate(
 	now time.Time,
 ) (LoginResult, error) {
 	normalizedEmail := NormalizeAuthEmail(email)
-	if service.attemptPolicy.TooManyRecent(clientKey, normalizedEmail, now) {
+	if service.attemptPolicy.TooManyRecent(secretKey, clientKey, normalizedEmail, now) {
 		return LoginResult{}, ErrAuthLoginRateLimited
 	}
 
 	user, err := service.auth.AuthenticateCredentials(email, password)
 	if err != nil {
 		if errors.Is(err, ErrAuthInvalidCreds) {
-			service.attemptPolicy.AddFailure(clientKey, normalizedEmail, now)
+			service.attemptPolicy.AddFailure(secretKey, clientKey, normalizedEmail, now)
 		}
 		return LoginResult{}, err
 	}
 
-	service.attemptPolicy.Reset(clientKey, normalizedEmail)
+	service.attemptPolicy.Reset(secretKey, clientKey, normalizedEmail)
 	result := LoginResult{User: user}
 	if !user.MustChangePassword {
 		return result, nil

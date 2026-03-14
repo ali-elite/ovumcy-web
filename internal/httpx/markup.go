@@ -13,6 +13,11 @@ func StatusOKMarkup(message string) string {
 	)
 }
 
+// StatusOKTemplateHTML returns trusted shared success markup after escaping message content.
+func StatusOKTemplateHTML(message string) template.HTML {
+	return trustedEscapedHTML(StatusOKMarkup(message))
+}
+
 // StatusErrorMarkup renders the shared HTMX status-error wrapper.
 func StatusErrorMarkup(message string) string {
 	return fmt.Sprintf("<div class=\"status-error\">%s</div>", template.HTMLEscapeString(message))
@@ -25,4 +30,14 @@ func DismissibleStatusOKMarkup(message string, closeLabel string) string {
 		template.HTMLEscapeString(message),
 		template.HTMLEscapeString(closeLabel),
 	)
+}
+
+// DismissibleStatusOKTemplateHTML returns trusted dismissible success markup after escaping message content.
+func DismissibleStatusOKTemplateHTML(message string, closeLabel string) template.HTML {
+	return trustedEscapedHTML(DismissibleStatusOKMarkup(message, closeLabel))
+}
+
+// #nosec G203 -- shared status markup is built from already escaped strings in this package.
+func trustedEscapedHTML(markup string) template.HTML {
+	return template.HTML(markup)
 }

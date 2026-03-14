@@ -52,10 +52,10 @@ func newTemplateFuncMap() template.FuncMap {
 		"isActiveRoute":         isActiveTemplateRoute,
 		"hasSymptom":            hasTemplateSymptom,
 		"statusOK": func(message string) template.HTML {
-			return template.HTML(httpx.StatusOKMarkup(message))
+			return httpx.StatusOKTemplateHTML(message)
 		},
 		"dismissibleStatusOK": func(messages map[string]string, message string) template.HTML {
-			return template.HTML(httpx.DismissibleStatusOKMarkup(message, localizedStatusDismissLabel(messages)))
+			return httpx.DismissibleStatusOKTemplateHTML(message, localizedStatusDismissLabel(messages))
 		},
 		"toJSON": templateToJSON,
 		"dict":   templateDict,

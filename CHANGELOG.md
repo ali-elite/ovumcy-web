@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-15
+
+### Added
+- PDF export with embedded fonts for printable cycle summaries alongside the existing CSV and JSON exports.
+- Advanced owner tracking controls and richer phase/context insights, including BBT and cervical mucus tracking surfaces.
+- Runtime-gated public registration via `REGISTRATION_MODE=open|closed` for operator-restricted self-hosted instances.
+- Local operator CLI commands for account audit and removal (`users list`, `users delete <email>`).
+
+### Changed
+- Registration now acknowledges recovery codes inline after sign-up, and login/register flows preserve safer client UX without storing passwords in browser storage.
+- Auth, logout, and destructive settings flows were hardened with broader cookie cleanup, sanitized request/security logging, and tighter browser/API regressions.
+- Dashboard, calendar, onboarding, and settings owner flows were simplified and polished across desktop and mobile, including safer fixed-tabbar spacing and lower-friction daily logging.
+- Base self-hosted compose defaults now bind to loopback by default, and operator docs were updated to reflect the local/private baseline versus dedicated public reverse-proxy stacks.
+- Browser and backend regression coverage was expanded and refactored around more stable behavior contracts for auth, settings, export, onboarding, and mobile layout flows.
+
+### Security
+- Public sign-up can now be disabled without introducing a browser admin surface, reducing exposure for internet-facing operator-managed instances.
+- Request and security event logging now avoid raw health-date paths and clear all auth-related cookies consistently on logout and account deletion.
+
 ## [0.4.1] - 2026-03-10
 
 ### Added
@@ -122,7 +141,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/terraincognita07/ovumcy/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/terraincognita07/ovumcy/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/terraincognita07/ovumcy/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/terraincognita07/ovumcy/compare/v0.3.1...v0.3.2
