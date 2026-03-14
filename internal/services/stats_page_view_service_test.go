@@ -91,6 +91,49 @@ func TestBuildStatsPageViewDataShowsIrregularInsufficientDataNotice(t *testing.T
 }
 
 func TestBuildStatsPageViewDataBuildsLastCycleSymptomsPatternsAndBBTChart(t *testing.T) {
+	service, user, now := newStatsPatternAndBBTTestFixture(t)
+	viewData, err := service.BuildStatsPageViewData(user, "en", "Cycle %d", now, time.UTC, 12)
+	if err != nil {
+		t.Fatalf("BuildStatsPageViewData() unexpected error: %v", err)
+	}
+	assertStatsPatternAndBBTViewData(t, viewData)
+}
+
+func assertOwnerTrendViewData(t *testing.T, viewData StatsPageViewData) {
+	t.Helper()
+
+	if !viewData.IsOwner {
+		t.Fatalf("expected IsOwner=true")
+	}
+	if viewData.ChartData.Kind != "bar" {
+		t.Fatalf("expected chart kind=bar, got %q", viewData.ChartData.Kind)
+	}
+	if !viewData.ChartData.HasBaseline || viewData.ChartData.Baseline != 28 {
+		t.Fatalf("expected chart baseline=28, got has=%v value=%d", viewData.ChartData.HasBaseline, viewData.ChartData.Baseline)
+	}
+	if viewData.ChartBaseline != 28 {
+		t.Fatalf("expected ChartBaseline=28, got %d", viewData.ChartBaseline)
+	}
+	if viewData.TrendPointCount != 2 {
+		t.Fatalf("expected TrendPointCount=2, got %d", viewData.TrendPointCount)
+	}
+	if len(viewData.ChartData.Labels) != 2 || viewData.ChartData.Labels[0] != "Cycle 1" || viewData.ChartData.Labels[1] != "Cycle 2" {
+		t.Fatalf("unexpected chart labels: %#v", viewData.ChartData.Labels)
+	}
+	if len(viewData.ChartData.Values) != 2 || viewData.ChartData.Values[0] != 28 || viewData.ChartData.Values[1] != 28 {
+		t.Fatalf("unexpected chart values: %#v", viewData.ChartData.Values)
+	}
+	if len(viewData.SymptomCounts) != 1 {
+		t.Fatalf("expected one symptom count entry, got %d", len(viewData.SymptomCounts))
+	}
+	if viewData.SymptomCounts[0].FrequencySummary == "" {
+		t.Fatalf("expected non-empty frequency summary")
+	}
+}
+
+func newStatsPatternAndBBTTestFixture(t *testing.T) (*StatsService, *models.User, time.Time) {
+	t.Helper()
+
 	logs := []models.DailyLog{
 		{Date: mustParseStatsServiceDay(t, "2026-01-01"), IsPeriod: true},
 		{Date: mustParseStatsServiceDay(t, "2026-01-02"), SymptomIDs: []uint{1}},
@@ -127,11 +170,11 @@ func TestBuildStatsPageViewDataBuildsLastCycleSymptomsPatternsAndBBTChart(t *tes
 	currentCycleStart := mustParseStatsServiceDay(t, "2026-03-26")
 	user := &models.User{ID: 7, Role: models.RoleOwner, CycleLength: 28, TrackBBT: true, LastPeriodStart: &currentCycleStart}
 	now := mustParseStatsServiceDay(t, "2026-04-02")
+	return service, user, now
+}
 
-	viewData, err := service.BuildStatsPageViewData(user, "en", "Cycle %d", now, time.UTC, 12)
-	if err != nil {
-		t.Fatalf("BuildStatsPageViewData() unexpected error: %v", err)
-	}
+func assertStatsPatternAndBBTViewData(t *testing.T, viewData StatsPageViewData) {
+	t.Helper()
 
 	if !viewData.HasLastCycleSymptoms || len(viewData.LastCycleSymptoms) != 3 {
 		t.Fatalf("expected last-cycle symptom summary, got %#v", viewData.LastCycleSymptoms)
@@ -156,38 +199,6 @@ func TestBuildStatsPageViewDataBuildsLastCycleSymptomsPatternsAndBBTChart(t *tes
 	}
 	if diff := viewData.CurrentCycleBBTChart.Baseline - 36.44; diff < -0.001 || diff > 0.001 {
 		t.Fatalf("expected BBT baseline 36.44, got %.2f", viewData.CurrentCycleBBTChart.Baseline)
-	}
-}
-
-func assertOwnerTrendViewData(t *testing.T, viewData StatsPageViewData) {
-	t.Helper()
-
-	if !viewData.IsOwner {
-		t.Fatalf("expected IsOwner=true")
-	}
-	if viewData.ChartData.Kind != "bar" {
-		t.Fatalf("expected chart kind=bar, got %q", viewData.ChartData.Kind)
-	}
-	if !viewData.ChartData.HasBaseline || viewData.ChartData.Baseline != 28 {
-		t.Fatalf("expected chart baseline=28, got has=%v value=%d", viewData.ChartData.HasBaseline, viewData.ChartData.Baseline)
-	}
-	if viewData.ChartBaseline != 28 {
-		t.Fatalf("expected ChartBaseline=28, got %d", viewData.ChartBaseline)
-	}
-	if viewData.TrendPointCount != 2 {
-		t.Fatalf("expected TrendPointCount=2, got %d", viewData.TrendPointCount)
-	}
-	if len(viewData.ChartData.Labels) != 2 || viewData.ChartData.Labels[0] != "Cycle 1" || viewData.ChartData.Labels[1] != "Cycle 2" {
-		t.Fatalf("unexpected chart labels: %#v", viewData.ChartData.Labels)
-	}
-	if len(viewData.ChartData.Values) != 2 || viewData.ChartData.Values[0] != 28 || viewData.ChartData.Values[1] != 28 {
-		t.Fatalf("unexpected chart values: %#v", viewData.ChartData.Values)
-	}
-	if len(viewData.SymptomCounts) != 1 {
-		t.Fatalf("expected one symptom count entry, got %d", len(viewData.SymptomCounts))
-	}
-	if viewData.SymptomCounts[0].FrequencySummary == "" {
-		t.Fatalf("expected non-empty frequency summary")
 	}
 }
 

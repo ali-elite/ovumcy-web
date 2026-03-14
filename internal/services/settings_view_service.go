@@ -87,6 +87,12 @@ type SettingsViewService struct {
 	symptoms      SettingsViewSymptomProvider
 }
 
+type settingsStatusKeys struct {
+	errorKey               string
+	changePasswordErrorKey string
+	successKey             string
+}
+
 func NewSettingsViewService(settings SettingsViewLoader, notifications *NotificationService, export SettingsViewExportBuilder, symptoms SettingsViewSymptomProvider) *SettingsViewService {
 	if notifications == nil {
 		notifications = NewNotificationService()
@@ -100,34 +106,53 @@ func NewSettingsViewService(settings SettingsViewLoader, notifications *Notifica
 }
 
 func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User, language string, input SettingsViewInput, now time.Time, location *time.Location) (SettingsPageViewData, error) {
-	status := service.notifications.ResolveSettingsStatus(input.FlashSuccess)
-
-	errorKey := ""
-	changePasswordErrorKey := ""
-	if status == "" {
-		errorSource := service.notifications.ResolveSettingsErrorSource(input.FlashError)
-		translatedErrorKey := AuthErrorTranslationKey(errorSource)
-		if translatedErrorKey != "" {
-			if service.notifications.ClassifySettingsErrorSource(errorSource) == SettingsErrorTargetChangePassword {
-				changePasswordErrorKey = translatedErrorKey
-			} else {
-				errorKey = translatedErrorKey
-			}
-		}
-	}
-
+	statusKeys := service.resolveSettingsStatusKeys(input)
 	persisted, err := service.settings.LoadSettings(user.ID)
 	if err != nil {
 		return SettingsPageViewData{}, fmt.Errorf("%w: %v", ErrSettingsViewLoadSettings, err)
 	}
 
+	_, today := SettingsCycleStartDateBounds(now, location)
+	minCycleStart, _ := SettingsCycleStartDateBounds(now, location)
+	resolvedUser, lastPeriodStart := buildResolvedSettingsUser(user, persisted, today, location)
+	viewData := buildSettingsPageBaseViewData(resolvedUser, lastPeriodStart, today, minCycleStart, statusKeys)
+
+	if resolvedUser.Role != models.RoleOwner {
+		return viewData, nil
+	}
+
+	return viewData, service.populateOwnerSettingsViewData(&viewData, language, today, location)
+}
+
+func (service *SettingsViewService) resolveSettingsStatusKeys(input SettingsViewInput) settingsStatusKeys {
+	status := service.notifications.ResolveSettingsStatus(input.FlashSuccess)
+	keys := settingsStatusKeys{
+		successKey: SettingsStatusTranslationKey(status),
+	}
+	if status != "" {
+		return keys
+	}
+
+	errorSource := service.notifications.ResolveSettingsErrorSource(input.FlashError)
+	translatedErrorKey := AuthErrorTranslationKey(errorSource)
+	if translatedErrorKey == "" {
+		return keys
+	}
+	if service.notifications.ClassifySettingsErrorSource(errorSource) == SettingsErrorTargetChangePassword {
+		keys.changePasswordErrorKey = translatedErrorKey
+		return keys
+	}
+	keys.errorKey = translatedErrorKey
+	return keys
+}
+
+func buildResolvedSettingsUser(user *models.User, persisted models.User, today time.Time, location *time.Location) (models.User, string) {
 	cycleLength, periodLength := ResolveCycleAndPeriodDefaults(persisted.CycleLength, persisted.PeriodLength)
-	autoPeriodFill := persisted.AutoPeriodFill
 
 	resolvedUser := *user
 	resolvedUser.CycleLength = cycleLength
 	resolvedUser.PeriodLength = periodLength
-	resolvedUser.AutoPeriodFill = autoPeriodFill
+	resolvedUser.AutoPeriodFill = persisted.AutoPeriodFill
 	resolvedUser.IrregularCycle = persisted.IrregularCycle
 	resolvedUser.UnpredictableCycle = persisted.UnpredictableCycle
 	resolvedUser.AgeGroup = NormalizeAgeGroup(persisted.AgeGroup)
@@ -140,7 +165,6 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 	resolvedUser.LastPeriodStart = persisted.LastPeriodStart
 
 	lastPeriodStart := ""
-	_, today := SettingsCycleStartDateBounds(now, location)
 	if persisted.LastPeriodStart != nil {
 		sanitizedStart := DateAtLocation(*persisted.LastPeriodStart, location)
 		if sanitizedStart.After(today) {
@@ -149,81 +173,78 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 		resolvedUser.LastPeriodStart = &sanitizedStart
 		lastPeriodStart = sanitizedStart.Format("2006-01-02")
 	}
-	minCycleStart, _ := SettingsCycleStartDateBounds(now, location)
 
-	viewData := SettingsPageViewData{
-		CurrentUser:            resolvedUser,
-		ErrorKey:               errorKey,
-		ChangePasswordErrorKey: changePasswordErrorKey,
-		SuccessKey:             SettingsStatusTranslationKey(status),
-		CycleLength:            cycleLength,
-		PeriodLength:           periodLength,
-		AutoPeriodFill:         autoPeriodFill,
-		IrregularCycle:         resolvedUser.IrregularCycle,
-		UnpredictableCycle:     resolvedUser.UnpredictableCycle,
-		AgeGroup:               resolvedUser.AgeGroup,
-		UsageGoal:              resolvedUser.UsageGoal,
-		ShownPeriodTip:         resolvedUser.ShownPeriodTip,
-		TrackBBT:               resolvedUser.TrackBBT,
-		TemperatureUnit:        resolvedUser.TemperatureUnit,
-		TrackCervicalMucus:     resolvedUser.TrackCervicalMucus,
-		HideSexChip:            resolvedUser.HideSexChip,
+	return resolvedUser, lastPeriodStart
+}
+
+func buildSettingsPageBaseViewData(user models.User, lastPeriodStart string, today time.Time, minCycleStart time.Time, statusKeys settingsStatusKeys) SettingsPageViewData {
+	return SettingsPageViewData{
+		CurrentUser:            user,
+		ErrorKey:               statusKeys.errorKey,
+		ChangePasswordErrorKey: statusKeys.changePasswordErrorKey,
+		SuccessKey:             statusKeys.successKey,
+		CycleLength:            user.CycleLength,
+		PeriodLength:           user.PeriodLength,
+		AutoPeriodFill:         user.AutoPeriodFill,
+		IrregularCycle:         user.IrregularCycle,
+		UnpredictableCycle:     user.UnpredictableCycle,
+		AgeGroup:               user.AgeGroup,
+		UsageGoal:              user.UsageGoal,
+		ShownPeriodTip:         user.ShownPeriodTip,
+		TrackBBT:               user.TrackBBT,
+		TemperatureUnit:        user.TemperatureUnit,
+		TrackCervicalMucus:     user.TrackCervicalMucus,
+		HideSexChip:            user.HideSexChip,
 		LastPeriodStart:        lastPeriodStart,
 		TodayISO:               today.Format("2006-01-02"),
 		CycleStartMinISO:       minCycleStart.Format("2006-01-02"),
 	}
+}
 
-	if resolvedUser.Role != models.RoleOwner {
-		return viewData, nil
-	}
-
+func (service *SettingsViewService) populateOwnerSettingsViewData(viewData *SettingsPageViewData, language string, today time.Time, location *time.Location) error {
 	if service.symptoms != nil {
-		symptomsViewData, err := service.BuildSettingsSymptomsViewData(&resolvedUser)
+		symptomsViewData, err := service.BuildSettingsSymptomsViewData(&viewData.CurrentUser)
 		if err != nil {
-			return SettingsPageViewData{}, err
+			return err
 		}
 		viewData.Symptoms = symptomsViewData
 		viewData.HasOwnerSymptomsView = true
 	}
 
 	if service.export == nil {
-		return viewData, nil
+		return nil
 	}
 
-	availableSummary, err := service.export.BuildSummary(resolvedUser.ID, nil, nil, location)
+	exportViewData, err := service.buildOwnerExportViewData(viewData.CurrentUser.ID, language, today, location)
 	if err != nil {
-		return SettingsPageViewData{}, fmt.Errorf("%w: %v", ErrSettingsViewLoadExport, err)
+		return err
 	}
+	viewData.Export = exportViewData
+	viewData.HasOwnerExportViewState = true
+	return nil
+}
 
+func (service *SettingsViewService) buildOwnerExportViewData(userID uint, language string, today time.Time, location *time.Location) (SettingsExportViewData, error) {
+	availableSummary, err := service.export.BuildSummary(userID, nil, nil, location)
+	if err != nil {
+		return SettingsExportViewData{}, fmt.Errorf("%w: %v", ErrSettingsViewLoadExport, err)
+	}
 	if !availableSummary.HasData {
-		viewData.Export = SettingsExportViewData{HasSummaryForOwner: true}
-		viewData.HasOwnerExportViewState = true
-		return viewData, nil
+		return SettingsExportViewData{HasSummaryForOwner: true}, nil
 	}
 
-	todayISO := today.Format(exportDateLayout)
-	selectableMin := todayISO
-	if compareISODate(availableSummary.DateFrom, selectableMin) < 0 {
-		selectableMin = availableSummary.DateFrom
-	}
-	selectableMax := todayISO
-	if compareISODate(availableSummary.DateTo, selectableMax) > 0 {
-		selectableMax = availableSummary.DateTo
-	}
-
-	defaultFrom := selectableMin
-	defaultTo := todayISO
+	defaultFrom, defaultTo, selectableMin, selectableMax := resolveOwnerExportDateBounds(availableSummary, today)
 	defaultSummary, err := service.export.BuildSummary(
-		resolvedUser.ID,
+		userID,
 		exportSummaryBound(defaultFrom, location),
 		exportSummaryBound(defaultTo, location),
 		location,
 	)
 	if err != nil {
-		return SettingsPageViewData{}, fmt.Errorf("%w: %v", ErrSettingsViewLoadExport, err)
+		return SettingsExportViewData{}, fmt.Errorf("%w: %v", ErrSettingsViewLoadExport, err)
 	}
 
-	viewData.Export = SettingsExportViewData{
+	return SettingsExportViewData{
 		SummaryTotalEntries:    defaultSummary.TotalEntries,
 		HasData:                availableSummary.HasData,
 		SummaryHasData:         defaultSummary.HasData,
@@ -236,10 +257,20 @@ func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User,
 		SelectableDateMin:      selectableMin,
 		SelectableDateMax:      selectableMax,
 		HasSummaryForOwner:     true,
-	}
-	viewData.HasOwnerExportViewState = true
+	}, nil
+}
 
-	return viewData, nil
+func resolveOwnerExportDateBounds(availableSummary ExportSummary, today time.Time) (string, string, string, string) {
+	todayISO := today.Format(exportDateLayout)
+	selectableMin := todayISO
+	if compareISODate(availableSummary.DateFrom, selectableMin) < 0 {
+		selectableMin = availableSummary.DateFrom
+	}
+	selectableMax := todayISO
+	if compareISODate(availableSummary.DateTo, selectableMax) > 0 {
+		selectableMax = availableSummary.DateTo
+	}
+	return selectableMin, todayISO, selectableMin, selectableMax
 }
 
 func localizedExportSummaryDate(language string, raw string, location *time.Location) string {

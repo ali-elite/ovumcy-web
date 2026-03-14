@@ -179,8 +179,24 @@ func buildSymptomPatternInsights(logs []models.DailyLog, completedCycles []compl
 }
 
 func buildCurrentCycleBBTChart(stats CycleStats, logs []models.DailyLog, now time.Time, location *time.Location) StatsBBTChartViewData {
-	if stats.LastPeriodStart.IsZero() {
+	cycleStart, today, ok := resolveCurrentCycleBBTBounds(stats, now, location)
+	if !ok {
 		return StatsBBTChartViewData{}
+	}
+
+	recordedDays, dayValues := collectCurrentCycleBBTPoints(logs, cycleStart, today, location)
+	labels, values, baseline, ok := buildCurrentCycleBBTSeries(recordedDays, dayValues)
+	if !ok {
+		return StatsBBTChartViewData{}
+	}
+
+	markerIndex, hasMarker := detectProbableOvulationMarker(recordedDays, dayValues, baseline)
+	return newCurrentCycleBBTChartViewData(labels, values, baseline, markerIndex, hasMarker)
+}
+
+func resolveCurrentCycleBBTBounds(stats CycleStats, now time.Time, location *time.Location) (time.Time, time.Time, bool) {
+	if stats.LastPeriodStart.IsZero() {
+		return time.Time{}, time.Time{}, false
 	}
 	if location == nil {
 		location = time.UTC
@@ -189,17 +205,17 @@ func buildCurrentCycleBBTChart(stats CycleStats, logs []models.DailyLog, now tim
 	cycleStart := DateAtLocation(stats.LastPeriodStart, location)
 	today := DateAtLocation(now.In(location), location)
 	if today.Before(cycleStart) {
-		return StatsBBTChartViewData{}
+		return time.Time{}, time.Time{}, false
 	}
+	return cycleStart, today, true
+}
 
+func collectCurrentCycleBBTPoints(logs []models.DailyLog, cycleStart time.Time, today time.Time, location *time.Location) ([]int, map[int]float64) {
 	dayValues := make(map[int]float64)
 	recordedDays := make([]int, 0)
 	for _, logEntry := range sortDailyLogs(filterLogsNotAfter(logs, today)) {
 		localDay := DateAtLocation(logEntry.Date, location)
-		if localDay.Before(cycleStart) || localDay.After(today) {
-			continue
-		}
-		if !IsValidDayBBT(logEntry.BBT) || logEntry.BBT <= 0 {
+		if localDay.Before(cycleStart) || localDay.After(today) || !IsValidDayBBT(logEntry.BBT) || logEntry.BBT <= 0 {
 			continue
 		}
 
@@ -214,8 +230,12 @@ func buildCurrentCycleBBTChart(stats CycleStats, logs []models.DailyLog, now tim
 	}
 
 	sort.Ints(recordedDays)
+	return recordedDays, dayValues
+}
+
+func buildCurrentCycleBBTSeries(recordedDays []int, dayValues map[int]float64) ([]string, []*float64, float64, bool) {
 	if len(recordedDays) < 5 {
-		return StatsBBTChartViewData{}
+		return nil, nil, 0, false
 	}
 
 	maxDay := recordedDays[len(recordedDays)-1]
@@ -235,19 +255,21 @@ func buildCurrentCycleBBTChart(stats CycleStats, logs []models.DailyLog, now tim
 			baselineWindow = append(baselineWindow, value)
 		}
 	}
-
 	if len(baselineWindow) < 5 {
-		return StatsBBTChartViewData{}
+		return nil, nil, 0, false
 	}
+	return labels, values, averageFloat64(baselineWindow), true
+}
 
-	var baseline float64
-	for _, value := range baselineWindow {
-		baseline += value
+func averageFloat64(values []float64) float64 {
+	var total float64
+	for _, value := range values {
+		total += value
 	}
-	baseline /= float64(len(baselineWindow))
+	return total / float64(len(values))
+}
 
-	markerIndex, hasMarker := detectProbableOvulationMarker(recordedDays, dayValues, baseline)
-
+func newCurrentCycleBBTChartViewData(labels []string, values []*float64, baseline float64, markerIndex int, hasMarker bool) StatsBBTChartViewData {
 	return StatsBBTChartViewData{
 		Labels:         labels,
 		Values:         values,

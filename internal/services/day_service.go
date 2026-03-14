@@ -248,25 +248,61 @@ func (service *DayService) MarkCycleStartManually(userID uint, day time.Time, no
 		return ErrManualCycleStartDateInvalid
 	}
 
-	logs, err := service.logs.ListByUser(userID)
+	policy, err := service.loadManualCycleStartPolicy(userID, day, now, location)
 	if err != nil {
 		return ErrDayEntryLoadFailed
+	}
+	if err := validateManualCycleStartOptions(policy, options); err != nil {
+		return err
+	}
+
+	payload, err := service.manualCycleStartPayload(userID, day, location)
+	if err != nil {
+		return ErrDayEntryLoadFailed
+	}
+
+	if _, err := service.UpsertDayEntryWithAutoFillAt(userID, day, payload, now, location); err != nil {
+		return err
+	}
+
+	entry, err := service.persistManualCycleStartFlags(userID, day, location, options, policy)
+	if err != nil {
+		return err
+	}
+	if err := service.clearCompetingManualCycleStarts(userID, entry, location); err != nil {
+		return err
+	}
+	service.refreshDerivedCycleSettings(userID, location)
+
+	return nil
+}
+
+func (service *DayService) loadManualCycleStartPolicy(userID uint, day time.Time, now time.Time, location *time.Location) (ManualCycleStartPolicy, error) {
+	logs, err := service.logs.ListByUser(userID)
+	if err != nil {
+		return ManualCycleStartPolicy{}, err
 	}
 	userSettings, err := service.users.LoadSettingsByID(userID)
 	if err != nil {
-		return ErrDayEntryLoadFailed
+		return ManualCycleStartPolicy{}, err
 	}
-	policy := ResolveManualCycleStartPolicy(&userSettings, logs, day, now, location)
+	return ResolveManualCycleStartPolicy(&userSettings, logs, day, now, location), nil
+}
+
+func validateManualCycleStartOptions(policy ManualCycleStartPolicy, options ManualCycleStartOptions) error {
 	if !policy.ConflictDate.IsZero() && !options.ReplaceExisting {
 		return ErrManualCycleStartReplaceRequired
 	}
 	if policy.ShortGapDays > 0 && !options.MarkUncertain {
 		return ErrManualCycleStartConfirmationNeeded
 	}
+	return nil
+}
 
+func (service *DayService) manualCycleStartPayload(userID uint, day time.Time, location *time.Location) (DayEntryInput, error) {
 	existingEntry, err := service.FetchLogByDate(userID, day, location)
 	if err != nil {
-		return ErrDayEntryLoadFailed
+		return DayEntryInput{}, err
 	}
 
 	symptomIDs := make([]uint, len(existingEntry.SymptomIDs))
@@ -285,36 +321,41 @@ func (service *DayService) MarkCycleStartManually(userID uint, day time.Time, no
 	if !IsValidDayFlow(payload.Flow) {
 		payload.Flow = models.FlowNone
 	}
+	return payload, nil
+}
 
-	if _, err := service.UpsertDayEntryWithAutoFillAt(userID, day, payload, now, location); err != nil {
-		return err
-	}
-
+func (service *DayService) persistManualCycleStartFlags(userID uint, day time.Time, location *time.Location, options ManualCycleStartOptions, policy ManualCycleStartPolicy) (models.DailyLog, error) {
 	dayStart, _ := DayRange(day, location)
 	dayEnd := dayStart.AddDate(0, 0, 1)
 	entry, found, err := service.logs.FindByUserAndDayRange(userID, dayStart, dayEnd)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrManualCycleStartFailed, err)
+		return models.DailyLog{}, wrapManualCycleStartFailure(err)
 	}
 	if !found {
-		return ErrManualCycleStartFailed
+		return models.DailyLog{}, ErrManualCycleStartFailed
 	}
+
 	entry.CycleStart = true
 	entry.IsUncertain = options.MarkUncertain && policy.ShortGapDays > 0
 	if err := service.logs.Save(&entry); err != nil {
-		return fmt.Errorf("%w: %v", ErrManualCycleStartFailed, err)
+		return models.DailyLog{}, wrapManualCycleStartFailure(err)
 	}
+	return entry, nil
+}
 
+func (service *DayService) clearCompetingManualCycleStarts(userID uint, entry models.DailyLog, location *time.Location) error {
 	allLogs, err := service.logs.ListByUser(userID)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrManualCycleStartFailed, err)
+		return wrapManualCycleStartFailure(err)
 	}
 	if err := service.clearCompetingCycleStarts(userID, allLogs, entry, location); err != nil {
-		return fmt.Errorf("%w: %v", ErrManualCycleStartFailed, err)
+		return wrapManualCycleStartFailure(err)
 	}
-	service.refreshDerivedCycleSettings(userID, location)
-
 	return nil
+}
+
+func wrapManualCycleStartFailure(err error) error {
+	return fmt.Errorf("%w: %v", ErrManualCycleStartFailed, err)
 }
 
 func (service *DayService) DeleteDailyLogByDate(userID uint, day time.Time, location *time.Location) error {

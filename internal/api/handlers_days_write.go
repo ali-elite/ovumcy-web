@@ -4,38 +4,76 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/terraincognita07/ovumcy/internal/models"
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
+type upsertDayRequest struct {
+	user            *models.User
+	location        *time.Location
+	day             time.Time
+	payload         dayPayload
+	cleanSymptomIDs []uint
+}
+
 func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
-	user, ok := currentUser(c)
+	request, spec, ok := handler.resolveUpsertDayRequest(c)
 	if !ok {
-		spec := unauthorizedErrorSpec()
 		handler.logHealthDataMutationError(c, "health.day_upsert", spec, "day_entry")
 		return handler.respondMappedError(c, spec)
+	}
+
+	entry, err := handler.dayService.UpsertDayEntryWithAutoFill(
+		request.user.ID,
+		request.day,
+		buildUpsertDayEntryInput(request.payload, request.cleanSymptomIDs),
+		request.location,
+	)
+	if err != nil {
+		spec := upsertDayPersistenceErrorSpec(err)
+		handler.logHealthDataMutationError(c, "health.day_upsert", spec, "day_entry")
+		return handler.respondMappedError(c, spec)
+	}
+
+	feedback, feedbackErr := handler.applyUpsertDayAcknowledgements(c, request)
+
+	handler.logHealthDataMutation(c, "health.day_upsert", "success", "day_entry")
+	return handler.respondUpsertDaySuccess(c, entry, feedback, feedbackErr)
+}
+
+func (handler *Handler) resolveUpsertDayRequest(c *fiber.Ctx) (upsertDayRequest, APIErrorSpec, bool) {
+	user, ok := currentUser(c)
+	if !ok {
+		return upsertDayRequest{}, unauthorizedErrorSpec(), false
 	}
 
 	location := handler.requestLocation(c)
 	day, err := services.ParseDayDate(c.Params("date"), location)
 	if err != nil {
-		spec := invalidDateErrorSpec()
-		handler.logHealthDataMutationError(c, "health.day_upsert", spec, "day_entry")
-		return handler.respondMappedError(c, spec)
+		return upsertDayRequest{}, invalidDateErrorSpec(), false
 	}
 
 	payload, err := parseDayPayload(c, user)
 	if err != nil {
-		spec := invalidPayloadErrorSpec()
-		handler.logHealthDataMutationError(c, "health.day_upsert", spec, "day_entry")
-		return handler.respondMappedError(c, spec)
+		return upsertDayRequest{}, invalidPayloadErrorSpec(), false
 	}
+
 	cleanIDs, err := handler.symptomService.ValidateSymptomIDs(user.ID, payload.SymptomIDs)
 	if err != nil {
-		spec := invalidSymptomIDsErrorSpec()
-		handler.logHealthDataMutationError(c, "health.day_upsert", spec, "day_entry")
-		return handler.respondMappedError(c, spec)
+		return upsertDayRequest{}, invalidSymptomIDsErrorSpec(), false
 	}
-	entry, err := handler.dayService.UpsertDayEntryWithAutoFill(user.ID, day, services.DayEntryInput{
+
+	return upsertDayRequest{
+		user:            user,
+		location:        location,
+		day:             day,
+		payload:         payload,
+		cleanSymptomIDs: cleanIDs,
+	}, APIErrorSpec{}, true
+}
+
+func buildUpsertDayEntryInput(payload dayPayload, cleanSymptomIDs []uint) services.DayEntryInput {
+	return services.DayEntryInput{
 		IsPeriod:      payload.IsPeriod,
 		Flow:          payload.Flow,
 		Mood:          payload.Mood,
@@ -43,29 +81,28 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 		BBT:           payload.BBT,
 		CervicalMucus: payload.CervicalMucus,
 		Notes:         payload.Notes,
-		SymptomIDs:    cleanIDs,
-	}, location)
-	if err != nil {
-		spec := upsertDayPersistenceErrorSpec(err)
-		handler.logHealthDataMutationError(c, "health.day_upsert", spec, "day_entry")
-		return handler.respondMappedError(c, spec)
+		SymptomIDs:    cleanSymptomIDs,
 	}
-	if !user.ShownPeriodTip && payload.IsPeriod && services.ParseBoolLike(c.FormValue("ack_period_tip")) {
-		if err := handler.dayService.AcknowledgePeriodTip(user.ID); err == nil {
-			user.ShownPeriodTip = true
+}
+
+func (handler *Handler) applyUpsertDayAcknowledgements(c *fiber.Ctx, request upsertDayRequest) (services.DayFeedbackState, error) {
+	if !request.user.ShownPeriodTip && request.payload.IsPeriod && services.ParseBoolLike(c.FormValue("ack_period_tip")) {
+		if err := handler.dayService.AcknowledgePeriodTip(request.user.ID); err == nil {
+			request.user.ShownPeriodTip = true
 		}
 	}
 
-	feedback, feedbackErr := handler.dayService.ResolveDayFeedback(user, day, time.Now().In(location), location)
+	feedback, feedbackErr := handler.dayService.ResolveDayFeedback(request.user, request.day, time.Now().In(request.location), request.location)
 	if feedbackErr == nil && feedback.ShowLongPeriodWarning && !feedback.LongPeriodCycleStart.IsZero() {
-		if err := handler.dayService.AcknowledgeLongPeriodWarning(user.ID, feedback.LongPeriodCycleStart, location); err == nil {
+		if err := handler.dayService.AcknowledgeLongPeriodWarning(request.user.ID, feedback.LongPeriodCycleStart, request.location); err == nil {
 			warnedAt := feedback.LongPeriodCycleStart
-			user.LongPeriodWarnedAt = &warnedAt
+			request.user.LongPeriodWarnedAt = &warnedAt
 		}
 	}
+	return feedback, feedbackErr
+}
 
-	handler.logHealthDataMutation(c, "health.day_upsert", "success", "day_entry")
-
+func (handler *Handler) respondUpsertDaySuccess(c *fiber.Ctx, entry models.DailyLog, feedback services.DayFeedbackState, feedbackErr error) error {
 	if isHTMX(c) {
 		c.Set("HX-Trigger", "calendar-day-updated")
 		if feedbackErr == nil {
@@ -78,7 +115,6 @@ func (handler *Handler) UpsertDay(c *fiber.Ctx) error {
 		}
 		return handler.sendDaySaveStatus(c, "")
 	}
-
 	return c.JSON(entry)
 }
 
