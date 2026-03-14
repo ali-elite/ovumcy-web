@@ -168,7 +168,9 @@ Pin a specific image tag if needed:
 OVUMCY_IMAGE=ghcr.io/terraincognita07/ovumcy:v0.4.1 docker compose up -d
 ```
 
-Then open `http://localhost:8080`.
+Then open `http://127.0.0.1:8080`.
+
+The base compose file now binds to loopback by default. For an intentional LAN/private-network bind, set `HOST_BIND_ADDRESS` in `.env` to a specific private IP you control before starting the stack.
 
 For production-style setups:
 
@@ -210,6 +212,7 @@ REGISTRATION_MODE=open
 # Set a unique 32+ character secret before first start.
 SECRET_KEY=
 PORT=8080
+HOST_BIND_ADDRESS=127.0.0.1
 COOKIE_SECURE=false
 
 DB_DRIVER=sqlite
@@ -226,6 +229,7 @@ Important notes:
 - Always set a strong `SECRET_KEY`.
 - `DEFAULT_LANGUAGE` supports `en`, `ru`, and `es`.
 - `REGISTRATION_MODE` supports `open` and `closed`; use `closed` for pre-provisioned or otherwise operator-restricted internet-facing instances where self-service sign-up must stay disabled.
+- `HOST_BIND_ADDRESS=127.0.0.1` keeps the base compose path local/private by default. Only change it deliberately for a specific private-network bind.
 - Set `COOKIE_SECURE=true` when serving over HTTPS.
 - Enable `TRUST_PROXY_ENABLED` only when running behind a trusted reverse proxy.
 - SQLite is the supported baseline default; Postgres is an advanced self-hosted path that requires `DATABASE_URL`.

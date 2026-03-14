@@ -49,9 +49,11 @@ Treat configuration in three layers instead of one flat checklist.
 
 Use the repository root `docker-compose.yml` for localhost, LAN, or other private-network deployments:
 
+- `HOST_BIND_ADDRESS=127.0.0.1` is the safe default and keeps the app bound to loopback on the host.
+- If you intentionally want base-compose access from a private LAN, set `HOST_BIND_ADDRESS` to the specific private host IP you control before starting the stack.
 - `COOKIE_SECURE=false` unless you terminate HTTPS before the app.
 - `TRUST_PROXY_ENABLED=false` unless you have explicitly placed Ovumcy behind your own trusted proxy.
-- `PORT=8080` is expected to be reachable only on the host or private network you control.
+- `PORT=8080` is the internal app port and is also used for the host publish target in the base compose path.
 
 ### Public reverse-proxy stack
 
@@ -307,6 +309,8 @@ docker compose up -d
 docker compose ps
 curl -fsS http://127.0.0.1:8080/healthz
 ```
+
+If you changed `HOST_BIND_ADDRESS` or `PORT`, adjust the host-side health-check URL accordingly.
 
 For the public reverse-proxy example stacks, run the same `docker compose pull`, `docker compose up -d`, and `docker compose ps` sequence inside the example directory, then verify `https://your-domain.example/healthz` through the proxy instead of expecting a host-level `127.0.0.1:8080` listener.
 
