@@ -20,7 +20,7 @@ func TestBuildLoginPageDataUsesFlashPriorityAndSetupFlag(t *testing.T) {
 	}
 
 	payload := evaluateAuthPageBuilder(t, query, func(c *fiber.Ctx) error {
-		return c.JSON(buildLoginPageData(map[string]string{}, flash, true))
+		return c.JSON(buildLoginPageData(map[string]string{}, flash, true, false))
 	})
 
 	if payload["ErrorKey"] != "auth.error.invalid_credentials" {
@@ -31,5 +31,8 @@ func TestBuildLoginPageDataUsesFlashPriorityAndSetupFlag(t *testing.T) {
 	}
 	if payload["IsFirstLaunch"] != true {
 		t.Fatalf("expected IsFirstLaunch=true, got %#v", payload["IsFirstLaunch"])
+	}
+	if payload["RegistrationOpen"] != false {
+		t.Fatalf("expected RegistrationOpen=false, got %#v", payload["RegistrationOpen"])
 	}
 }

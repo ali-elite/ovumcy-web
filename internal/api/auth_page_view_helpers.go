@@ -7,23 +7,28 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
-func buildLoginPageData(messages map[string]string, flash FlashPayload, needsSetup bool) fiber.Map {
+func buildLoginPageData(messages map[string]string, flash FlashPayload, needsSetup bool, registrationOpen bool) fiber.Map {
 	errorSource := services.ResolveAuthErrorSource(flash.AuthError)
 	return fiber.Map{
-		"Title":         localizedPageTitle(messages, "meta.title.login", "Ovumcy | Login"),
-		"ErrorKey":      services.AuthErrorTranslationKey(errorSource),
-		"Email":         services.ResolveAuthPageEmail(flash.LoginEmail),
-		"IsFirstLaunch": needsSetup,
+		"Title":            localizedPageTitle(messages, "meta.title.login", "Ovumcy | Login"),
+		"ErrorKey":         services.AuthErrorTranslationKey(errorSource),
+		"Email":            services.ResolveAuthPageEmail(flash.LoginEmail),
+		"IsFirstLaunch":    needsSetup,
+		"RegistrationOpen": registrationOpen,
 	}
 }
 
-func buildRegisterPageData(messages map[string]string, flash FlashPayload, needsSetup bool) fiber.Map {
+func buildRegisterPageData(messages map[string]string, flash FlashPayload, needsSetup bool, registrationOpen bool) fiber.Map {
 	errorSource := services.ResolveAuthErrorSource(flash.AuthError)
+	if !registrationOpen && errorSource == "" {
+		errorSource = "registration disabled"
+	}
 	return fiber.Map{
-		"Title":         localizedPageTitle(messages, "meta.title.register", "Ovumcy | Sign Up"),
-		"ErrorKey":      services.AuthErrorTranslationKey(errorSource),
-		"Email":         services.ResolveAuthPageEmail(flash.RegisterEmail),
-		"IsFirstLaunch": needsSetup,
+		"Title":            localizedPageTitle(messages, "meta.title.register", "Ovumcy | Sign Up"),
+		"ErrorKey":         services.AuthErrorTranslationKey(errorSource),
+		"Email":            services.ResolveAuthPageEmail(flash.RegisterEmail),
+		"IsFirstLaunch":    needsSetup,
+		"RegistrationOpen": registrationOpen,
 	}
 }
 

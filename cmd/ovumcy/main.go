@@ -31,14 +31,15 @@ import (
 )
 
 type runtimeConfig struct {
-	Location        *time.Location
-	SecretKey       string
-	DatabaseConfig  db.Config
-	Port            string
-	DefaultLanguage string
-	CookieSecure    bool
-	RateLimits      rateLimitSettings
-	Proxy           proxySettings
+	Location         *time.Location
+	SecretKey        string
+	DatabaseConfig   db.Config
+	Port             string
+	DefaultLanguage  string
+	RegistrationMode services.RegistrationMode
+	CookieSecure     bool
+	RateLimits       rateLimitSettings
+	Proxy            proxySettings
 }
 
 type rateLimitSettings struct {
@@ -85,7 +86,7 @@ func main() {
 	config := mustLoadRuntimeConfig(location)
 	database := mustOpenDatabase(config.DatabaseConfig)
 	i18nManager := mustNewI18nManager(config.DefaultLanguage)
-	dependencies := buildDependencies(db.NewRepositories(database), i18nManager, config.RateLimits)
+	dependencies := buildDependencies(db.NewRepositories(database), i18nManager, config.RateLimits, config.RegistrationMode)
 	handler := mustNewHandler(config, i18nManager, dependencies)
 	app := newFiberApp(config, handler)
 	stopSignals := installGracefulShutdown(app)
@@ -126,13 +127,19 @@ func loadRuntimeConfig(location *time.Location) (runtimeConfig, error) {
 		return runtimeConfig{}, err
 	}
 
+	registrationMode, err := resolveRegistrationMode()
+	if err != nil {
+		return runtimeConfig{}, err
+	}
+
 	return runtimeConfig{
-		Location:        location,
-		SecretKey:       secretKey,
-		DatabaseConfig:  databaseConfig,
-		Port:            port,
-		DefaultLanguage: getEnv("DEFAULT_LANGUAGE", "en"),
-		CookieSecure:    getEnvBool("COOKIE_SECURE", false),
+		Location:         location,
+		SecretKey:        secretKey,
+		DatabaseConfig:   databaseConfig,
+		Port:             port,
+		DefaultLanguage:  getEnv("DEFAULT_LANGUAGE", "en"),
+		RegistrationMode: registrationMode,
+		CookieSecure:     getEnvBool("COOKIE_SECURE", false),
 		RateLimits: rateLimitSettings{
 			LoginMax:             getEnvInt("RATE_LIMIT_LOGIN_MAX", 8),
 			LoginWindow:          getEnvDuration("RATE_LIMIT_LOGIN_WINDOW", 15*time.Minute),
@@ -143,6 +150,14 @@ func loadRuntimeConfig(location *time.Location) (runtimeConfig, error) {
 		},
 		Proxy: proxy,
 	}, nil
+}
+
+func resolveRegistrationMode() (services.RegistrationMode, error) {
+	mode, err := services.ParseRegistrationMode(getEnv("REGISTRATION_MODE", string(services.RegistrationModeOpen)))
+	if err != nil {
+		return "", err
+	}
+	return mode, nil
 }
 
 func resolveProxySettings() (proxySettings, error) {
@@ -180,7 +195,7 @@ func mustNewI18nManager(defaultLanguage string) *i18n.Manager {
 	return i18nManager
 }
 
-func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager, rateLimits rateLimitSettings) api.Dependencies {
+func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager, rateLimits rateLimitSettings, registrationMode services.RegistrationMode) api.Dependencies {
 	authService := services.NewAuthService(repositories.Users)
 	attemptLimiter := services.NewAttemptLimiter()
 	passwordResetService := services.NewPasswordResetService(authService, attemptLimiter)
@@ -189,7 +204,7 @@ func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager,
 	loginService.ConfigureAttemptLimits(rateLimits.LoginMax, rateLimits.LoginWindow)
 	dayService := services.NewDayService(repositories.DailyLogs, repositories.Users)
 	symptomService := services.NewSymptomService(repositories.Symptoms, services.BuiltinSymptomReservedNames(i18nManager)...)
-	registrationService := services.NewRegistrationService(authService, repositories.Users)
+	registrationService := services.NewRegistrationService(authService, repositories.Users, registrationMode)
 	viewerService := services.NewViewerService(dayService, symptomService)
 	statsService := services.NewStatsService(dayService, symptomService)
 	calendarViewService := services.NewCalendarViewService(dayService, statsService)
@@ -327,10 +342,11 @@ func installGracefulShutdown(app *fiber.App) context.CancelFunc {
 
 func logStartup(config runtimeConfig) {
 	log.Printf(
-		"Ovumcy listening on http://0.0.0.0:%s (rev: %s, tz: %s, rate_limits: login=%d/%s api=%d/%s, trusted_proxy=%t)",
+		"Ovumcy listening on http://0.0.0.0:%s (rev: %s, tz: %s, registration=%s, rate_limits: login=%d/%s api=%d/%s, trusted_proxy=%t)",
 		config.Port,
 		buildRevision(),
 		config.Location.String(),
+		config.RegistrationMode,
 		config.RateLimits.LoginMax,
 		config.RateLimits.LoginWindow,
 		config.RateLimits.APIMax,

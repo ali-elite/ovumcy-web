@@ -206,6 +206,7 @@ Most self-hosted setups only need a small set of variables:
 ```env
 TZ=UTC
 DEFAULT_LANGUAGE=en
+REGISTRATION_MODE=open
 # Set a unique 32+ character secret before first start.
 SECRET_KEY=
 PORT=8080
@@ -224,6 +225,7 @@ Important notes:
 
 - Always set a strong `SECRET_KEY`.
 - `DEFAULT_LANGUAGE` supports `en`, `ru`, and `es`.
+- `REGISTRATION_MODE` supports `open` and `closed`; use `closed` for invite-controlled or pre-provisioned internet-facing instances.
 - Set `COOKIE_SECURE=true` when serving over HTTPS.
 - Enable `TRUST_PROXY_ENABLED` only when running behind a trusted reverse proxy.
 - SQLite is the supported baseline default; Postgres is an advanced self-hosted path that requires `DATABASE_URL`.

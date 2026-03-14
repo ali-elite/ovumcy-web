@@ -12,15 +12,16 @@
 
     <div>
       <h1 class="journal-title">{{t .Messages "auth.create_account"}}</h1>
-      {{if .IsFirstLaunch}}
+      {{if and .IsFirstLaunch .RegistrationOpen}}
       <p class="journal-muted mt-2">{{t .Messages "auth.register_subtitle"}}</p>
       {{end}}
     </div>
 
     {{if .ErrorKey}}
-    <div class="status-error mt-5" data-auth-server-error>{{t .Messages .ErrorKey}}</div>
+    <div class="status-error mt-5" data-auth-server-error{{if not .RegistrationOpen}} data-registration-disabled{{end}}>{{t .Messages .ErrorKey}}</div>
     {{end}}
 
+    {{if .RegistrationOpen}}
     <form
       id="register-form"
       action="/api/auth/register"
@@ -56,9 +57,10 @@
 
       <button type="submit" class="btn-primary w-full">{{t .Messages "auth.register"}}</button>
     </form>
+    {{end}}
 
     <p class="journal-muted mt-5 text-sm">
-      {{t .Messages "auth.have_account"}}
+      {{if .RegistrationOpen}}{{t .Messages "auth.have_account"}}{{end}}
       <a href="/login" class="inline-link" data-auth-switch>{{t .Messages "auth.login"}}</a>
     </p>
   </div>

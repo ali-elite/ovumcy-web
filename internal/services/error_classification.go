@@ -7,6 +7,7 @@ type AuthRegisterErrorKind uint8
 const (
 	AuthRegisterErrorUnknown AuthRegisterErrorKind = iota
 	AuthRegisterErrorInvalidInput
+	AuthRegisterErrorRegistrationDisabled
 	AuthRegisterErrorPasswordMismatch
 	AuthRegisterErrorWeakPassword
 	AuthRegisterErrorEmailExists
@@ -18,6 +19,8 @@ func ClassifyAuthRegisterError(err error) AuthRegisterErrorKind {
 	switch {
 	case errors.Is(err, ErrAuthRegisterInvalid):
 		return AuthRegisterErrorInvalidInput
+	case errors.Is(err, ErrAuthRegistrationDisabled):
+		return AuthRegisterErrorRegistrationDisabled
 	case errors.Is(err, ErrAuthPasswordMismatch):
 		return AuthRegisterErrorPasswordMismatch
 	case errors.Is(err, ErrAuthWeakPassword):

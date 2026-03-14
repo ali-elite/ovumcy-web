@@ -12,6 +12,7 @@ func TestClassifyAuthRegisterError(t *testing.T) {
 		want AuthRegisterErrorKind
 	}{
 		{err: ErrAuthRegisterInvalid, want: AuthRegisterErrorInvalidInput},
+		{err: ErrAuthRegistrationDisabled, want: AuthRegisterErrorRegistrationDisabled},
 		{err: ErrAuthPasswordMismatch, want: AuthRegisterErrorPasswordMismatch},
 		{err: ErrAuthWeakPassword, want: AuthRegisterErrorWeakPassword},
 		{err: ErrAuthEmailExists, want: AuthRegisterErrorEmailExists},

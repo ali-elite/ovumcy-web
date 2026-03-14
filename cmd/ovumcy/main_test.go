@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/csrf"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/terraincognita07/ovumcy/internal/db"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func TestResolveSecretKey(t *testing.T) {
@@ -177,6 +178,31 @@ func TestResolveProxySettingsRequiresTrustedProxiesWhenEnabled(t *testing.T) {
 	}
 }
 
+func TestResolveRegistrationMode(t *testing.T) {
+	t.Setenv("REGISTRATION_MODE", "")
+	mode, err := resolveRegistrationMode()
+	if err != nil {
+		t.Fatalf("expected default registration mode, got error: %v", err)
+	}
+	if mode != services.RegistrationModeOpen {
+		t.Fatalf("expected default registration mode open, got %q", mode)
+	}
+
+	t.Setenv("REGISTRATION_MODE", "closed")
+	mode, err = resolveRegistrationMode()
+	if err != nil {
+		t.Fatalf("expected closed registration mode, got error: %v", err)
+	}
+	if mode != services.RegistrationModeClosed {
+		t.Fatalf("expected registration mode closed, got %q", mode)
+	}
+
+	t.Setenv("REGISTRATION_MODE", "invite_only")
+	if _, err := resolveRegistrationMode(); err == nil {
+		t.Fatal("expected invalid registration mode to fail")
+	}
+}
+
 func TestLoadRuntimeConfigBuildsExpectedSettings(t *testing.T) {
 	t.Setenv("SECRET_KEY", "0123456789abcdef0123456789abcdef")
 	t.Setenv("DB_DRIVER", "sqlite")
@@ -184,6 +210,7 @@ func TestLoadRuntimeConfigBuildsExpectedSettings(t *testing.T) {
 	t.Setenv("DATABASE_URL", "")
 	t.Setenv("PORT", "9090")
 	t.Setenv("DEFAULT_LANGUAGE", "ru")
+	t.Setenv("REGISTRATION_MODE", "closed")
 	t.Setenv("COOKIE_SECURE", "true")
 	t.Setenv("RATE_LIMIT_LOGIN_MAX", "12")
 	t.Setenv("RATE_LIMIT_LOGIN_WINDOW", "20m")
@@ -226,6 +253,9 @@ func assertBaseRuntimeConfig(t *testing.T, config runtimeConfig, location *time.
 	}
 	if config.DefaultLanguage != "ru" {
 		t.Fatalf("expected default language ru, got %q", config.DefaultLanguage)
+	}
+	if config.RegistrationMode != services.RegistrationModeClosed {
+		t.Fatalf("expected registration mode closed, got %q", config.RegistrationMode)
 	}
 	if !config.CookieSecure {
 		t.Fatal("expected cookie secure=true")

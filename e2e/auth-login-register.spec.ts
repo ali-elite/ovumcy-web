@@ -394,3 +394,20 @@ test.describe('Auth: register, login, logout', () => {
     await expect(page).toHaveURL(/\/dashboard$/);
   });
 });
+
+test.describe('Auth: registration mode closed', () => {
+  test.skip(process.env.REGISTRATION_MODE !== 'closed', 'Requires REGISTRATION_MODE=closed');
+
+  test('closed mode hides signup CTA and shows disabled register state', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
+    await expect(page.locator('[data-auth-signup-cta]')).toHaveCount(0);
+
+    await page.goto('/register');
+    await expect(page).toHaveURL(/\/register(?:\?.*)?$/);
+    expectNoSensitiveAuthParams(page.url());
+    await expect(page.locator('[data-registration-disabled]')).toBeVisible();
+    await expect(page.locator('#register-form')).toHaveCount(0);
+    await expect(page.locator('[data-auth-switch]')).toHaveAttribute('href', '/login');
+  });
+});

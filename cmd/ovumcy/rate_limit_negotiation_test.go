@@ -15,6 +15,7 @@ import (
 	"github.com/terraincognita07/ovumcy/internal/api"
 	"github.com/terraincognita07/ovumcy/internal/db"
 	"github.com/terraincognita07/ovumcy/internal/i18n"
+	"github.com/terraincognita07/ovumcy/internal/services"
 )
 
 func newRateLimitTestI18nManager(t *testing.T) *i18n.Manager {
@@ -86,7 +87,7 @@ func newRateLimitTestHandler(t *testing.T) *api.Handler {
 			ForgotPasswordWindow: time.Hour,
 			APIMax:               300,
 			APIWindow:            time.Minute,
-		}),
+		}, services.RegistrationModeOpen),
 	)
 	if err != nil {
 		t.Fatalf("init rate-limit test handler: %v", err)

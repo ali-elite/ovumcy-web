@@ -47,10 +47,12 @@
     </form>
 
     <div class="mt-5 space-y-2 text-sm">
+      {{if .RegistrationOpen}}
       <p class="journal-muted">
         {{t .Messages "auth.no_account"}}
-        <a href="/register" class="inline-link" data-auth-switch>{{t .Messages "auth.signup"}}</a>
+        <a href="/register" class="inline-link" data-auth-switch data-auth-signup-cta>{{t .Messages "auth.signup"}}</a>
       </p>
+      {{end}}
       <p class="journal-muted">
         <a href="/forgot-password" class="inline-link">{{t .Messages "auth.forgot_password"}}</a>
       </p>

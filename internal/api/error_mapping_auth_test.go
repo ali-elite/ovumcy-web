@@ -15,6 +15,11 @@ func TestMapAuthRegisterError(t *testing.T) {
 		want APIErrorSpec
 	}{
 		{
+			name: "registration disabled",
+			err:  services.ErrAuthRegistrationDisabled,
+			want: authFormErrorSpec(fiber.StatusForbidden, APIErrorCategoryForbidden, "registration disabled"),
+		},
+		{
 			name: "password mismatch",
 			err:  services.ErrAuthPasswordMismatch,
 			want: authFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "password mismatch"),

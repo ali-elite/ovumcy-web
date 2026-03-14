@@ -23,6 +23,8 @@ func passwordChangeRequiredErrorSpec() APIErrorSpec {
 
 func mapAuthRegisterError(err error) APIErrorSpec {
 	switch services.ClassifyAuthRegisterError(err) {
+	case services.AuthRegisterErrorRegistrationDisabled:
+		return authFormErrorSpec(fiber.StatusForbidden, APIErrorCategoryForbidden, "registration disabled")
 	case services.AuthRegisterErrorPasswordMismatch:
 		return authFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "password mismatch")
 	case services.AuthRegisterErrorWeakPassword:

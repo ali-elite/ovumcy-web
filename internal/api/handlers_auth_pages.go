@@ -19,7 +19,7 @@ func (handler *Handler) ShowLoginPage(c *fiber.Ctx) error {
 	}
 
 	flash := handler.popFlashCookie(c)
-	data := buildLoginPageData(currentMessages(c), flash, needsSetup)
+	data := buildLoginPageData(currentMessages(c), flash, needsSetup, handler.registrationService.RegistrationOpen())
 	return handler.render(c, "login", data)
 }
 
@@ -29,7 +29,7 @@ func (handler *Handler) ShowRegisterPage(c *fiber.Ctx) error {
 		if recoveryState.RecoveryCode != "" && recoveryState.Surface == recoveryCodeSurfaceInlineRegister {
 			flash := handler.popFlashCookie(c)
 			handler.clearRecoveryCodePageCookie(c)
-			data := buildRegisterPageData(currentMessages(c), flash, false)
+			data := buildRegisterPageData(currentMessages(c), flash, false, handler.registrationService.RegistrationOpen())
 			data["Title"] = localizedPageTitle(currentMessages(c), "meta.title.recovery_code", "Ovumcy | Recovery Code")
 			data["CurrentUser"] = user
 			data["HideNavigation"] = true
@@ -49,7 +49,7 @@ func (handler *Handler) ShowRegisterPage(c *fiber.Ctx) error {
 	}
 
 	flash := handler.popFlashCookie(c)
-	data := buildRegisterPageData(currentMessages(c), flash, needsSetup)
+	data := buildRegisterPageData(currentMessages(c), flash, needsSetup, handler.registrationService.RegistrationOpen())
 	return handler.render(c, "register", data)
 }
 

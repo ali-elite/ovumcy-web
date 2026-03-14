@@ -12,9 +12,11 @@ type stubRegistrationAuthService struct {
 	user         models.User
 	recoveryCode string
 	err          error
+	called       bool
 }
 
 func (stub *stubRegistrationAuthService) RegisterOwner(string, string, string, time.Time) (models.User, string, error) {
+	stub.called = true
 	if stub.err != nil {
 		return models.User{}, "", stub.err
 	}
@@ -89,10 +91,13 @@ func TestRegistrationServiceRegisterOwnerAccountPropagatesAuthError(t *testing.T
 	authErr := ErrAuthEmailExists
 	auth := &stubRegistrationAuthService{err: authErr}
 	store := &stubRegistrationStore{}
-	service := NewRegistrationService(auth, store)
+	service := NewRegistrationService(auth, store, RegistrationModeOpen)
 
 	if _, _, err := service.RegisterOwnerAccount("owner@example.com", "StrongPass1", "StrongPass1", registrationServiceTestNow); !errors.Is(err, authErr) {
 		t.Fatalf("expected auth error %v, got %v", authErr, err)
+	}
+	if !auth.called {
+		t.Fatalf("expected auth registration attempt")
 	}
 	if store.called {
 		t.Fatalf("did not expect persistence call on auth error")
@@ -138,6 +143,25 @@ func TestRegistrationServiceRegisterOwnerAccountMapsGenericPersistenceError(t *t
 	}
 }
 
+func TestRegistrationServiceRegisterOwnerAccountRejectsClosedMode(t *testing.T) {
+	auth := &stubRegistrationAuthService{
+		user:         models.User{ID: 99, Email: "owner@example.com"},
+		recoveryCode: "OVUM-ABCD-1234-EFGH",
+	}
+	store := &stubRegistrationStore{}
+	service := NewRegistrationService(auth, store, RegistrationModeClosed)
+
+	if _, _, err := service.RegisterOwnerAccount("owner@example.com", "StrongPass1", "StrongPass1", registrationServiceTestNow); !errors.Is(err, ErrAuthRegistrationDisabled) {
+		t.Fatalf("expected ErrAuthRegistrationDisabled, got %v", err)
+	}
+	if auth.called {
+		t.Fatalf("did not expect auth registration attempt in closed mode")
+	}
+	if store.called {
+		t.Fatalf("did not expect persistence call in closed mode")
+	}
+}
+
 var registrationServiceTestNow = time.Date(2026, time.March, 2, 12, 0, 0, 0, time.UTC)
 
 type stubRegistrationFixture struct {
@@ -152,5 +176,5 @@ func newRegistrationServiceForTest(fixture stubRegistrationFixture) (*Registrati
 		recoveryCode: fixture.recoveryCode,
 	}
 	store := &stubRegistrationStore{err: fixture.storeErr}
-	return NewRegistrationService(auth, store), store
+	return NewRegistrationService(auth, store, RegistrationModeOpen), store
 }

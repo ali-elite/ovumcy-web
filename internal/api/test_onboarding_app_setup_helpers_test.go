@@ -17,20 +17,31 @@ import (
 
 func newOnboardingTestApp(t *testing.T) (*fiber.App, *gorm.DB) {
 	t.Helper()
-	return newOnboardingTestAppWithCookieSecureAndCSRF(t, false, false)
+	return newOnboardingTestAppWithOptions(t, onboardingTestAppOptions{})
 }
 
 func newOnboardingTestAppWithCookieSecure(t *testing.T, cookieSecure bool) (*fiber.App, *gorm.DB) {
 	t.Helper()
-	return newOnboardingTestAppWithCookieSecureAndCSRF(t, cookieSecure, false)
+	return newOnboardingTestAppWithOptions(t, onboardingTestAppOptions{cookieSecure: cookieSecure})
 }
 
 func newOnboardingTestAppWithCSRF(t *testing.T) (*fiber.App, *gorm.DB) {
 	t.Helper()
-	return newOnboardingTestAppWithCookieSecureAndCSRF(t, false, true)
+	return newOnboardingTestAppWithOptions(t, onboardingTestAppOptions{enableCSRF: true})
 }
 
-func newOnboardingTestAppWithCookieSecureAndCSRF(t *testing.T, cookieSecure bool, enableCSRF bool) (*fiber.App, *gorm.DB) {
+func newOnboardingTestAppWithRegistrationMode(t *testing.T, registrationMode services.RegistrationMode) (*fiber.App, *gorm.DB) {
+	t.Helper()
+	return newOnboardingTestAppWithOptions(t, onboardingTestAppOptions{registrationMode: registrationMode})
+}
+
+type onboardingTestAppOptions struct {
+	cookieSecure     bool
+	enableCSRF       bool
+	registrationMode services.RegistrationMode
+}
+
+func newOnboardingTestAppWithOptions(t *testing.T, options onboardingTestAppOptions) (*fiber.App, *gorm.DB) {
 	t.Helper()
 
 	_, testFile, _, ok := runtime.Caller(0)
@@ -61,22 +72,22 @@ func newOnboardingTestAppWithCookieSecureAndCSRF(t *testing.T, cookieSecure bool
 		t.Fatalf("init i18n: %v", err)
 	}
 
-	handler, err := NewHandler("test-secret-key", templatesDir, time.UTC, i18nManager, cookieSecure, newTestHandlerDependencies(database, i18nManager))
+	handler, err := NewHandler("test-secret-key", templatesDir, time.UTC, i18nManager, options.cookieSecure, newTestHandlerDependencies(database, i18nManager, options.registrationMode))
 	if err != nil {
 		t.Fatalf("init handler: %v", err)
 	}
 
 	app := fiber.New()
 	app.Use(handler.LanguageMiddleware)
-	if enableCSRF {
-		app.Use(csrf.New(testCSRFMiddlewareConfig(cookieSecure)))
+	if options.enableCSRF {
+		app.Use(csrf.New(testCSRFMiddlewareConfig(options.cookieSecure)))
 	}
 	RegisterRoutes(app, handler)
 	app.Use(handler.NotFound)
 	return app, database
 }
 
-func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager) Dependencies {
+func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, registrationModes ...services.RegistrationMode) Dependencies {
 	repositories := db.NewRepositories(database)
 	authService := services.NewAuthService(repositories.Users)
 	attemptLimiter := services.NewAttemptLimiter()
@@ -90,7 +101,11 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager) De
 		reservedBuiltinNames = services.BuiltinSymptomReservedNames(i18nManager)
 	}
 	symptomService := services.NewSymptomService(repositories.Symptoms, reservedBuiltinNames...)
-	registrationService := services.NewRegistrationService(authService, repositories.Users)
+	registrationMode := services.RegistrationModeOpen
+	if len(registrationModes) > 0 && registrationModes[0] != "" {
+		registrationMode = registrationModes[0]
+	}
+	registrationService := services.NewRegistrationService(authService, repositories.Users, registrationMode)
 	viewerService := services.NewViewerService(dayService, symptomService)
 	statsService := services.NewStatsService(dayService, symptomService)
 	calendarViewService := services.NewCalendarViewService(dayService, statsService)

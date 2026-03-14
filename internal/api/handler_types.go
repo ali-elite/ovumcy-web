@@ -11,6 +11,7 @@ import (
 
 type RegistrationWorkflowService interface {
 	RegisterOwnerAccount(email string, rawPassword string, confirmPassword string, createdAt time.Time) (models.User, string, error)
+	RegistrationOpen() bool
 }
 
 type LoginWorkflowService interface {

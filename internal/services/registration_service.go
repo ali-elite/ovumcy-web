@@ -20,16 +20,26 @@ type RegistrationPersistence interface {
 type RegistrationService struct {
 	auth  RegistrationAuthService
 	store RegistrationPersistence
+	mode  RegistrationMode
 }
 
-func NewRegistrationService(auth RegistrationAuthService, store RegistrationPersistence) *RegistrationService {
+func NewRegistrationService(auth RegistrationAuthService, store RegistrationPersistence, mode RegistrationMode) *RegistrationService {
 	return &RegistrationService{
 		auth:  auth,
 		store: store,
+		mode:  mode,
 	}
 }
 
+func (service *RegistrationService) RegistrationOpen() bool {
+	return service.mode.IsOpen()
+}
+
 func (service *RegistrationService) RegisterOwnerAccount(email string, rawPassword string, confirmPassword string, createdAt time.Time) (models.User, string, error) {
+	if !service.RegistrationOpen() {
+		return models.User{}, "", ErrAuthRegistrationDisabled
+	}
+
 	user, recoveryCode, err := service.auth.RegisterOwner(email, rawPassword, confirmPassword, createdAt)
 	if err != nil {
 		return models.User{}, "", err
