@@ -42,6 +42,30 @@ async function ensureOnboardingStepOneVisible(page: Page): Promise<void> {
   await expect(dateFieldRoot(stepOneDateInput)).toBeVisible();
 }
 
+function onboardingStepOneForm(page: Page): Locator {
+  return page.locator('form[data-onboarding-form-step="1"]');
+}
+
+function onboardingStepTwoForm(page: Page): Locator {
+  return page.locator('form[data-onboarding-form-step="2"]');
+}
+
+function onboardingStepOneSubmit(page: Page): Locator {
+  return onboardingStepOneForm(page).locator('button[type="submit"]');
+}
+
+function onboardingStepTwoSubmit(page: Page): Locator {
+  return page.locator('[data-onboarding-step2-submit]');
+}
+
+function onboardingQuickPickButtons(page: Page): Locator {
+  return page.locator('[data-onboarding-day-options] button[data-onboarding-day-option]');
+}
+
+function onboardingStepTwoBackButton(page: Page): Locator {
+  return page.locator('[data-onboarding-go-step="1"]');
+}
+
 async function registerAndOpenOnboarding(page: Page, emailPrefix: string) {
   const creds = createCredentials(emailPrefix);
 
@@ -59,12 +83,12 @@ async function registerAndOpenOnboarding(page: Page, emailPrefix: string) {
 async function submitStepOne(page: Page, dateISO: string): Promise<void> {
   const input = page.locator('#last-period-start');
   await fillDateField(input, dateISO);
-  await page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]').click();
-  await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
+  await onboardingStepOneSubmit(page).click();
+  await expect(onboardingStepTwoForm(page)).toBeVisible();
 }
 
 async function submitStepTwo(page: Page): Promise<void> {
-  await page.locator('form[hx-post="/onboarding/step2"] button[type="submit"]').click();
+  await onboardingStepTwoSubmit(page).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
@@ -96,22 +120,20 @@ test.describe('Onboarding flow', () => {
     const dateInput = page.locator('#last-period-start');
     await clearDateField(dateInput);
 
-    await page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]').click();
+    await onboardingStepOneSubmit(page).click();
     await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
     await expect(page.locator('#onboarding-step1-status .status-error')).toBeVisible();
 
-    const stepTwoForm = page.locator('form[hx-post="/onboarding/step2"]');
+    const stepTwoForm = onboardingStepTwoForm(page);
     const stepTwoVisible = await stepTwoForm.isVisible().catch(() => false);
     if (stepTwoVisible) {
-      await stepTwoForm.locator('button.btn-secondary[type="button"]').click();
+      await onboardingStepTwoBackButton(page).click();
       await expect(dateFieldRoot(dateInput)).toBeVisible();
     } else {
       await expect(stepTwoForm).not.toBeVisible();
     }
 
-    const quickPickButtons = page.locator(
-      'form[hx-post="/onboarding/step1"] .grid button[data-onboarding-day-option]'
-    );
+    const quickPickButtons = onboardingQuickPickButtons(page);
     const firstQuickPick = quickPickButtons.first();
     await expect(firstQuickPick).toBeVisible();
     await expect(firstQuickPick).toContainText('Today');
@@ -127,9 +149,9 @@ test.describe('Onboarding flow', () => {
     await expect(dateInput).toHaveValue(String(firstQuickPickValue));
     await expect(firstQuickPick).toHaveAttribute('aria-pressed', 'true');
     await expect(firstQuickPick).toHaveClass(/choice-chip-active/);
-    await page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]').click();
-    await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
-    await expect(page.locator('form[hx-post="/onboarding/step2"]')).toContainText(/21.?35/);
+    await onboardingStepOneSubmit(page).click();
+    await expect(onboardingStepTwoForm(page)).toBeVisible();
+    await expect(onboardingStepTwoForm(page)).toContainText(/21.?35/);
   });
 
   test('today quick-pick keeps the exact selected date through onboarding completion', async ({
@@ -137,15 +159,13 @@ test.describe('Onboarding flow', () => {
   }) => {
     await registerAndOpenOnboarding(page, 'onboarding-step1-today-persist');
 
-    const todayQuickPick = page
-      .locator('form[hx-post="/onboarding/step1"] button[data-onboarding-day-option]')
-      .first();
+    const todayQuickPick = onboardingQuickPickButtons(page).first();
     const selectedValue = await todayQuickPick.getAttribute('data-onboarding-day-value');
     expect(selectedValue).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
     await todayQuickPick.click();
-    await page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]').click();
-    await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
+    await onboardingStepOneSubmit(page).click();
+    await expect(onboardingStepTwoForm(page)).toBeVisible();
     await submitStepTwo(page);
 
     await page.goto('/settings');
@@ -166,9 +186,7 @@ test.describe('Onboarding flow', () => {
     await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
 
-    const quickPickButtons = page.locator(
-      'form[hx-post="/onboarding/step1"] .grid button[data-onboarding-day-option]'
-    );
+    const quickPickButtons = onboardingQuickPickButtons(page);
     await expect(quickPickButtons.first()).toContainText('Сегодня');
     await expect(quickPickButtons.nth(1)).toContainText('Вчера');
     await expect(quickPickButtons.nth(2)).toContainText('2 дня назад');
@@ -187,8 +205,8 @@ test.describe('Onboarding flow', () => {
 
     const tooOldDate = shiftISODate(min!, -1);
     const futureDate = shiftISODate(max!, 1);
-    const stepTwoForm = page.locator('form[hx-post="/onboarding/step2"]');
-    const submitButton = page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]');
+    const stepTwoForm = onboardingStepTwoForm(page);
+    const submitButton = onboardingStepOneSubmit(page);
     const stepOneStatus = page.locator('#onboarding-step1-status');
 
     await fillDateField(input, tooOldDate);
@@ -214,10 +232,10 @@ test.describe('Onboarding flow', () => {
 
     const cycleSlider = page.locator('#cycle-length');
     const periodSlider = page.locator('#period-length');
-    const autoFillCheckbox = page.locator('form[hx-post="/onboarding/step2"] input[name="auto_period_fill"]');
-    const irregularCheckbox = page.locator('form[hx-post="/onboarding/step2"] input[name="irregular_cycle"]');
-    const autoFillToggle = page.locator('form[hx-post="/onboarding/step2"] label[data-binary-toggle]:has(input[name="auto_period_fill"])');
-    const irregularToggle = page.locator('form[hx-post="/onboarding/step2"] label[data-binary-toggle]:has(input[name="irregular_cycle"])');
+    const autoFillCheckbox = page.locator('[data-onboarding-auto-period-fill]');
+    const irregularCheckbox = onboardingStepTwoForm(page).locator('input[name="irregular_cycle"]');
+    const autoFillToggle = onboardingStepTwoForm(page).locator('label[data-binary-toggle]:has(input[name="auto_period_fill"])');
+    const irregularToggle = onboardingStepTwoForm(page).locator('label[data-binary-toggle]:has(input[name="irregular_cycle"])');
     const finishButtonShell = page.locator('[data-onboarding-step2-submit-shell]');
 
     await expect(finishButtonShell).toBeVisible();
@@ -236,14 +254,14 @@ test.describe('Onboarding flow', () => {
     await expect(autoFillToggle).toHaveAttribute('data-active', 'false');
     await expect(irregularToggle).toHaveAttribute('data-active', 'false');
 
-    await page.locator('form[hx-post="/onboarding/step2"] button.btn-secondary[type="button"]').click();
+    await onboardingStepTwoBackButton(page).click();
 
     const stepOneInput = page.locator('#last-period-start');
     await expect(dateFieldRoot(stepOneInput)).toBeVisible();
     await expect(stepOneInput).toHaveValue(selectedDate);
 
-    await page.locator('form[hx-post="/onboarding/step1"] button[type="submit"]').click();
-    await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
+    await onboardingStepOneSubmit(page).click();
+    await expect(onboardingStepTwoForm(page)).toBeVisible();
 
     await expect(cycleSlider).toHaveValue('35');
     await expect(periodSlider).toHaveValue('6');
@@ -265,7 +283,7 @@ test.describe('Onboarding flow', () => {
     await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
 
     await page.goto('/onboarding?step=2');
-    await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
+    await expect(onboardingStepTwoForm(page)).toBeVisible();
 
     await page.goto(`/lang/ru?next=${encodeURIComponent('/onboarding?step=2')}`);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
@@ -273,7 +291,7 @@ test.describe('Onboarding flow', () => {
     const currentURL = new URL(page.url());
     expect(currentURL.pathname).toBe('/onboarding');
     expect(currentURL.searchParams.get('step')).toBe('2');
-    await expect(page.locator('form[hx-post="/onboarding/step2"]')).toBeVisible();
+    await expect(onboardingStepTwoForm(page)).toBeVisible();
   });
 
   test('reload during onboarding keeps progress or resets gracefully without blocking completion', async ({
@@ -291,7 +309,7 @@ test.describe('Onboarding flow', () => {
     await page.reload();
     await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
 
-    const stepTwoVisible = await page.locator('form[hx-post="/onboarding/step2"]').isVisible().catch(() => false);
+    const stepTwoVisible = await onboardingStepTwoForm(page).isVisible().catch(() => false);
     if (stepTwoVisible) {
       await submitStepTwo(page);
       return;
@@ -309,7 +327,7 @@ test.describe('Onboarding flow', () => {
     const selectedDate = toISODate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000));
     await submitStepOne(page, selectedDate);
 
-    const irregularCheckbox = page.locator('form[hx-post="/onboarding/step2"] input[name="irregular_cycle"]');
+    const irregularCheckbox = onboardingStepTwoForm(page).locator('input[name="irregular_cycle"]');
     await irregularCheckbox.check();
     await submitStepTwo(page);
 

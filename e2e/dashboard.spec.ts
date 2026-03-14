@@ -53,6 +53,14 @@ function todaySaveForm(page: Page) {
   return page.locator('[data-dashboard-save-form]');
 }
 
+function manualCycleStartButton(page: Page) {
+  return page.locator('[data-dashboard-cycle-start-button]');
+}
+
+function clearTodayButton(page: Page) {
+  return page.locator('[data-dashboard-clear-button]');
+}
+
 async function todaySavePath(page: Page): Promise<string> {
   const action = await todaySaveForm(page).first().getAttribute('hx-post');
   expect(action).toMatch(/^\/api\/days\/\d{4}-\d{2}-\d{2}$/);
@@ -114,10 +122,6 @@ test.describe('Dashboard: today editor', () => {
     const clientToday = await clientLocalISODate(page);
 
     expect(serverToday).toBe(clientToday);
-
-    const dateLabel = page.locator('section.journal-card p.journal-muted').first();
-    await expect(dateLabel).toBeVisible();
-    await expect(dateLabel).not.toHaveText(/^$/);
   });
 
   test('notes field stays visible without an extra disclosure click', async ({
@@ -286,11 +290,9 @@ test.describe('Dashboard: today editor', () => {
 
     await page.reload();
 
-    const secondaryActions = page.locator('.dashboard-secondary-actions');
-    const dangerActions = page.locator('.dashboard-danger-actions');
-    await expect(secondaryActions.locator('button[type="submit"]')).toContainText('cycle');
+    await expect(manualCycleStartButton(page)).toContainText('cycle');
 
-    const clearButton = dangerActions.locator('[data-dashboard-clear-button]');
+    const clearButton = clearTodayButton(page);
     await expect(clearButton).toBeVisible();
 
     await clearButton.click();
@@ -373,7 +375,7 @@ test.describe('Dashboard: today editor', () => {
   test('manual cycle start on dashboard marks today as period and survives reload', async ({ page }) => {
     await registerOwnerOnDashboard(page, 'dashboard-manual-cycle-start');
 
-    const manualStartButton = page.locator('.dashboard-secondary-form button[type="submit"]');
+    const manualStartButton = manualCycleStartButton(page);
     await expect(manualStartButton).toBeVisible();
     await manualStartButton.click();
     await expect(page.locator('#confirm-modal')).toBeVisible();

@@ -42,11 +42,14 @@ func TestProfileUpdateHTMXReturnsUnicodeSafeIdentityOOBMarkup(t *testing.T) {
 		t.Fatalf("read htmx profile update body: %v", err)
 	}
 	rendered := string(body)
-	if !strings.Contains(rendered, `hx-swap-oob="outerHTML"`) {
-		t.Fatalf("expected oob nav identity markup, got %q", rendered)
+	if !strings.Contains(rendered, `data-current-user-identity`) {
+		t.Fatalf("expected nav identity markup in htmx response, got %q", rendered)
 	}
-	if !strings.Contains(rendered, ">Катя<") {
-		t.Fatalf("expected unicode display name in oob markup, got %q", rendered)
+	if !strings.Contains(rendered, `title="Катя"`) || !strings.Contains(rendered, `aria-label="Катя"`) {
+		t.Fatalf("expected unicode-safe identity attributes in htmx response, got %q", rendered)
+	}
+	if strings.Contains(rendered, "profile-htmx-owner@example.com") {
+		t.Fatalf("did not expect email fallback in identity response, got %q", rendered)
 	}
 }
 

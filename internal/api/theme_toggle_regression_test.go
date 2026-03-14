@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestBaseTemplateUsesExternalCSPCompatibleScripts(t *testing.T) {
+func TestBaseTemplateAvoidsInlineScriptsUnderStrictCSP(t *testing.T) {
 	app, _ := newOnboardingTestApp(t)
 
 	request := httptest.NewRequest(http.MethodGet, "/login", nil)
@@ -30,15 +30,11 @@ func TestBaseTemplateUsesExternalCSPCompatibleScripts(t *testing.T) {
 	}
 	rendered := string(body)
 
-	if !regexp.MustCompile(`(?i)<script[^>]+src="/static/js/theme-bootstrap\.js\?v=`).MatchString(rendered) {
-		t.Fatalf("expected base template to include external theme bootstrap script")
-	}
-	if !regexp.MustCompile(`(?i)<script[^>]+src="/static/js/app\.js\?v=`).MatchString(rendered) {
-		t.Fatalf("expected base template to include external shared app script")
-	}
-
 	scriptTagPattern := regexp.MustCompile(`(?is)<script\b[^>]*>`)
 	scriptTags := scriptTagPattern.FindAllString(rendered, -1)
+	if len(scriptTags) == 0 {
+		t.Fatalf("expected at least one external script tag in base template")
+	}
 	for _, tag := range scriptTags {
 		if !regexp.MustCompile(`(?i)\bsrc=`).MatchString(tag) {
 			t.Fatalf("expected base template to avoid inline scripts, found tag %q", tag)

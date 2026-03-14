@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestAuthLogoutSupportsPostRequest(t *testing.T) {
+func TestAuthLogoutHandlerSupportsPostRequestWithoutCSRFMiddleware(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "logout-get@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")
@@ -31,7 +31,7 @@ func TestAuthLogoutSupportsPostRequest(t *testing.T) {
 	}
 }
 
-func TestLogoutPageRoutePostRedirectsToLoginAndClearsAuthCookies(t *testing.T) {
+func TestLogoutPageRoutePostHandlerClearsAuthCookiesWithoutCSRFMiddleware(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "logout-page-route@example.com", "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookie(t, app, user.Email, "StrongPass1")

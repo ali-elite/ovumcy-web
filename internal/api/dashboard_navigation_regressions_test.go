@@ -80,7 +80,10 @@ func TestDashboardNavigationShowsDisplayNameWithoutEmailFallback(t *testing.T) {
 	if strings.Contains(rendered, "identity-owner@example.com") {
 		t.Fatalf("did not expect email identity in navigation")
 	}
-	if !strings.Contains(rendered, `data-current-user-identity`) || !strings.Contains(rendered, ">Maya<") {
+	if !strings.Contains(rendered, `data-current-user-identity`) {
+		t.Fatalf("expected dashboard navigation identity container, got %q", rendered)
+	}
+	if !strings.Contains(rendered, `title="Maya"`) || !strings.Contains(rendered, `aria-label="Maya"`) {
 		t.Fatalf("expected dashboard navigation to render the saved display name, got %q", rendered)
 	}
 }
@@ -150,8 +153,11 @@ func TestCalendarSelectedDayLoadsEditModeWhenRequested(t *testing.T) {
 	}
 
 	rendered := mustReadBodyString(t, response.Body)
-	if !strings.Contains(rendered, `hx-get="/calendar/day/2026-03-12?mode=edit"`) {
-		t.Fatalf("expected selected calendar day to load the editor directly, got %q", rendered)
+	if !strings.Contains(rendered, `data-selected-date="2026-03-12"`) {
+		t.Fatalf("expected calendar page to keep the selected day in the view state, got %q", rendered)
+	}
+	if !strings.Contains(rendered, `id="day-editor"`) || !strings.Contains(rendered, `hx-get="/calendar/day/2026-03-12?mode=edit"`) {
+		t.Fatalf("expected selected calendar day to lazy-load edit mode in the day editor, got %q", rendered)
 	}
 }
 
