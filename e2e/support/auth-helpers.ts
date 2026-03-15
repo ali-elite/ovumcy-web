@@ -54,7 +54,12 @@ export async function registerOwnerViaUI(
   await page.locator('#register-email').fill(credentials.email);
   await page.locator('#register-password').fill(credentials.password);
   await page.locator('#register-confirm-password').fill(confirmPassword);
-  await page.locator('form[action="/api/auth/register"] button[type="submit"]').click();
+  await page.locator('form[action="/api/auth/register"]').evaluate((element) => {
+    if (!(element instanceof HTMLFormElement)) {
+      throw new Error('register form is not an HTMLFormElement');
+    }
+    element.requestSubmit();
+  });
 }
 
 export async function expectInlineRegisterRecoveryStep(page: Page): Promise<void> {
