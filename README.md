@@ -87,9 +87,15 @@ No. Ovumcy provides estimates and logs based on recorded data. It is not a medic
 
 ![Ovumcy export settings screen](docs/screenshots/settings-export.jpg)
 
+### Install It on a Phone
+
+![Ovumcy mobile install prompt](docs/screenshots/install-prompt.png)
+
 ### Use a Comfortable Dark Theme
 
 ![Ovumcy dark theme screen](docs/screenshots/dark-theme.jpg)
+
+The privacy-safe hero demo asset pack, including the mobile install prompt capture contract, lives in [docs/hero-demo.md](docs/hero-demo.md).
 
 ## Features
 

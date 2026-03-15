@@ -49,3 +49,35 @@ func TestNormalizeDayEntryInputTrimsNotes(t *testing.T) {
 		t.Fatalf("expected notes length %d, got %d", MaxDayNotesLength, len(normalized.Notes))
 	}
 }
+
+func TestNormalizeDayEntryInputNormalizesCycleFactors(t *testing.T) {
+	normalized, err := NormalizeDayEntryInput(DayEntryInput{
+		Flow: models.FlowNone,
+		CycleFactorKeys: []string{
+			models.CycleFactorTravel,
+			"  STRESS ",
+			models.CycleFactorTravel,
+			"",
+		},
+	})
+	if err != nil {
+		t.Fatalf("NormalizeDayEntryInput() unexpected error: %v", err)
+	}
+
+	if len(normalized.CycleFactorKeys) != 2 {
+		t.Fatalf("expected two normalized cycle factors, got %#v", normalized.CycleFactorKeys)
+	}
+	if normalized.CycleFactorKeys[0] != models.CycleFactorStress || normalized.CycleFactorKeys[1] != models.CycleFactorTravel {
+		t.Fatalf("expected stable factor order, got %#v", normalized.CycleFactorKeys)
+	}
+}
+
+func TestNormalizeDayEntryInputRejectsInvalidCycleFactor(t *testing.T) {
+	_, err := NormalizeDayEntryInput(DayEntryInput{
+		Flow:            models.FlowNone,
+		CycleFactorKeys: []string{models.CycleFactorStress, "unknown"},
+	})
+	if !errors.Is(err, ErrInvalidDayCycleFactors) {
+		t.Fatalf("expected ErrInvalidDayCycleFactors, got %v", err)
+	}
+}

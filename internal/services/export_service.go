@@ -34,6 +34,7 @@ var ExportCSVHeaders = []string{
 	"Food cravings",
 	"Diarrhea",
 	"Constipation",
+	"Cycle factors",
 	"Other",
 	"Notes",
 }
@@ -151,6 +152,7 @@ type ExportJSONEntry struct {
 	SexActivity   string             `json:"sex_activity"`
 	BBT           float64            `json:"bbt"`
 	CervicalMucus string             `json:"cervical_mucus"`
+	CycleFactors  []string           `json:"cycle_factors"`
 	Symptoms      ExportSymptomFlags `json:"symptoms"`
 	OtherSymptoms []string           `json:"other_symptoms"`
 	Notes         string             `json:"notes"`
@@ -164,6 +166,7 @@ type ExportCSVRow struct {
 	SexActivity   string
 	BBT           float64
 	CervicalMucus string
+	CycleFactors  []string
 	Symptoms      ExportSymptomFlags
 	OtherSymptoms []string
 	Notes         string
@@ -240,6 +243,7 @@ func (service *ExportService) BuildJSONEntries(userID uint, from *time.Time, to 
 			SexActivity:   normalizeExportSexActivity(logEntry.SexActivity),
 			BBT:           normalizeExportBBT(logEntry.BBT),
 			CervicalMucus: normalizeExportCervicalMucus(logEntry.CervicalMucus),
+			CycleFactors:  normalizeExportCycleFactorKeys(logEntry.CycleFactorKeys),
 			Symptoms:      flags,
 			OtherSymptoms: other,
 			Notes:         logEntry.Notes,
@@ -265,6 +269,7 @@ func (service *ExportService) BuildCSVRows(userID uint, from *time.Time, to *tim
 			SexActivity:   csvSexActivityLabel(logEntry.SexActivity),
 			BBT:           normalizeExportBBT(logEntry.BBT),
 			CervicalMucus: csvCervicalMucusLabel(logEntry.CervicalMucus),
+			CycleFactors:  csvCycleFactorLabels(logEntry.CycleFactorKeys),
 			Symptoms:      flags,
 			OtherSymptoms: other,
 			Notes:         logEntry.Notes,
@@ -274,6 +279,7 @@ func (service *ExportService) BuildCSVRows(userID uint, from *time.Time, to *tim
 }
 
 func (row ExportCSVRow) Columns() []string {
+	cycleFactors := sanitizeCSVTextCell(strings.Join(row.CycleFactors, "; "))
 	otherSymptoms := sanitizeCSVTextCell(strings.Join(row.OtherSymptoms, "; "))
 	notes := sanitizeCSVTextCell(row.Notes)
 
@@ -300,6 +306,7 @@ func (row ExportCSVRow) Columns() []string {
 		csvYesNo(row.Symptoms.FoodCravings),
 		csvYesNo(row.Symptoms.Diarrhea),
 		csvYesNo(row.Symptoms.Constipation),
+		cycleFactors,
 		otherSymptoms,
 		notes,
 	}
@@ -448,5 +455,38 @@ func csvCervicalMucusLabel(value string) string {
 		return "Egg white"
 	default:
 		return "None"
+	}
+}
+
+func normalizeExportCycleFactorKeys(keys []string) []string {
+	normalized, _ := NormalizeDayCycleFactorKeys(keys)
+	result := make([]string, len(normalized))
+	copy(result, normalized)
+	return result
+}
+
+func csvCycleFactorLabels(keys []string) []string {
+	normalized, _ := NormalizeDayCycleFactorKeys(keys)
+	labels := make([]string, 0, len(normalized))
+	for _, key := range normalized {
+		labels = append(labels, csvCycleFactorLabel(key))
+	}
+	return labels
+}
+
+func csvCycleFactorLabel(key string) string {
+	switch key {
+	case models.CycleFactorStress:
+		return "Stress"
+	case models.CycleFactorIllness:
+		return "Illness"
+	case models.CycleFactorTravel:
+		return "Travel"
+	case models.CycleFactorSleepDisruption:
+		return "Sleep disruption"
+	case models.CycleFactorMedicationChange:
+		return "Medication change"
+	default:
+		return ""
 	}
 }

@@ -27,12 +27,13 @@ func TestDashboardSymptomsNotesPanelUsesSavedSymptomsAndNotesState(t *testing.T)
 
 	today := services.DateAtLocation(time.Now().In(time.UTC), time.UTC)
 	logEntry := models.DailyLog{
-		UserID:     user.ID,
-		Date:       today,
-		IsPeriod:   false,
-		Flow:       models.FlowNone,
-		SymptomIDs: []uint{symptoms[0].ID, symptoms[1].ID},
-		Notes:      "Remember to hydrate",
+		UserID:          user.ID,
+		Date:            today,
+		IsPeriod:        false,
+		Flow:            models.FlowNone,
+		CycleFactorKeys: []string{models.CycleFactorStress, models.CycleFactorTravel},
+		SymptomIDs:      []uint{symptoms[0].ID, symptoms[1].ID},
+		Notes:           "Remember to hydrate",
 	}
 	if err := database.Create(&logEntry).Error; err != nil {
 		t.Fatalf("create daily log: %v", err)
@@ -87,6 +88,11 @@ func TestDashboardSymptomsNotesPanelUsesSavedSymptomsAndNotesState(t *testing.T)
 	}
 	if !strings.Contains(documentText, "Custom headache") {
 		t.Fatalf("expected second saved custom symptom label to be rendered in dashboard picker")
+	}
+	for _, fragment := range []string{"Stress", "Travel"} {
+		if !strings.Contains(documentText, fragment) {
+			t.Fatalf("expected saved cycle factor label %q to be rendered in dashboard picker", fragment)
+		}
 	}
 }
 

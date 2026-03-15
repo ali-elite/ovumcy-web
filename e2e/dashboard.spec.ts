@@ -95,6 +95,14 @@ function symptomChipForOption(option: ReturnType<typeof todaySymptomOptions>) {
   return option.locator('.check-chip');
 }
 
+function cycleFactorInput(page: Page, value: string) {
+  return page.locator(`label.choice-option:has(input[name="cycle_factor_keys"][value="${value}"]) input[name="cycle_factor_keys"]`);
+}
+
+function cycleFactorChip(page: Page, value: string) {
+  return page.locator(`label.choice-option:has(input[name="cycle_factor_keys"][value="${value}"]) .check-chip`);
+}
+
 async function openTodayNotes(page: Page): Promise<void> {
   await ensureNotesFieldVisible(page, '#today-notes');
 }
@@ -193,6 +201,8 @@ test.describe('Dashboard: today editor', () => {
     const periodToggle = page.locator('input[name="is_period"]');
     const flowMedium = page.locator('input[name="flow"][value="medium"]');
     const flowHeavy = page.locator('input[name="flow"][value="heavy"]');
+    const stressFactor = cycleFactorInput(page, 'stress');
+    const travelFactor = cycleFactorInput(page, 'travel');
     const notes = page.locator('#today-notes');
     const firstSymptom = todaySymptomOptions(page).nth(0);
     const secondSymptom = todaySymptomOptions(page).nth(1);
@@ -224,6 +234,11 @@ test.describe('Dashboard: today editor', () => {
     await expect(symptomInputForOption(firstSymptom)).toBeChecked();
     await expect(symptomInputForOption(secondSymptom)).not.toBeChecked();
 
+    await cycleFactorChip(page, 'stress').click();
+    await cycleFactorChip(page, 'travel').click();
+    await expect(stressFactor).toBeChecked();
+    await expect(travelFactor).toBeChecked();
+
     const noteText = `dashboard-note-${Date.now()}`;
     await openTodayNotes(page);
     await notes.fill(noteText);
@@ -238,6 +253,8 @@ test.describe('Dashboard: today editor', () => {
     await expect(flowMedium).not.toBeChecked();
     await expect(page.locator(`label.choice-option:has(input[name="symptom_ids"][value="${firstSymptomValue}"]) input[name="symptom_ids"]`)).toBeChecked();
     await expect(page.locator(`label.choice-option:has(input[name="symptom_ids"][value="${secondSymptomValue}"]) input[name="symptom_ids"]`)).not.toBeChecked();
+    await expect(stressFactor).toBeChecked();
+    await expect(travelFactor).toBeChecked();
     await expect(notes).toHaveValue(noteText);
   });
 

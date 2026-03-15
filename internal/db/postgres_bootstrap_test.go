@@ -196,12 +196,15 @@ func assertPostgresDailyLogsSchemaReconciled(t *testing.T, database *gorm.DB) {
 	if !database.Migrator().HasColumn("daily_logs", "is_uncertain") {
 		t.Fatal("expected postgres daily_logs.is_uncertain column to exist after migrations")
 	}
+	if !database.Migrator().HasColumn("daily_logs", "cycle_factor_keys") {
+		t.Fatal("expected postgres daily_logs.cycle_factor_keys column to exist after migrations")
+	}
 	if !database.Migrator().HasColumn("users", "luteal_phase") {
 		t.Fatal("expected postgres users.luteal_phase column to exist after migrations")
 	}
 
 	if err := database.Exec(
-		`INSERT INTO daily_logs (user_id, date, is_period, flow, mood, sex_activity, bbt, cervical_mucus, symptom_ids, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO daily_logs (user_id, date, is_period, flow, mood, sex_activity, bbt, cervical_mucus, cycle_factor_keys, symptom_ids, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		user.ID,
 		"2026-01-11",
 		true,
@@ -210,6 +213,7 @@ func assertPostgresDailyLogsSchemaReconciled(t *testing.T, database *gorm.DB) {
 		models.SexActivityProtected,
 		36.54,
 		models.CervicalMucusEggWhite,
+		`["stress"]`,
 		nil,
 		"postgres-schema-check",
 	).Error; err != nil {

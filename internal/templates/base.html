@@ -407,6 +407,18 @@
     <p class="mt-2" {{if gt (len .Log.SymptomIDs) 0}}hidden{{end}}>{{.NoDataLabel}}</p>
   </div>
 
+  <div {{if eq (len .Log.CycleFactorKeys) 0}}hidden{{end}}>
+    <p class="journal-muted">{{t .Messages "dashboard.cycle_factors"}}</p>
+    <ul class="mt-2 flex flex-wrap gap-2">
+      {{range .Log.CycleFactorKeys}}
+      <li class="check-chip check-chip-static">
+        <span class="symptom-icon">{{cycleFactorIcon .}}</span>
+        <span class="symptom-label">{{cycleFactorLabel $.Messages .}}</span>
+      </li>
+      {{end}}
+    </ul>
+  </div>
+
   {{if or (ne .Log.SexActivity "none") (hasBBT .Log.BBT) (ne .Log.CervicalMucus "none")}}
   <div class="grid gap-3 sm:grid-cols-2">
     {{if ne .Log.SexActivity "none"}}
@@ -602,6 +614,31 @@
       {{end}}
     </div>
   </details>
+  {{end}}
+</div>
+{{end}}
+{{define "cycle_factor_option"}}
+<label class="choice-option">
+  <input
+    type="checkbox"
+    name="cycle_factor_keys"
+    value="{{.Key}}"
+    class="choice-input"
+    {{if hasCycleFactor .SelectedCycleFactorKey .Key}}checked{{end}}>
+  <span class="{{if .Compact}}check-chip check-chip-sm{{else}}check-chip{{end}}">
+    <span class="symptom-icon">{{cycleFactorIcon .Key}}</span>
+    <span class="symptom-label">{{cycleFactorLabel .Messages .Key}}</span>
+  </span>
+</label>
+{{end}}
+{{define "cycle_factor_options"}}
+<div class="{{if .Compact}}symptom-grid symptom-grid-compact{{else}}symptom-grid{{end}}">
+  {{range .CycleFactorKeys}}
+  {{template "cycle_factor_option" (dict
+    "Messages" $.Messages
+    "Key" .
+    "SelectedCycleFactorKey" $.SelectedCycleFactorKey
+    "Compact" $.Compact)}}
   {{end}}
 </div>
 {{end}}

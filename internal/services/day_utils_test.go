@@ -29,6 +29,11 @@ func TestDayHasData(t *testing.T) {
 			want:  true,
 		},
 		{
+			name:  "cycle factors present",
+			entry: models.DailyLog{CycleFactorKeys: []string{models.CycleFactorStress}},
+			want:  true,
+		},
+		{
 			name:  "flow present",
 			entry: models.DailyLog{Flow: models.FlowLight},
 			want:  true,

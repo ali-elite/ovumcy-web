@@ -119,6 +119,25 @@
       </div>
     </section>
 
+    {{if .HasRecentCycleFactors}}
+    <section class="journal-card p-5 sm:p-6 space-y-4 reveal">
+      <div>
+        <h2 class="journal-subtitle">{{t .Messages "stats.factor_context_title"}}</h2>
+        <p class="journal-muted mt-2 text-sm">{{printf (t .Messages "stats.factor_context_window") .CycleFactorWindowDays}}</p>
+      </div>
+      <ul class="flex flex-wrap gap-2">
+        {{range .RecentCycleFactors}}
+        <li class="check-chip check-chip-static">
+          <span class="symptom-icon">{{cycleFactorIcon .Key}}</span>
+          <span class="symptom-label">{{cycleFactorLabel $.Messages .Key}}</span>
+          <span class="journal-muted text-xs">· {{.Count}}</span>
+        </li>
+        {{end}}
+      </ul>
+      <p class="journal-muted text-sm">{{t .Messages "stats.factor_context_hint"}}</p>
+    </section>
+    {{end}}
+
     {{if .IsOwner}}
     <div class="grid gap-6 lg:grid-cols-2">
       <section class="journal-card p-5 sm:p-6 stats-symptoms-panel">

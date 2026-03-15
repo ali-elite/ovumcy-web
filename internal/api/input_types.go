@@ -8,14 +8,15 @@ type credentialsInput struct {
 }
 
 type dayPayload struct {
-	IsPeriod      bool    `json:"is_period"`
-	Flow          string  `json:"flow"`
-	Mood          int     `json:"mood"`
-	SexActivity   string  `json:"sex_activity"`
-	BBT           float64 `json:"bbt"`
-	CervicalMucus string  `json:"cervical_mucus"`
-	SymptomIDs    []uint  `json:"symptom_ids"`
-	Notes         string  `json:"notes"`
+	IsPeriod        bool     `json:"is_period"`
+	Flow            string   `json:"flow"`
+	Mood            int      `json:"mood"`
+	SexActivity     string   `json:"sex_activity"`
+	BBT             float64  `json:"bbt"`
+	CervicalMucus   string   `json:"cervical_mucus"`
+	CycleFactorKeys []string `json:"cycle_factor_keys"`
+	SymptomIDs      []uint   `json:"symptom_ids"`
+	Notes           string   `json:"notes"`
 }
 
 type symptomPayload struct {

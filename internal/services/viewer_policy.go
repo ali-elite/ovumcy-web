@@ -15,6 +15,7 @@ func SanitizeLogForPartner(entry models.DailyLog) models.DailyLog {
 	entry.SexActivity = models.SexActivityNone
 	entry.BBT = 0
 	entry.CervicalMucus = models.CervicalMucusNone
+	entry.CycleFactorKeys = []string{}
 	entry.Notes = ""
 	entry.SymptomIDs = []uint{}
 	return entry

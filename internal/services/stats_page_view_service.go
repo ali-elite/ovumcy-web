@@ -40,6 +40,7 @@ type StatsPageViewData struct {
 	PredictionReliabilityLabelKey       string
 	PredictionReliabilityHintKey        string
 	ShowPredictionReliability           bool
+	RecentCycleFactors                  []StatsCycleFactorContextItem
 	LastCycleSymptoms                   []StatsSymptomCountViewData
 	SymptomPatterns                     []StatsSymptomPatternViewData
 	SymptomCounts                       []StatsSymptomCountViewData
@@ -48,6 +49,7 @@ type StatsPageViewData struct {
 	PhaseSymptomInsights                []StatsPhaseSymptomInsight
 	HasLastCycleSymptoms                bool
 	HasSymptomPatterns                  bool
+	HasRecentCycleFactors               bool
 	HasCurrentCycleBBTChart             bool
 	HasPhaseMoodInsights                bool
 	HasPhaseSymptomInsights             bool
@@ -102,6 +104,7 @@ func (service *StatsService) BuildStatsPageViewData(user *models.User, language 
 	isIrregularMode := isStatsIrregularMode(user)
 	isOwner := IsOwnerUser(user)
 	predictionSampleCount, predictionSampleUsesRecentWindow, predictionReliabilityLabelKey, predictionReliabilityHintKey, showPredictionReliability := buildStatsPredictionReliability(user, baseData.flags, baseData.stats)
+	recentCycleFactors, hasRecentCycleFactors := buildStatsCycleFactorContext(user, baseData.logs, baseData.stats, baseData.flags, now, location)
 
 	return StatsPageViewData{
 		Stats:                               baseData.stats,
@@ -114,6 +117,7 @@ func (service *StatsService) BuildStatsPageViewData(user *models.User, language 
 		PredictionReliabilityLabelKey:       predictionReliabilityLabelKey,
 		PredictionReliabilityHintKey:        predictionReliabilityHintKey,
 		ShowPredictionReliability:           showPredictionReliability,
+		RecentCycleFactors:                  recentCycleFactors,
 		LastCycleSymptoms:                   ownerInsights.lastCycleSymptoms,
 		SymptomPatterns:                     ownerInsights.symptomPatterns,
 		SymptomCounts:                       symptomCounts,
@@ -122,6 +126,7 @@ func (service *StatsService) BuildStatsPageViewData(user *models.User, language 
 		PhaseSymptomInsights:                ownerInsights.phaseSymptomInsights,
 		HasLastCycleSymptoms:                len(ownerInsights.lastCycleSymptoms) > 0,
 		HasSymptomPatterns:                  len(ownerInsights.symptomPatterns) > 0,
+		HasRecentCycleFactors:               hasRecentCycleFactors,
 		HasCurrentCycleBBTChart:             len(ownerInsights.currentCycleBBTChart.Labels) > 0,
 		HasPhaseMoodInsights:                hasPhaseMoodInsights,
 		HasPhaseSymptomInsights:             ownerInsights.hasPhaseSymptomInsights,

@@ -164,6 +164,7 @@ const (
 	DayUpsertErrorInvalidSexActivity
 	DayUpsertErrorInvalidBBT
 	DayUpsertErrorInvalidCervicalMucus
+	DayUpsertErrorInvalidCycleFactors
 	DayUpsertErrorLoadFailed
 	DayUpsertErrorCreateFailed
 	DayUpsertErrorUpdateFailed
@@ -187,6 +188,8 @@ func ClassifyDayUpsertError(err error) DayUpsertErrorKind {
 		return DayUpsertErrorInvalidBBT
 	case errors.Is(err, ErrInvalidDayCervicalMucus):
 		return DayUpsertErrorInvalidCervicalMucus
+	case errors.Is(err, ErrInvalidDayCycleFactors):
+		return DayUpsertErrorInvalidCycleFactors
 	case errors.Is(err, ErrDayAutoFillLoadFailed),
 		errors.Is(err, ErrDayAutoFillCheckFailed),
 		errors.Is(err, ErrDayEntryLoadFailed):

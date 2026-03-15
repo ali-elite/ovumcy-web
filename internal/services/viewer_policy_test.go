@@ -9,12 +9,13 @@ import (
 func TestSanitizeLogForViewerPartnerHidesPrivateFields(t *testing.T) {
 	partner := &models.User{Role: models.RolePartner}
 	entry := models.DailyLog{
-		Mood:          4,
-		SexActivity:   models.SexActivityProtected,
-		BBT:           36.55,
-		CervicalMucus: models.CervicalMucusEggWhite,
-		Notes:         "private",
-		SymptomIDs:    []uint{1, 2},
+		Mood:            4,
+		SexActivity:     models.SexActivityProtected,
+		BBT:             36.55,
+		CervicalMucus:   models.CervicalMucusEggWhite,
+		CycleFactorKeys: []string{models.CycleFactorStress},
+		Notes:           "private",
+		SymptomIDs:      []uint{1, 2},
 	}
 
 	sanitized := SanitizeLogForViewer(partner, entry)
@@ -30,6 +31,9 @@ func TestSanitizeLogForViewerPartnerHidesPrivateFields(t *testing.T) {
 	if sanitized.CervicalMucus != models.CervicalMucusNone {
 		t.Fatalf("expected cervical mucus to be hidden, got %q", sanitized.CervicalMucus)
 	}
+	if len(sanitized.CycleFactorKeys) != 0 {
+		t.Fatalf("expected cycle factors to be hidden, got %#v", sanitized.CycleFactorKeys)
+	}
 	if sanitized.Notes != "" {
 		t.Fatalf("expected notes to be hidden, got %q", sanitized.Notes)
 	}
@@ -41,12 +45,13 @@ func TestSanitizeLogForViewerPartnerHidesPrivateFields(t *testing.T) {
 func TestSanitizeLogForViewerOwnerKeepsFields(t *testing.T) {
 	owner := &models.User{Role: models.RoleOwner}
 	entry := models.DailyLog{
-		Mood:          4,
-		SexActivity:   models.SexActivityProtected,
-		BBT:           36.55,
-		CervicalMucus: models.CervicalMucusEggWhite,
-		Notes:         "private",
-		SymptomIDs:    []uint{1, 2},
+		Mood:            4,
+		SexActivity:     models.SexActivityProtected,
+		BBT:             36.55,
+		CervicalMucus:   models.CervicalMucusEggWhite,
+		CycleFactorKeys: []string{models.CycleFactorStress},
+		Notes:           "private",
+		SymptomIDs:      []uint{1, 2},
 	}
 
 	sanitized := SanitizeLogForViewer(owner, entry)
@@ -62,6 +67,9 @@ func TestSanitizeLogForViewerOwnerKeepsFields(t *testing.T) {
 	if sanitized.CervicalMucus != entry.CervicalMucus {
 		t.Fatalf("expected owner cervical mucus preserved, got %q", sanitized.CervicalMucus)
 	}
+	if len(sanitized.CycleFactorKeys) != 1 || sanitized.CycleFactorKeys[0] != models.CycleFactorStress {
+		t.Fatalf("expected owner cycle factors preserved, got %#v", sanitized.CycleFactorKeys)
+	}
 	if sanitized.Notes != entry.Notes {
 		t.Fatalf("expected owner notes preserved, got %q", sanitized.Notes)
 	}
@@ -73,8 +81,8 @@ func TestSanitizeLogForViewerOwnerKeepsFields(t *testing.T) {
 func TestSanitizeLogsForViewerPartnerHidesPrivateFieldsInAllEntries(t *testing.T) {
 	partner := &models.User{Role: models.RolePartner}
 	logs := []models.DailyLog{
-		{Mood: 1, SexActivity: models.SexActivityProtected, BBT: 36.1, CervicalMucus: models.CervicalMucusMoist, Notes: "a", SymptomIDs: []uint{1}},
-		{Mood: 5, SexActivity: models.SexActivityUnprotected, BBT: 36.8, CervicalMucus: models.CervicalMucusEggWhite, Notes: "b", SymptomIDs: []uint{2, 3}},
+		{Mood: 1, SexActivity: models.SexActivityProtected, BBT: 36.1, CervicalMucus: models.CervicalMucusMoist, CycleFactorKeys: []string{models.CycleFactorStress}, Notes: "a", SymptomIDs: []uint{1}},
+		{Mood: 5, SexActivity: models.SexActivityUnprotected, BBT: 36.8, CervicalMucus: models.CervicalMucusEggWhite, CycleFactorKeys: []string{models.CycleFactorTravel}, Notes: "b", SymptomIDs: []uint{2, 3}},
 	}
 
 	SanitizeLogsForViewer(partner, logs)
@@ -91,6 +99,9 @@ func TestSanitizeLogsForViewerPartnerHidesPrivateFieldsInAllEntries(t *testing.T
 		}
 		if logs[index].CervicalMucus != models.CervicalMucusNone {
 			t.Fatalf("expected cervical mucus to be hidden for entry %d, got %q", index, logs[index].CervicalMucus)
+		}
+		if len(logs[index].CycleFactorKeys) != 0 {
+			t.Fatalf("expected cycle factors to be hidden for entry %d, got %#v", index, logs[index].CycleFactorKeys)
 		}
 		if logs[index].Notes != "" {
 			t.Fatalf("expected notes to be hidden for entry %d, got %q", index, logs[index].Notes)

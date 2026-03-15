@@ -90,6 +90,34 @@ func TestBuildStatsPageViewDataShowsIrregularInsufficientDataNotice(t *testing.T
 	}
 }
 
+func TestBuildStatsPageViewDataBuildsRecentCycleFactorContextForVariablePatterns(t *testing.T) {
+	logs := []models.DailyLog{
+		{Date: mustParseStatsServiceDay(t, "2026-01-01"), IsPeriod: true},
+		{Date: mustParseStatsServiceDay(t, "2026-01-03"), CycleFactorKeys: []string{models.CycleFactorStress}},
+		{Date: mustParseStatsServiceDay(t, "2026-01-25"), IsPeriod: true},
+		{Date: mustParseStatsServiceDay(t, "2026-01-28"), CycleFactorKeys: []string{models.CycleFactorTravel}},
+		{Date: mustParseStatsServiceDay(t, "2026-03-10"), IsPeriod: true},
+		{Date: mustParseStatsServiceDay(t, "2026-03-12"), CycleFactorKeys: []string{models.CycleFactorStress}},
+		{Date: mustParseStatsServiceDay(t, "2026-04-20"), IsPeriod: true},
+	}
+	service := NewStatsService(&stubStatsDayReader{logsForRange: logs, logsForAll: logs}, &stubStatsSymptomReader{})
+	now := mustParseStatsServiceDay(t, "2026-04-25")
+
+	viewData, err := service.BuildStatsPageViewData(&models.User{ID: 7, Role: models.RoleOwner, CycleLength: 32}, "en", "Cycle %d", now, time.UTC, 12)
+	if err != nil {
+		t.Fatalf("BuildStatsPageViewData() unexpected error: %v", err)
+	}
+	if !viewData.HasRecentCycleFactors {
+		t.Fatalf("expected recent cycle factor context")
+	}
+	if len(viewData.RecentCycleFactors) != 2 {
+		t.Fatalf("expected two recent factor items, got %#v", viewData.RecentCycleFactors)
+	}
+	if viewData.RecentCycleFactors[0].Key != models.CycleFactorStress || viewData.RecentCycleFactors[0].Count != 1 {
+		t.Fatalf("expected stress to lead context, got %#v", viewData.RecentCycleFactors)
+	}
+}
+
 func TestBuildStatsPageViewDataKeepsInsightsHiddenUntilSecondCompletedCycle(t *testing.T) {
 	logs := []models.DailyLog{
 		{Date: mustParseStatsServiceDay(t, "2026-01-01"), IsPeriod: true},

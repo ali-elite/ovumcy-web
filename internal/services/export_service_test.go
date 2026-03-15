@@ -88,14 +88,15 @@ func TestExportBuildJSONEntriesNormalizesFlowAndMapsSymptoms(t *testing.T) {
 		&stubExportDayReader{
 			logs: []models.DailyLog{
 				{
-					Date:          mustParseExportDay(t, "2026-02-19"),
-					Flow:          "unexpected-flow",
-					Mood:          4,
-					SexActivity:   models.SexActivityProtected,
-					BBT:           36.55,
-					CervicalMucus: models.CervicalMucusEggWhite,
-					SymptomIDs:    []uint{1, 2, 3, 3},
-					Notes:         "json-note",
+					Date:            mustParseExportDay(t, "2026-02-19"),
+					Flow:            "unexpected-flow",
+					Mood:            4,
+					SexActivity:     models.SexActivityProtected,
+					BBT:             36.55,
+					CervicalMucus:   models.CervicalMucusEggWhite,
+					CycleFactorKeys: []string{models.CycleFactorStress, models.CycleFactorTravel},
+					SymptomIDs:      []uint{1, 2, 3, 3},
+					Notes:           "json-note",
 				},
 			},
 		},
@@ -135,6 +136,9 @@ func TestExportBuildJSONEntriesNormalizesFlowAndMapsSymptoms(t *testing.T) {
 	if entry.CervicalMucus != models.CervicalMucusEggWhite {
 		t.Fatalf("expected eggwhite cervical mucus, got %q", entry.CervicalMucus)
 	}
+	if len(entry.CycleFactors) != 2 || entry.CycleFactors[0] != models.CycleFactorStress || entry.CycleFactors[1] != models.CycleFactorTravel {
+		t.Fatalf("expected normalized cycle factors, got %#v", entry.CycleFactors)
+	}
 	if !entry.Symptoms.Mood {
 		t.Fatalf("expected mood flag=true")
 	}
@@ -151,15 +155,16 @@ func TestExportBuildCSVRowsBuildsExpectedColumns(t *testing.T) {
 		&stubExportDayReader{
 			logs: []models.DailyLog{
 				{
-					Date:          mustParseExportDay(t, "2026-02-18"),
-					IsPeriod:      true,
-					Flow:          models.FlowLight,
-					Mood:          5,
-					SexActivity:   models.SexActivityUnprotected,
-					BBT:           36.7,
-					CervicalMucus: models.CervicalMucusCreamy,
-					SymptomIDs:    []uint{1, 2},
-					Notes:         "note",
+					Date:            mustParseExportDay(t, "2026-02-18"),
+					IsPeriod:        true,
+					Flow:            models.FlowLight,
+					Mood:            5,
+					SexActivity:     models.SexActivityUnprotected,
+					BBT:             36.7,
+					CervicalMucus:   models.CervicalMucusCreamy,
+					CycleFactorKeys: []string{models.CycleFactorStress, models.CycleFactorMedicationChange},
+					SymptomIDs:      []uint{1, 2},
+					Notes:           "note",
 				},
 			},
 		},
@@ -204,6 +209,9 @@ func TestExportBuildCSVRowsBuildsExpectedColumns(t *testing.T) {
 	}
 	if columns[indexByHeader["Cramps"]] != "Yes" {
 		t.Fatalf("expected cramps column Yes, got %q", columns[indexByHeader["Cramps"]])
+	}
+	if columns[indexByHeader["Cycle factors"]] != "Stress; Medication change" {
+		t.Fatalf("expected cycle factors column, got %q", columns[indexByHeader["Cycle factors"]])
 	}
 	if columns[indexByHeader["Other"]] != "Custom Symptom" {
 		t.Fatalf("expected other symptom column, got %q", columns[indexByHeader["Other"]])

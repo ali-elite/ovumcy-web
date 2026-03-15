@@ -68,6 +68,11 @@ func TestMapDayUpsertError(t *testing.T) {
 			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to load day"),
 		},
 		{
+			name: "invalid cycle factors",
+			err:  services.ErrInvalidDayCycleFactors,
+			want: globalErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "invalid cycle factor values"),
+		},
+		{
 			name: "create failed",
 			err:  services.ErrDayEntryCreateFailed,
 			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to create day"),

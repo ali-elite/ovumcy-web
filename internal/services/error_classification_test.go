@@ -69,6 +69,9 @@ func TestClassifyRangeAndDayErrors(t *testing.T) {
 	if got := ClassifyDayUpsertError(ErrInvalidDayFlow); got != DayUpsertErrorInvalidFlow {
 		t.Fatalf("expected DayUpsertErrorInvalidFlow, got %v", got)
 	}
+	if got := ClassifyDayUpsertError(ErrInvalidDayCycleFactors); got != DayUpsertErrorInvalidCycleFactors {
+		t.Fatalf("expected DayUpsertErrorInvalidCycleFactors, got %v", got)
+	}
 	if got := ClassifyDayUpsertError(ErrDayEntryCreateFailed); got != DayUpsertErrorCreateFailed {
 		t.Fatalf("expected DayUpsertErrorCreateFailed, got %v", got)
 	}

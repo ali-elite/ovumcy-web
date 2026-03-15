@@ -20,6 +20,7 @@ var (
 	ErrInvalidDaySexActivity   = errors.New("invalid day sex activity")
 	ErrInvalidDayBBT           = errors.New("invalid day bbt")
 	ErrInvalidDayCervicalMucus = errors.New("invalid day cervical mucus")
+	ErrInvalidDayCycleFactors  = errors.New("invalid day cycle factors")
 )
 
 func NormalizeDayEntryInput(input DayEntryInput) (DayEntryInput, error) {
@@ -38,12 +39,17 @@ func NormalizeDayEntryInput(input DayEntryInput) (DayEntryInput, error) {
 	if !IsValidDayCervicalMucus(input.CervicalMucus) {
 		return input, ErrInvalidDayCervicalMucus
 	}
+	normalizedCycleFactors, allCycleFactorsValid := NormalizeDayCycleFactorKeys(input.CycleFactorKeys)
+	if !allCycleFactorsValid {
+		return input, ErrInvalidDayCycleFactors
+	}
 	if !input.IsPeriod {
 		input.Flow = models.FlowNone
 	}
 	input.Flow = NormalizeDayFlow(input.Flow)
 	input.SexActivity = NormalizeDaySexActivity(input.SexActivity)
 	input.CervicalMucus = NormalizeDayCervicalMucus(input.CervicalMucus)
+	input.CycleFactorKeys = normalizedCycleFactors
 	input.BBT = normalizeStoredDayBBT(input.BBT)
 	input.Notes = TrimDayNotes(input.Notes)
 	return input, nil

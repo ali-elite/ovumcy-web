@@ -33,20 +33,21 @@ func TestStatsPageRendersRichInsightsAndBBTChart(t *testing.T) {
 	if err := database.Model(&models.User{}).Where("id = ?", user.ID).Updates(map[string]any{
 		"last_period_start": currentCycleStart,
 		"track_bbt":         true,
+		"irregular_cycle":   true,
 	}).Error; err != nil {
 		t.Fatalf("update user settings: %v", err)
 	}
 
 	logs := []models.DailyLog{
 		{UserID: user.ID, Date: time.Date(2025, time.December, 4, 0, 0, 0, 0, time.UTC), IsPeriod: true},
-		{UserID: user.ID, Date: time.Date(2025, time.December, 5, 0, 0, 0, 0, time.UTC), SymptomIDs: []uint{symptomByName["Headache"]}},
+		{UserID: user.ID, Date: time.Date(2025, time.December, 5, 0, 0, 0, 0, time.UTC), CycleFactorKeys: []string{models.CycleFactorStress}, SymptomIDs: []uint{symptomByName["Headache"]}},
 		{UserID: user.ID, Date: time.Date(2025, time.December, 8, 0, 0, 0, 0, time.UTC), SymptomIDs: []uint{symptomByName["Cramps"]}},
 		{UserID: user.ID, Date: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC), IsPeriod: true},
-		{UserID: user.ID, Date: time.Date(2026, time.January, 2, 0, 0, 0, 0, time.UTC), SymptomIDs: []uint{symptomByName["Headache"]}},
+		{UserID: user.ID, Date: time.Date(2026, time.January, 2, 0, 0, 0, 0, time.UTC), CycleFactorKeys: []string{models.CycleFactorTravel}, SymptomIDs: []uint{symptomByName["Headache"]}},
 		{UserID: user.ID, Date: time.Date(2026, time.January, 5, 0, 0, 0, 0, time.UTC), SymptomIDs: []uint{symptomByName["Cramps"]}},
 		{UserID: user.ID, Date: time.Date(2026, time.January, 29, 0, 0, 0, 0, time.UTC), IsPeriod: true},
 		{UserID: user.ID, Date: time.Date(2026, time.January, 30, 0, 0, 0, 0, time.UTC), SymptomIDs: []uint{symptomByName["Headache"]}},
-		{UserID: user.ID, Date: time.Date(2026, time.January, 31, 0, 0, 0, 0, time.UTC), SymptomIDs: []uint{symptomByName["Headache"]}},
+		{UserID: user.ID, Date: time.Date(2026, time.January, 31, 0, 0, 0, 0, time.UTC), CycleFactorKeys: []string{models.CycleFactorStress}, SymptomIDs: []uint{symptomByName["Headache"]}},
 		{UserID: user.ID, Date: time.Date(2026, time.February, 2, 0, 0, 0, 0, time.UTC), SymptomIDs: []uint{symptomByName["Cramps"]}},
 		{UserID: user.ID, Date: time.Date(2026, time.February, 4, 0, 0, 0, 0, time.UTC), SymptomIDs: []uint{symptomByName["Acne"]}},
 		{UserID: user.ID, Date: time.Date(2026, time.February, 26, 0, 0, 0, 0, time.UTC), IsPeriod: true, BBT: 36.40},
@@ -85,6 +86,8 @@ func TestStatsPageRendersRichInsightsAndBBTChart(t *testing.T) {
 		"Current phase",
 		"Prediction reliability",
 		"Based on 3 completed cycles.",
+		"Recent cycle factors",
+		"Stress",
 		"Top symptoms in your last cycle",
 		"Symptom patterns",
 	} {

@@ -23,12 +23,13 @@ func TestPartnerReadOnlyFlowSmoke(t *testing.T) {
 	}
 
 	logEntry := models.DailyLog{
-		UserID:     user.ID,
-		Date:       time.Date(2026, time.February, 21, 0, 0, 0, 0, time.UTC),
-		IsPeriod:   true,
-		Flow:       models.FlowMedium,
-		SymptomIDs: []uint{1, 2},
-		Notes:      "partner-private-note",
+		UserID:          user.ID,
+		Date:            time.Date(2026, time.February, 21, 0, 0, 0, 0, time.UTC),
+		IsPeriod:        true,
+		Flow:            models.FlowMedium,
+		CycleFactorKeys: []string{models.CycleFactorStress, models.CycleFactorTravel},
+		SymptomIDs:      []uint{1, 2},
+		Notes:           "partner-private-note",
 	}
 	if err := database.Create(&logEntry).Error; err != nil {
 		t.Fatalf("create partner log: %v", err)
@@ -58,6 +59,14 @@ func TestPartnerReadOnlyFlowSmoke(t *testing.T) {
 	}
 	if strings.Contains(dayPanelBody, `name="symptom_ids"`) {
 		t.Fatalf("expected partner day symptoms controls to be hidden")
+	}
+	if strings.Contains(dayPanelBody, `name="cycle_factor_keys"`) {
+		t.Fatalf("expected partner day cycle factor controls to be hidden")
+	}
+	for _, fragment := range []string{"Stress", "Travel"} {
+		if strings.Contains(dashboardBody, fragment) || strings.Contains(dayPanelBody, fragment) {
+			t.Fatalf("expected partner flow to hide private cycle factor label %q", fragment)
+		}
 	}
 
 	payload := map[string]any{

@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 const (
 	FlowNone     = "none"
@@ -21,19 +25,27 @@ const (
 )
 
 type DailyLog struct {
-	ID            uint      `gorm:"primaryKey"`
-	UserID        uint      `gorm:"not null;uniqueIndex:uidx_user_date"`
-	Date          time.Time `gorm:"type:date;not null;uniqueIndex:uidx_user_date"`
-	IsPeriod      bool      `gorm:"not null;default:false"`
-	CycleStart    bool      `gorm:"column:cycle_start;not null;default:false"`
-	IsUncertain   bool      `gorm:"column:is_uncertain;not null;default:false"`
-	Flow          string    `gorm:"not null;default:none"`
-	Mood          int       `gorm:"not null;default:0"`
-	SexActivity   string    `gorm:"column:sex_activity;not null;default:none"`
-	BBT           float64   `gorm:"column:bbt;not null;default:0"`
-	CervicalMucus string    `gorm:"column:cervical_mucus;not null;default:none"`
-	SymptomIDs    []uint    `gorm:"serializer:json"`
-	Notes         string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID              uint      `gorm:"primaryKey"`
+	UserID          uint      `gorm:"not null;uniqueIndex:uidx_user_date"`
+	Date            time.Time `gorm:"type:date;not null;uniqueIndex:uidx_user_date"`
+	IsPeriod        bool      `gorm:"not null;default:false"`
+	CycleStart      bool      `gorm:"column:cycle_start;not null;default:false"`
+	IsUncertain     bool      `gorm:"column:is_uncertain;not null;default:false"`
+	Flow            string    `gorm:"not null;default:none"`
+	Mood            int       `gorm:"not null;default:0"`
+	SexActivity     string    `gorm:"column:sex_activity;not null;default:none"`
+	BBT             float64   `gorm:"column:bbt;not null;default:0"`
+	CervicalMucus   string    `gorm:"column:cervical_mucus;not null;default:none"`
+	CycleFactorKeys []string  `gorm:"column:cycle_factor_keys;serializer:json"`
+	SymptomIDs      []uint    `gorm:"serializer:json"`
+	Notes           string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (logEntry *DailyLog) BeforeSave(*gorm.DB) error {
+	if logEntry.CycleFactorKeys == nil {
+		logEntry.CycleFactorKeys = []string{}
+	}
+	return nil
 }

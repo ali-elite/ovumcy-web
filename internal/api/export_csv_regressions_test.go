@@ -26,16 +26,17 @@ func TestExportCSVIncludesKnownAndOtherSymptoms(t *testing.T) {
 	}
 
 	logEntry := models.DailyLog{
-		UserID:        user.ID,
-		Date:          time.Date(2026, time.February, 18, 0, 0, 0, 0, time.UTC),
-		IsPeriod:      true,
-		Flow:          models.FlowLight,
-		Mood:          5,
-		SexActivity:   models.SexActivityUnprotected,
-		BBT:           36.70,
-		CervicalMucus: models.CervicalMucusCreamy,
-		SymptomIDs:    []uint{symptoms[0].ID, symptoms[1].ID},
-		Notes:         "note",
+		UserID:          user.ID,
+		Date:            time.Date(2026, time.February, 18, 0, 0, 0, 0, time.UTC),
+		IsPeriod:        true,
+		Flow:            models.FlowLight,
+		Mood:            5,
+		SexActivity:     models.SexActivityUnprotected,
+		BBT:             36.70,
+		CervicalMucus:   models.CervicalMucusCreamy,
+		CycleFactorKeys: []string{models.CycleFactorStress, models.CycleFactorSleepDisruption},
+		SymptomIDs:      []uint{symptoms[0].ID, symptoms[1].ID},
+		Notes:           "note",
 	}
 	if err := database.Create(&logEntry).Error; err != nil {
 		t.Fatalf("create daily log: %v", err)
@@ -71,6 +72,7 @@ func TestExportCSVIncludesKnownAndOtherSymptoms(t *testing.T) {
 		"Sex activity":   "Unprotected",
 		"BBT (C)":        "36.70",
 		"Cervical mucus": "Creamy",
+		"Cycle factors":  "Stress; Sleep disruption",
 		"Cramps":         "Yes",
 		"Other":          "Custom Symptom",
 		"Notes":          "note",

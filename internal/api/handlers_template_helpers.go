@@ -28,6 +28,14 @@ func newTemplateFuncMap() template.FuncMap {
 		"cervicalMucusLabel": func(messages map[string]string, value string) string {
 			return translateMessage(messages, services.CervicalMucusTranslationKey(value))
 		},
+		"cycleFactorLabel": func(messages map[string]string, key string) string {
+			translationKey := services.DayCycleFactorTranslationKey(key)
+			if translationKey == "" {
+				return key
+			}
+			return translateMessage(messages, translationKey)
+		},
+		"cycleFactorIcon": services.DayCycleFactorIcon,
 		"symptomLabel": func(messages map[string]string, name string) string {
 			key := services.BuiltinSymptomTranslationKey(name)
 			if key == "" {
@@ -51,6 +59,7 @@ func newTemplateFuncMap() template.FuncMap {
 		"hasDisplayName":        templateHasDisplayName,
 		"isActiveRoute":         isActiveTemplateRoute,
 		"hasSymptom":            hasTemplateSymptom,
+		"hasCycleFactor":        hasTemplateCycleFactor,
 		"statusOK": func(message string) template.HTML {
 			return httpx.StatusOKTemplateHTML(message)
 		},
@@ -60,4 +69,11 @@ func newTemplateFuncMap() template.FuncMap {
 		"toJSON": templateToJSON,
 		"dict":   templateDict,
 	}
+}
+
+func hasTemplateCycleFactor(selected map[string]bool, key string) bool {
+	if len(selected) == 0 {
+		return false
+	}
+	return selected[key]
 }

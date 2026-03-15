@@ -56,6 +56,9 @@ func DayHasData(entry models.DailyLog) bool {
 	if NormalizeDayCervicalMucus(entry.CervicalMucus) != models.CervicalMucusNone {
 		return true
 	}
+	if len(DayCycleFactorKeySet(entry.CycleFactorKeys)) > 0 {
+		return true
+	}
 	if len(entry.SymptomIDs) > 0 {
 		return true
 	}

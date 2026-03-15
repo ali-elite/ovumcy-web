@@ -39,6 +39,11 @@ func parseDayPayload(c *fiber.Ctx, user *models.User) (dayPayload, error) {
 				payload.SymptomIDs = append(payload.SymptomIDs, parsed)
 			}
 		}
+
+		cycleFactorRaw := c.Context().PostArgs().PeekMulti("cycle_factor_keys")
+		for _, value := range cycleFactorRaw {
+			payload.CycleFactorKeys = append(payload.CycleFactorKeys, string(value))
+		}
 	}
 
 	payload.Flow = strings.ToLower(strings.TrimSpace(payload.Flow))

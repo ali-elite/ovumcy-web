@@ -19,6 +19,7 @@ type ExportPDFCycleDay struct {
 	SexActivity   string
 	BBT           float64
 	CervicalMucus string
+	CycleFactors  []string
 	Symptoms      []string
 	Notes         string
 }
@@ -99,6 +100,7 @@ func (service *ExportService) BuildPDFReport(userID uint, from *time.Time, to *t
 			SexActivity:   normalizeExportSexActivity(logEntry.SexActivity),
 			BBT:           normalizeExportBBT(logEntry.BBT),
 			CervicalMucus: normalizeExportCervicalMucus(logEntry.CervicalMucus),
+			CycleFactors:  normalizeExportCycleFactorKeys(logEntry.CycleFactorKeys),
 			Symptoms:      exportPDFSymptoms(logEntry.SymptomIDs, symptomNames),
 			Notes:         strings.TrimSpace(logEntry.Notes),
 		}

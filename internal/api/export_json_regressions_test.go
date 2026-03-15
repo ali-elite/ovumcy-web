@@ -24,16 +24,17 @@ func TestExportJSONNormalizesFlowAndMapsSymptoms(t *testing.T) {
 	}
 
 	logEntry := models.DailyLog{
-		UserID:        user.ID,
-		Date:          time.Date(2026, time.February, 19, 0, 0, 0, 0, time.UTC),
-		IsPeriod:      false,
-		Flow:          "unexpected-flow",
-		Mood:          4,
-		SexActivity:   models.SexActivityProtected,
-		BBT:           36.55,
-		CervicalMucus: models.CervicalMucusEggWhite,
-		SymptomIDs:    []uint{symptoms[0].ID, symptoms[1].ID},
-		Notes:         "json-note",
+		UserID:          user.ID,
+		Date:            time.Date(2026, time.February, 19, 0, 0, 0, 0, time.UTC),
+		IsPeriod:        false,
+		Flow:            "unexpected-flow",
+		Mood:            4,
+		SexActivity:     models.SexActivityProtected,
+		BBT:             36.55,
+		CervicalMucus:   models.CervicalMucusEggWhite,
+		CycleFactorKeys: []string{models.CycleFactorStress, models.CycleFactorTravel},
+		SymptomIDs:      []uint{symptoms[0].ID, symptoms[1].ID},
+		Notes:           "json-note",
 	}
 	if err := database.Create(&logEntry).Error; err != nil {
 		t.Fatalf("create daily log: %v", err)
@@ -98,6 +99,9 @@ func assertExportJSONPayload(t *testing.T, payload struct {
 	}
 	if entry.CervicalMucus != models.CervicalMucusEggWhite {
 		t.Fatalf("expected eggwhite cervical mucus, got %q", entry.CervicalMucus)
+	}
+	if len(entry.CycleFactors) != 2 || entry.CycleFactors[0] != models.CycleFactorStress || entry.CycleFactors[1] != models.CycleFactorTravel {
+		t.Fatalf("expected cycle factors in export json, got %#v", entry.CycleFactors)
 	}
 	if !entry.Symptoms.Mood {
 		t.Fatalf("expected mood flag to be true")

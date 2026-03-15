@@ -42,6 +42,12 @@
       {{template "mood_picker" (dict "SelectedMood" .Log.Mood "Compact" true)}}
     </fieldset>
 
+    <fieldset class="space-y-2">
+      <legend class="field-label">{{t .Messages "dashboard.cycle_factors"}}</legend>
+      <p class="journal-muted text-sm">{{t .Messages "dashboard.cycle_factors_hint"}}</p>
+      {{template "cycle_factor_options" (dict "Messages" .Messages "CycleFactorKeys" .CycleFactorKeys "SelectedCycleFactorKey" .SelectedCycleFactorKey "Compact" true)}}
+    </fieldset>
+
     <fieldset class="space-y-2" data-period-fields {{if not .Log.IsPeriod}}hidden{{end}}>
       <legend class="field-label">{{t .Messages "dashboard.flow"}}</legend>
       {{template "period_flow_options" (dict "Messages" .Messages "SelectedFlow" .Log.Flow "Compact" true "DisableWhenNotPeriod" true "CurrentIsPeriod" .Log.IsPeriod)}}

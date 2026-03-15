@@ -74,14 +74,15 @@ func (handler *Handler) resolveUpsertDayRequest(c *fiber.Ctx) (upsertDayRequest,
 
 func buildUpsertDayEntryInput(payload dayPayload, cleanSymptomIDs []uint) services.DayEntryInput {
 	return services.DayEntryInput{
-		IsPeriod:      payload.IsPeriod,
-		Flow:          payload.Flow,
-		Mood:          payload.Mood,
-		SexActivity:   payload.SexActivity,
-		BBT:           payload.BBT,
-		CervicalMucus: payload.CervicalMucus,
-		Notes:         payload.Notes,
-		SymptomIDs:    cleanSymptomIDs,
+		IsPeriod:        payload.IsPeriod,
+		Flow:            payload.Flow,
+		Mood:            payload.Mood,
+		SexActivity:     payload.SexActivity,
+		BBT:             payload.BBT,
+		CervicalMucus:   payload.CervicalMucus,
+		CycleFactorKeys: payload.CycleFactorKeys,
+		Notes:           payload.Notes,
+		SymptomIDs:      cleanSymptomIDs,
 	}
 }
 

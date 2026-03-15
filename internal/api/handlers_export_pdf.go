@@ -139,7 +139,7 @@ func buildExportPDFDocument(report services.ExportPDFReport, messages map[string
 				exportPDFBBTLabel(entry.BBT),
 				exportPDFCervicalMucusLabel(messages, entry.CervicalMucus),
 				exportPDFSymptomList(messages, entry.Symptoms),
-				entry.Notes,
+				exportPDFNotesAndFactors(messages, entry),
 			}
 			for valueIndex, value := range values {
 				pdf.CellFormat(widths[valueIndex], 6.5, truncatePDFText(value, widths[valueIndex]), "1", 0, "L", false, 0, "")
@@ -374,6 +374,33 @@ func exportPDFSymptomList(messages map[string]string, names []string) string {
 		translated = append(translated, exportPDFText(messages, key, name))
 	}
 	return strings.Join(translated, ", ")
+}
+
+func exportPDFNotesAndFactors(messages map[string]string, entry services.ExportPDFCycleDay) string {
+	notes := strings.TrimSpace(entry.Notes)
+	if len(entry.CycleFactors) == 0 {
+		return notes
+	}
+
+	translatedFactors := make([]string, 0, len(entry.CycleFactors))
+	for _, key := range entry.CycleFactors {
+		translationKey := services.DayCycleFactorTranslationKey(key)
+		if translationKey == "" {
+			translatedFactors = append(translatedFactors, key)
+			continue
+		}
+		translatedFactors = append(translatedFactors, exportPDFText(messages, translationKey, key))
+	}
+
+	prefix := fmt.Sprintf(
+		"%s: %s",
+		exportPDFText(messages, "dashboard.cycle_factors", "Cycle factors"),
+		strings.Join(translatedFactors, ", "),
+	)
+	if notes == "" {
+		return prefix
+	}
+	return prefix + " | " + notes
 }
 
 func truncatePDFText(value string, width float64) string {

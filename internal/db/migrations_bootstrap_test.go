@@ -123,19 +123,20 @@ func assertMigratedLegacyDailyLogDefaults(t *testing.T, database *gorm.DB) {
 	t.Helper()
 
 	var migratedLog struct {
-		CycleStart    bool    `gorm:"column:cycle_start"`
-		IsUncertain   bool    `gorm:"column:is_uncertain"`
-		Flow          string  `gorm:"column:flow"`
-		Mood          int     `gorm:"column:mood"`
-		SexActivity   string  `gorm:"column:sex_activity"`
-		BBT           float64 `gorm:"column:bbt"`
-		CervicalMucus string  `gorm:"column:cervical_mucus"`
-		SymptomIDs    *string `gorm:"column:symptom_ids"`
-		Notes         string  `gorm:"column:notes"`
+		CycleStart      bool    `gorm:"column:cycle_start"`
+		IsUncertain     bool    `gorm:"column:is_uncertain"`
+		Flow            string  `gorm:"column:flow"`
+		Mood            int     `gorm:"column:mood"`
+		SexActivity     string  `gorm:"column:sex_activity"`
+		BBT             float64 `gorm:"column:bbt"`
+		CervicalMucus   string  `gorm:"column:cervical_mucus"`
+		CycleFactorKeys string  `gorm:"column:cycle_factor_keys"`
+		SymptomIDs      *string `gorm:"column:symptom_ids"`
+		Notes           string  `gorm:"column:notes"`
 	}
 	if err := database.
 		Table("daily_logs").
-		Select("cycle_start", "is_uncertain", "flow", "mood", "sex_activity", "bbt", "cervical_mucus", "symptom_ids", "notes").
+		Select("cycle_start", "is_uncertain", "flow", "mood", "sex_activity", "bbt", "cervical_mucus", "cycle_factor_keys", "symptom_ids", "notes").
 		Where("notes = ?", "legacy-log").
 		First(&migratedLog).Error; err != nil {
 		t.Fatalf("load migrated legacy daily log: %v", err)
@@ -161,6 +162,9 @@ func assertMigratedLegacyDailyLogDefaults(t *testing.T, database *gorm.DB) {
 	}
 	if migratedLog.CervicalMucus != models.CervicalMucusNone {
 		t.Fatalf("expected migrated cervical_mucus default to be %q, got %q", models.CervicalMucusNone, migratedLog.CervicalMucus)
+	}
+	if migratedLog.CycleFactorKeys != "[]" {
+		t.Fatalf("expected migrated cycle_factor_keys default to be [], got %q", migratedLog.CycleFactorKeys)
 	}
 	if migratedLog.SymptomIDs == nil || strings.TrimSpace(*migratedLog.SymptomIDs) != "[1,2]" {
 		t.Fatalf("expected migrated symptom_ids to remain [1,2], got %v", migratedLog.SymptomIDs)
@@ -325,6 +329,9 @@ func assertDailyLogsSchemaReconciled(t *testing.T, database *gorm.DB) {
 	if _, exists := columns["symptom_ids"]; !exists {
 		t.Fatal("expected daily_logs.symptom_ids column to exist after migrations")
 	}
+	if _, exists := columns["cycle_factor_keys"]; !exists {
+		t.Fatal("expected daily_logs.cycle_factor_keys column to exist after migrations")
+	}
 	if _, exists := columns["cycle_start"]; !exists {
 		t.Fatal("expected daily_logs.cycle_start column to exist after migrations")
 	}
@@ -335,6 +342,9 @@ func assertDailyLogsSchemaReconciled(t *testing.T, database *gorm.DB) {
 	notNullFlags := loadTableColumnNotNullFlags(t, database, "daily_logs")
 	if notNullFlags["symptom_ids"] {
 		t.Fatal("expected daily_logs.symptom_ids to remain nullable")
+	}
+	if !notNullFlags["cycle_factor_keys"] {
+		t.Fatal("expected daily_logs.cycle_factor_keys to be not null")
 	}
 
 	tableDefinition := loadSQLiteObjectSQL(t, database, "table", "daily_logs")

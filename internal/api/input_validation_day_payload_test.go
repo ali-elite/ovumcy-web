@@ -17,11 +17,11 @@ import (
 func TestParseDayPayloadFromJSON(t *testing.T) {
 	t.Parallel()
 
-	request := httptest.NewRequest(http.MethodPost, "/day", strings.NewReader(`{"is_period":true,"flow":"heavy","symptom_ids":[1,3],"notes":"abc"}`))
+	request := httptest.NewRequest(http.MethodPost, "/day", strings.NewReader(`{"is_period":true,"flow":"heavy","cycle_factor_keys":["travel","stress"],"symptom_ids":[1,3],"notes":"abc"}`))
 	request.Header.Set("Content-Type", fiber.MIMEApplicationJSON)
 
 	payload := parseDayPayloadForTest(t, request)
-	if !payload.IsPeriod || payload.Flow != "heavy" || len(payload.SymptomIDs) != 2 || payload.Notes != "abc" {
+	if !payload.IsPeriod || payload.Flow != "heavy" || len(payload.CycleFactorKeys) != 2 || len(payload.SymptomIDs) != 2 || payload.Notes != "abc" {
 		t.Fatalf("unexpected payload parsed from json: %+v", payload)
 	}
 }
@@ -32,6 +32,8 @@ func TestParseDayPayloadFromForm(t *testing.T) {
 	form := url.Values{}
 	form.Set("is_period", "on")
 	form.Set("flow", " Medium ")
+	form.Add("cycle_factor_keys", " travel ")
+	form.Add("cycle_factor_keys", "stress")
 	form.Add("symptom_ids", "2")
 	form.Add("symptom_ids", "4")
 	form.Set("notes", " note ")
@@ -48,6 +50,9 @@ func TestParseDayPayloadFromForm(t *testing.T) {
 	}
 	if payload.Notes != "note" {
 		t.Fatalf("expected trimmed notes, got %q", payload.Notes)
+	}
+	if len(payload.CycleFactorKeys) != 2 || payload.CycleFactorKeys[0] != " travel " || payload.CycleFactorKeys[1] != "stress" {
+		t.Fatalf("unexpected cycle factor keys: %#v", payload.CycleFactorKeys)
 	}
 	if len(payload.SymptomIDs) != 2 || payload.SymptomIDs[0] != 2 || payload.SymptomIDs[1] != 4 {
 		t.Fatalf("unexpected symptom IDs: %#v", payload.SymptomIDs)

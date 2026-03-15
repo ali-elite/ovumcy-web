@@ -13,7 +13,7 @@ func TestBuildPDFReportIncludesAdvancedTrackingAndCycleSummary(t *testing.T) {
 			logs: []models.DailyLog{
 				{Date: mustParseExportDay(t, "2026-01-01"), IsPeriod: true, Flow: models.FlowLight, Mood: 2, SymptomIDs: []uint{3}},
 				{Date: mustParseExportDay(t, "2026-01-10"), Mood: 4, SymptomIDs: []uint{2}},
-				{Date: mustParseExportDay(t, "2026-01-14"), Mood: 5, SexActivity: models.SexActivityProtected, BBT: 36.55, CervicalMucus: models.CervicalMucusEggWhite, SymptomIDs: []uint{1, 2}, Notes: "ovulation note"},
+				{Date: mustParseExportDay(t, "2026-01-14"), Mood: 5, SexActivity: models.SexActivityProtected, BBT: 36.55, CervicalMucus: models.CervicalMucusEggWhite, CycleFactorKeys: []string{models.CycleFactorTravel, models.CycleFactorStress}, SymptomIDs: []uint{1, 2}, Notes: "ovulation note"},
 				{Date: mustParseExportDay(t, "2026-01-29"), IsPeriod: true, Flow: models.FlowMedium, Mood: 3, SymptomIDs: []uint{3}},
 				{Date: mustParseExportDay(t, "2026-02-11"), Mood: 5, SymptomIDs: []uint{1}},
 				{Date: mustParseExportDay(t, "2026-02-26"), IsPeriod: true, Flow: models.FlowHeavy, Mood: 1, SymptomIDs: []uint{3}},
@@ -93,6 +93,9 @@ func assertExportPDFAdvancedTrackingEntry(t *testing.T, entry ExportPDFCycleDay)
 	}
 	if entry.CervicalMucus != models.CervicalMucusEggWhite {
 		t.Fatalf("expected eggwhite cervical mucus, got %q", entry.CervicalMucus)
+	}
+	if len(entry.CycleFactors) != 2 || entry.CycleFactors[0] != models.CycleFactorStress || entry.CycleFactors[1] != models.CycleFactorTravel {
+		t.Fatalf("expected normalized cycle factors, got %#v", entry.CycleFactors)
 	}
 	if len(entry.Symptoms) != 2 || entry.Symptoms[0] != "Acne" || entry.Symptoms[1] != "Cramps" {
 		t.Fatalf("expected sorted symptom names, got %#v", entry.Symptoms)

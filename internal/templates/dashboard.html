@@ -121,6 +121,12 @@
           {{template "mood_picker" (dict "SelectedMood" .TodayEntry.Mood "Compact" false)}}
         </fieldset>
 
+        <fieldset class="space-y-3">
+          <legend class="field-label">{{t .Messages "dashboard.cycle_factors"}}</legend>
+          <p class="journal-muted text-sm">{{t .Messages "dashboard.cycle_factors_hint"}}</p>
+          {{template "cycle_factor_options" (dict "Messages" .Messages "CycleFactorKeys" .CycleFactorKeys "SelectedCycleFactorKey" .SelectedCycleFactorKey "Compact" false)}}
+        </fieldset>
+
         <fieldset class="space-y-3" data-period-fields {{if not .TodayEntry.IsPeriod}}hidden{{end}}>
           <legend class="field-label">{{t .Messages "dashboard.flow"}}</legend>
           {{template "period_flow_options" (dict "Messages" .Messages "SelectedFlow" .TodayEntry.Flow "Compact" false "DisableWhenNotPeriod" true "CurrentIsPeriod" .TodayEntry.IsPeriod)}}
