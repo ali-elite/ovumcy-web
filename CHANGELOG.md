@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-03-15
+
+### Changed
+- Secure-cookie deployments now emit `Strict-Transport-Security` at the app layer, and self-hosted proxy examples were aligned so they do not add a conflicting second HSTS policy.
+- Self-hosted Docker defaults now pin concrete Ovumcy release tags and more specific runtime image versions instead of relying on floating image tags.
+- Transport-level API error rendering was tightened by co-locating the shared helper with centralized error mapping and adding a focused regression for JSON, HTMX, and flash redirect branches.
+- Spanish navigation and stats labels now use `Análisis` consistently instead of leaving the insights entry in English.
+
+### Security
+- Security workflow scanning now uses a digest-pinned Trivy image, and the runtime Dockerfile now ships from Alpine `3.22.3` so the published image no longer carries the vulnerable OpenSSL packages flagged by Trivy.
+- No auth/session, privacy-boundary, or export-data contract was weakened in this release.
+
 ## [0.6.0] - 2026-03-15
 
 ### Added
@@ -156,7 +168,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/terraincognita07/ovumcy/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/terraincognita07/ovumcy/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/terraincognita07/ovumcy/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/terraincognita07/ovumcy/compare/v0.4.0...v0.4.1
