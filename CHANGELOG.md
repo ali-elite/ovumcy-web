@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-15
+
+### Added
+- Owner-only cycle factor tracking for daily logs, exports, and conservative stats context (`stress`, `illness`, `travel`, `sleep disruption`, `medication changes`).
+- A privacy-safe hero demo asset pack, including the mobile install prompt capture contract and refreshed demo documentation.
+
+### Changed
+- Stats now stay more conservative with sparse data: basic insights unlock later, reliability messaging is clearer, and early-cycle empty states are simpler.
+- Dashboard and settings owner flows were refined to reduce redundancy, improve day logging clarity, and better align destructive copy with actual behavior.
+- Irregular-cycle prediction copy now avoids implying a precise ovulation date when recent data is sparse and prefers more cautious wording.
+- HTML regression coverage and Codecov publication were tightened so patch-status checks remain reliable in CI.
+
+### Security
+- No auth/session or privacy-boundary contract was weakened in this release; owner-only cycle factors remain sanitized from partner and viewer surfaces.
+
 ## [0.5.0] - 2026-03-15
 
 ### Added
@@ -141,7 +156,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/terraincognita07/ovumcy/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/terraincognita07/ovumcy/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/terraincognita07/ovumcy/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/terraincognita07/ovumcy/compare/v0.3.2...v0.4.0

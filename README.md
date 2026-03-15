@@ -18,7 +18,7 @@ It is built for people who want fast daily tracking, useful cycle insights, and 
 
 Ovumcy runs as a single Go service with a server-rendered web UI, can be installed on a phone home screen, and supports SQLite by default with Postgres as an advanced self-hosted path.
 
-This README describes the current `main` branch. The latest tagged release is `v0.5.0`.
+This README describes the current `main` branch. The latest tagged release is `v0.6.0`.
 
 ## Why Ovumcy Exists
 
@@ -175,7 +175,7 @@ docker compose up -d
 Pin a specific image tag if needed:
 
 ```bash
-OVUMCY_IMAGE=ghcr.io/terraincognita07/ovumcy:v0.5.0 docker compose up -d
+OVUMCY_IMAGE=ghcr.io/terraincognita07/ovumcy:v0.6.0 docker compose up -d
 ```
 
 Then open `http://127.0.0.1:8080`.
@@ -294,7 +294,7 @@ For bugs and feature requests, open a GitHub issue:
 
 ## Releases
 
-- Latest tagged release: `v0.5.0`.
+- Latest tagged release: `v0.6.0`.
 - Publish release notes via GitHub Releases and keep [CHANGELOG.md](CHANGELOG.md) updated.
 
 ## Roadmap
@@ -305,10 +305,9 @@ The live roadmap now also exists in GitHub Issues and the `Ovumcy Roadmap` proje
 
 - Import from other trackers: Clue, Flo CSV import.
 - Web Push notifications: period predictions delivered via browser push, no third-party services.
-- Extended statistics and reliability explanations: clearer confidence guidance plus deeper cycle-factor context.
+- Advanced factor-based cycle pattern explanations: richer personalized context on top of the new recorded cycle factors.
 - Partner invite via link: simplified partner onboarding without manual account setup.
-- Continued UX simplification across core owner flows: dashboard logging, settings information architecture, and empty states.
-- Recorded walkthrough or hero demo asset.
+- Continued UX simplification across core owner flows.
 
 ### Longer Term
 
