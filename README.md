@@ -18,7 +18,7 @@ It is built for people who want fast daily tracking, useful cycle insights, and 
 
 Ovumcy runs as a single Go service with a server-rendered web UI, can be installed on a phone home screen, and supports SQLite by default with Postgres as an advanced self-hosted path.
 
-This README describes the current `main` branch. The latest tagged release is `v0.6.1`.
+This README describes the current `main` branch. The latest tagged release is `v0.7.0`.
 
 ## Why Ovumcy Exists
 
@@ -160,7 +160,7 @@ SQLite (default) / PostgreSQL (advanced)
 
 ### Docker
 
-Uses the prebuilt image from GHCR pinned to the latest tagged release by default (`ghcr.io/terraincognita07/ovumcy:v0.6.1`).
+Uses the prebuilt image from GHCR pinned to the latest tagged release by default (`ghcr.io/terraincognita07/ovumcy:v0.7.0`).
 
 For public GHCR images, pull does not require GitHub login. `docker compose up -d` is enough because `pull_policy: always` is enabled.
 
@@ -175,7 +175,7 @@ docker compose up -d
 Override the pinned default image tag if needed:
 
 ```bash
-OVUMCY_IMAGE=ghcr.io/terraincognita07/ovumcy:v0.6.1 docker compose up -d
+OVUMCY_IMAGE=ghcr.io/terraincognita07/ovumcy:v0.7.0 docker compose up -d
 ```
 
 Then open `http://127.0.0.1:8080`.
@@ -294,7 +294,7 @@ For bugs and feature requests, open a GitHub issue:
 
 ## Releases
 
-- Latest tagged release: `v0.6.1`.
+- Latest tagged release: `v0.7.0`.
 - Publish release notes via GitHub Releases and keep [CHANGELOG.md](CHANGELOG.md) updated.
 
 ## Roadmap

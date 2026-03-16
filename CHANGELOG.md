@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-16
+
+### Added
+- Cross-browser smoke coverage for core owner flows across Chromium, Firefox, and WebKit.
+- Additional calendar prediction regressions for the shared facts-only explanation in unpredictable cycle mode.
+
+### Changed
+- Prediction explanation copy is now aligned across dashboard, calendar, and stats through one shared owner-only service policy.
+- Cycle-factor explanations now stay anchored to the most recent known cycle start so newer onboarding or settings baselines do not get overridden by older manual starts.
+- Settings now explain advanced tracking toggles and custom symptom empty, active, and archived states more clearly.
+- Local Playwright runs now choose a free app port automatically when no explicit override is provided, which prevents parallel local runs from colliding on a fixed port.
+- CI workflows now use Node 24-ready pinned GitHub Actions, while the full browser suite remains on Chromium and the new cross-browser lane stays focused on stable smoke coverage.
+
+### Security
+- No auth/session, privacy-boundary, export-data, or prediction-formula contract was weakened in this release.
+
 ## [0.6.1] - 2026-03-15
 
 ### Changed
@@ -168,7 +184,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/terraincognita07/ovumcy/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/terraincognita07/ovumcy/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/terraincognita07/ovumcy/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/terraincognita07/ovumcy/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/terraincognita07/ovumcy/compare/v0.4.1...v0.5.0
