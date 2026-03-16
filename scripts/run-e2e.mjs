@@ -76,6 +76,56 @@ function delay(ms) {
   });
 }
 
+function parsePortValue(value, label) {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const port = Number.parseInt(trimmed, 10);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid ${label}: ${trimmed}`);
+  }
+
+  return port;
+}
+
+function reservePort(port = 0) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+
+    server.unref();
+    server.once("error", (error) => reject(error));
+
+    server.once("listening", () => {
+      const address = server.address();
+      const reservedPort = address && typeof address === "object" ? address.port : 0;
+      server.close((closeError) => {
+        if (closeError) {
+          reject(closeError);
+          return;
+        }
+        if (!Number.isInteger(reservedPort) || reservedPort < 1 || reservedPort > 65535) {
+          reject(new Error("Failed to reserve a valid app port"));
+          return;
+        }
+        resolve(reservedPort);
+      });
+    });
+
+    server.listen(port, "127.0.0.1");
+  });
+}
+
+async function resolveAppPort() {
+  const explicitPort = parsePortValue(process.env.E2E_APP_PORT ?? "", "E2E_APP_PORT");
+  if (explicitPort !== null) {
+    return explicitPort;
+  }
+
+  return reservePort(0);
+}
+
 function redactSensitiveText(value) {
   let text = String(value ?? "");
   const secrets = [
@@ -343,10 +393,7 @@ async function main() {
   const tmpDir = path.join(repoRoot, ".tmp", "e2e");
   await mkdir(tmpDir, { recursive: true });
 
-  const appPort = Number.parseInt(process.env.E2E_APP_PORT ?? "18080", 10);
-  if (!Number.isInteger(appPort) || appPort < 1 || appPort > 65535) {
-    throw new Error(`Invalid E2E_APP_PORT: ${process.env.E2E_APP_PORT ?? ""}`);
-  }
+  const appPort = await resolveAppPort();
 
   const dbPath = path.join(tmpDir, `run-${runID}.db`);
   const appLogPath = path.join(tmpDir, `app-${runID}.log`);
