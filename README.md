@@ -20,6 +20,21 @@ Ovumcy runs as a single Go service with a server-rendered web UI, can be install
 
 This README describes the current `main` branch. The latest tagged release is `v0.7.1`.
 
+## Clients And Deployment Models
+
+Ovumcy now has two public product shapes:
+
+- [`ovumcy-web`](https://github.com/ovumcy/ovumcy-web) is the self-hosted all-in-one web application and server in this repository.
+- [`ovumcy-app`](https://github.com/ovumcy/ovumcy-app) is the local-first mobile client for iOS and Android.
+
+For the mobile client, optional self-hosted encrypted sync is provided by [`ovumcy-sync-community`](https://github.com/ovumcy/ovumcy-sync-community).
+
+In other words:
+
+- choose `ovumcy-web` when you want one self-hosted server with a browser UI;
+- choose `ovumcy-app` when you want an on-device local-first mobile experience;
+- add `ovumcy-sync-community` only when the mobile app needs self-hosted encrypted backup, restore, or multi-device sync.
+
 ## Why Ovumcy Exists
 
 Most cycle tracking apps depend on cloud accounts, analytics, or third-party infrastructure.
