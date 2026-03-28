@@ -174,6 +174,7 @@ func (service *AuthService) BuildOwnerUserWithRecovery(email string, rawPassword
 		Email:              email,
 		PasswordHash:       string(passwordHash),
 		RecoveryCodeHash:   recoveryHash,
+		LocalAuthEnabled:   true,
 		AuthSessionVersion: 1,
 		Role:               models.RoleOwner,
 		CycleLength:        models.DefaultCycleLength,
@@ -184,9 +185,31 @@ func (service *AuthService) BuildOwnerUserWithRecovery(email string, rawPassword
 	return user, recoveryCode, nil
 }
 
+func (service *AuthService) BuildOIDCOwnerUser(email string, createdAt time.Time) (models.User, error) {
+	if createdAt.IsZero() {
+		createdAt = time.Now().UTC()
+	}
+
+	return models.User{
+		Email:              email,
+		PasswordHash:       "",
+		RecoveryCodeHash:   "",
+		LocalAuthEnabled:   false,
+		AuthSessionVersion: 1,
+		Role:               models.RoleOwner,
+		CycleLength:        models.DefaultCycleLength,
+		PeriodLength:       models.DefaultPeriodLength,
+		AutoPeriodFill:     true,
+		CreatedAt:          createdAt,
+	}, nil
+}
+
 func (service *AuthService) AuthenticateCredentials(email string, password string) (models.User, error) {
 	user, err := service.users.FindByNormalizedEmail(email)
 	if err != nil {
+		return models.User{}, ErrAuthInvalidCreds
+	}
+	if !user.LocalAuthEnabled || strings.TrimSpace(user.PasswordHash) == "" {
 		return models.User{}, ErrAuthInvalidCreds
 	}
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
@@ -210,7 +233,7 @@ func (service *AuthService) FindUserByEmailAndRecoveryCode(email string, code st
 	}
 
 	hash := strings.TrimSpace(user.RecoveryCodeHash)
-	if hash == "" {
+	if !user.LocalAuthEnabled || hash == "" {
 		equalizeRecoveryCodeLookupTiming(code)
 		return nil, ErrRecoveryCodeNotFound
 	}
@@ -255,6 +278,9 @@ func (service *AuthService) ResolveUserByResetToken(secretKey []byte, rawToken s
 
 	user, err := service.users.FindByID(claims.UserID)
 	if err != nil {
+		return nil, ErrInvalidResetToken
+	}
+	if !user.LocalAuthEnabled || strings.TrimSpace(user.PasswordHash) == "" {
 		return nil, ErrInvalidResetToken
 	}
 	if !IsPasswordStateFingerprintMatch(claims.PasswordState, user.PasswordHash) {
@@ -308,6 +334,7 @@ func (service *AuthService) ResetPasswordAndRotateRecoveryCode(user *models.User
 	}
 	user.PasswordHash = string(passwordHash)
 	user.RecoveryCodeHash = recoveryHash
+	user.LocalAuthEnabled = true
 	user.AuthSessionVersion = normalizeAuthSessionVersion(user.AuthSessionVersion) + 1
 	user.MustChangePassword = false
 

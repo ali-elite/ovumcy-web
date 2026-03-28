@@ -117,6 +117,7 @@ func (repo *UserRepository) UpdatePassword(userID uint, passwordHash string, mus
 	return repo.database.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]any{
 		"password_hash":        passwordHash,
 		"must_change_password": mustChangePassword,
+		"local_auth_enabled":   true,
 	}).Error
 }
 
@@ -124,6 +125,7 @@ func (repo *UserRepository) UpdatePasswordAndRevokeSessions(userID uint, passwor
 	return repo.database.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]any{
 		"password_hash":        passwordHash,
 		"must_change_password": mustChangePassword,
+		"local_auth_enabled":   true,
 		"auth_session_version": gorm.Expr("auth_session_version + 1"),
 	}).Error
 }
@@ -133,6 +135,7 @@ func (repo *UserRepository) UpdatePasswordRecoveryCodeAndRevokeSessions(userID u
 		"password_hash":        passwordHash,
 		"recovery_code_hash":   recoveryHash,
 		"must_change_password": mustChangePassword,
+		"local_auth_enabled":   true,
 		"auth_session_version": gorm.Expr("auth_session_version + 1"),
 	}).Error
 }
@@ -153,6 +156,7 @@ func (repo *UserRepository) LoadSettingsByID(userID uint) (models.User, error) {
 			"period_length",
 			"luteal_phase",
 			"auto_period_fill",
+			"local_auth_enabled",
 			"irregular_cycle",
 			"track_bbt",
 			"temperature_unit",

@@ -16,6 +16,7 @@ var (
 	ErrSettingsNewPasswordMustDiffer      = errors.New("settings new password must differ")
 	ErrSettingsWeakPassword               = errors.New("settings weak password")
 	ErrSettingsPasswordHashFailed         = errors.New("settings password hash failed")
+	ErrSettingsRecoveryCodeGenerateFailed = errors.New("settings recovery code generate failed")
 	ErrSettingsPasswordUpdateFailed       = errors.New("settings password update failed")
 )
 
@@ -29,6 +30,9 @@ func (service *SettingsService) ValidatePasswordChange(passwordHash string, curr
 	}
 	if newPassword != confirmPassword {
 		return ErrSettingsPasswordMismatch
+	}
+	if strings.TrimSpace(passwordHash) == "" {
+		return ErrSettingsLocalPasswordNotSet
 	}
 	if bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(currentPassword)) != nil {
 		return ErrSettingsInvalidCurrentPassword
@@ -60,6 +64,44 @@ func (service *SettingsService) ChangePassword(user *models.User, currentPasswor
 		return fmt.Errorf("%w: %v", ErrSettingsPasswordUpdateFailed, err)
 	}
 	user.PasswordHash = string(hashedPassword)
+	user.LocalAuthEnabled = true
 	user.AuthSessionVersion = normalizeAuthSessionVersion(user.AuthSessionVersion) + 1
 	return nil
+}
+
+func (service *SettingsService) EnableLocalPassword(user *models.User, newPassword string, confirmPassword string) (string, error) {
+	if user == nil || user.LocalAuthEnabled {
+		return "", ErrSettingsPasswordChangeInvalidInput
+	}
+
+	newPassword = strings.TrimSpace(newPassword)
+	confirmPassword = strings.TrimSpace(confirmPassword)
+	if newPassword == "" || confirmPassword == "" {
+		return "", ErrSettingsPasswordChangeInvalidInput
+	}
+	if newPassword != confirmPassword {
+		return "", ErrSettingsPasswordMismatch
+	}
+	if err := ValidatePasswordStrength(newPassword); err != nil {
+		return "", ErrSettingsWeakPassword
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrSettingsPasswordHashFailed, err)
+	}
+	recoveryCode, recoveryHash, err := GenerateRecoveryCodeHash()
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrSettingsRecoveryCodeGenerateFailed, err)
+	}
+	if err := service.users.UpdatePasswordRecoveryCodeAndRevokeSessions(user.ID, string(hashedPassword), recoveryHash, false); err != nil {
+		return "", fmt.Errorf("%w: %v", ErrSettingsPasswordUpdateFailed, err)
+	}
+
+	user.PasswordHash = string(hashedPassword)
+	user.RecoveryCodeHash = recoveryHash
+	user.LocalAuthEnabled = true
+	user.AuthSessionVersion = normalizeAuthSessionVersion(user.AuthSessionVersion) + 1
+	user.MustChangePassword = false
+	return recoveryCode, nil
 }

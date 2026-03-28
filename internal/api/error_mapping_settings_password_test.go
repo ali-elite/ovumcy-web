@@ -30,6 +30,11 @@ func TestMapSettingsPasswordChangeError(t *testing.T) {
 			want: settingsFormErrorSpec(fiber.StatusUnauthorized, APIErrorCategoryUnauthorized, "invalid current password"),
 		},
 		{
+			name: "local password required",
+			err:  services.ErrSettingsLocalPasswordNotSet,
+			want: settingsLocalPasswordRequiredErrorSpec(),
+		},
+		{
 			name: "new password must differ",
 			err:  services.ErrSettingsNewPasswordMustDiffer,
 			want: settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "new password must differ"),
@@ -42,6 +47,11 @@ func TestMapSettingsPasswordChangeError(t *testing.T) {
 		{
 			name: "hash failed",
 			err:  services.ErrSettingsPasswordHashFailed,
+			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to secure password"),
+		},
+		{
+			name: "recovery code failed",
+			err:  services.ErrSettingsRecoveryCodeGenerateFailed,
 			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to secure password"),
 		},
 		{

@@ -20,7 +20,7 @@ func TestBuildLoginPageDataUsesFlashPriorityAndSetupFlag(t *testing.T) {
 	}
 
 	payload := evaluateAuthPageBuilder(t, query, func(c *fiber.Ctx) error {
-		return c.JSON(buildLoginPageData(map[string]string{}, flash, true, false, false))
+		return c.JSON(buildLoginPageData(map[string]string{}, flash, true, false, false, true))
 	})
 
 	if payload["ErrorKey"] != "auth.error.invalid_credentials" {
@@ -37,5 +37,8 @@ func TestBuildLoginPageDataUsesFlashPriorityAndSetupFlag(t *testing.T) {
 	}
 	if payload["OIDCEnabled"] != false {
 		t.Fatalf("expected OIDCEnabled=false, got %#v", payload["OIDCEnabled"])
+	}
+	if payload["LocalPublicAuthEnabled"] != true {
+		t.Fatalf("expected LocalPublicAuthEnabled=true, got %#v", payload["LocalPublicAuthEnabled"])
 	}
 }

@@ -102,10 +102,6 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, op
 	passwordResetService.ConfigureRecoveryAttemptLimits(services.DefaultRecoveryAttemptsLimit, time.Hour)
 	loginService := services.NewLoginService(authService, passwordResetService, attemptLimiter)
 	loginService.ConfigureAttemptLimits(services.DefaultLoginAttemptsLimit, services.DefaultLoginAttemptsWindow)
-	var oidcService OIDCWorkflowService = services.NewOIDCLoginService(security.NewOIDCClient(security.OIDCConfig{}), repositories.OIDCIdentities, repositories.Users)
-	if appOptions.oidcService != nil {
-		oidcService = appOptions.oidcService
-	}
 	dayService := services.NewDayService(repositories.DailyLogs, repositories.Users)
 	reservedBuiltinNames := make([]string, 0)
 	if i18nManager != nil {
@@ -117,6 +113,10 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, op
 		registrationMode = appOptions.registrationMode
 	}
 	registrationService := services.NewRegistrationService(authService, repositories.Users, registrationMode)
+	var oidcService OIDCWorkflowService = services.NewOIDCLoginService(security.NewOIDCClient(security.OIDCConfig{}), repositories.OIDCIdentities, repositories.Users, registrationService)
+	if appOptions.oidcService != nil {
+		oidcService = appOptions.oidcService
+	}
 	viewerService := services.NewViewerService(dayService, symptomService)
 	statsService := services.NewStatsService(dayService, symptomService)
 	calendarViewService := services.NewCalendarViewService(dayService, statsService)

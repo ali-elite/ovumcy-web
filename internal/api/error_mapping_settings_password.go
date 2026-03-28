@@ -13,11 +13,13 @@ func mapSettingsPasswordChangeError(err error) APIErrorSpec {
 		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "password mismatch")
 	case services.SettingsPasswordChangeErrorInvalidCurrentPassword:
 		return settingsFormErrorSpec(fiber.StatusUnauthorized, APIErrorCategoryUnauthorized, "invalid current password")
+	case services.SettingsPasswordChangeErrorLocalPasswordNotSet:
+		return settingsLocalPasswordRequiredErrorSpec()
 	case services.SettingsPasswordChangeErrorNewPasswordMustDiffer:
 		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "new password must differ")
 	case services.SettingsPasswordChangeErrorWeakPassword:
 		return settingsFormErrorSpec(fiber.StatusBadRequest, APIErrorCategoryValidation, "weak password")
-	case services.SettingsPasswordChangeErrorHashFailed:
+	case services.SettingsPasswordChangeErrorHashFailed, services.SettingsPasswordChangeErrorRecoveryCodeFailed:
 		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to secure password")
 	case services.SettingsPasswordChangeErrorUpdateFailed:
 		return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to update password")

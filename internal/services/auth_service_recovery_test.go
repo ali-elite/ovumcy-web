@@ -107,6 +107,7 @@ func (stub *stubAuthUserRepo) UpdatePasswordAndRevokeSessions(userID uint, passw
 	stub.updatedMustChange = mustChangePassword
 	stub.user.ID = userID
 	stub.user.PasswordHash = passwordHash
+	stub.user.LocalAuthEnabled = true
 	stub.user.MustChangePassword = mustChangePassword
 	stub.user.AuthSessionVersion = normalizeAuthSessionVersion(stub.user.AuthSessionVersion) + 1
 	return nil
@@ -124,6 +125,7 @@ func (stub *stubAuthUserRepo) UpdatePasswordRecoveryCodeAndRevokeSessions(userID
 	stub.user.ID = userID
 	stub.user.PasswordHash = passwordHash
 	stub.user.RecoveryCodeHash = recoveryHash
+	stub.user.LocalAuthEnabled = true
 	stub.user.MustChangePassword = mustChangePassword
 	stub.user.AuthSessionVersion = normalizeAuthSessionVersion(stub.user.AuthSessionVersion) + 1
 	return nil
@@ -246,6 +248,7 @@ func TestAuthServiceForceResetPasswordByEmail(t *testing.T) {
 				ID:                 18,
 				Email:              "owner@example.com",
 				PasswordHash:       string(originalHash),
+				LocalAuthEnabled:   true,
 				MustChangePassword: false,
 			},
 		}
@@ -313,6 +316,7 @@ func TestAuthServiceForceResetPasswordByEmail(t *testing.T) {
 				ID:           18,
 				Email:        "owner@example.com",
 				PasswordHash: string(originalHash),
+				LocalAuthEnabled: true,
 			},
 			updatePasswordErr: errors.New("write failed"),
 		}
@@ -356,6 +360,9 @@ func TestAuthServiceBuildOwnerUserWithRecovery(t *testing.T) {
 	if user.RecoveryCodeHash == "" {
 		t.Fatalf("expected non-empty recovery hash")
 	}
+	if !user.LocalAuthEnabled {
+		t.Fatal("expected LocalAuthEnabled=true for owner registration")
+	}
 	if user.AuthSessionVersion != 1 {
 		t.Fatalf("expected auth session version 1, got %d", user.AuthSessionVersion)
 	}
@@ -372,6 +379,7 @@ func TestAuthServiceAuthenticateCredentials(t *testing.T) {
 			ID:           77,
 			Email:        "login@example.com",
 			PasswordHash: string(passwordHash),
+			LocalAuthEnabled: true,
 		},
 	}
 	service := NewAuthService(repo)
@@ -407,6 +415,7 @@ func TestAuthServiceFindUserByEmailAndRecoveryCode(t *testing.T) {
 			ID:               22,
 			Email:            "owner@example.com",
 			RecoveryCodeHash: recoveryHash,
+			LocalAuthEnabled: true,
 		},
 	}
 	service := NewAuthService(repo)
@@ -433,6 +442,7 @@ func TestAuthServiceFindUserByEmailAndRecoveryCodeRejectsMismatch(t *testing.T) 
 			ID:               22,
 			Email:            "owner@example.com",
 			RecoveryCodeHash: recoveryHash,
+			LocalAuthEnabled: true,
 		},
 	}
 	service := NewAuthService(repo)
@@ -462,6 +472,7 @@ func TestAuthServiceResolveUserByResetToken(t *testing.T) {
 		user: models.User{
 			ID:           42,
 			PasswordHash: string(passwordHash),
+			LocalAuthEnabled: true,
 		},
 	}
 	service := NewAuthService(repo)
@@ -497,6 +508,7 @@ func TestAuthServiceResolveUserByResetTokenRejectsStateMismatch(t *testing.T) {
 		user: models.User{
 			ID:           42,
 			PasswordHash: string(changedHash),
+			LocalAuthEnabled: true,
 		},
 	}
 	service := NewAuthService(repo)
@@ -520,6 +532,7 @@ func TestAuthServiceResetPasswordAndRotateRecoveryCode(t *testing.T) {
 		ID:                 7,
 		PasswordHash:       string(originalHash),
 		RecoveryCodeHash:   "old-hash",
+		LocalAuthEnabled:   true,
 		MustChangePassword: true,
 	}
 	repo := &stubAuthUserRepo{user: user}

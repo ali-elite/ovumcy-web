@@ -93,6 +93,18 @@ func (handler *Handler) CompleteOIDCLogin(c *fiber.Ctx) error {
 		handler.setFlashCookie(c, FlashPayload{AuthError: spec.Key})
 		return c.Redirect("/login", fiber.StatusSeeOther)
 	}
+	handler.clearOIDCLogoutBridgeCookie(c)
+	if result.Logout != nil {
+		if err := handler.setOIDCLogoutCookie(c, *result.Logout); err != nil {
+			spec := authSessionCreateErrorSpec()
+			handler.logSecurityError(c, "auth.oidc_callback", spec)
+			handler.clearAuthRelatedCookies(c)
+			handler.setFlashCookie(c, FlashPayload{AuthError: spec.Key})
+			return c.Redirect("/login", fiber.StatusSeeOther)
+		}
+	} else {
+		handler.clearOIDCLogoutTransportCookies(c)
+	}
 
 	handler.logSecurityEvent(
 		c,
@@ -116,4 +128,25 @@ func boolString(value bool) string {
 		return "true"
 	}
 	return "false"
+}
+
+func (handler *Handler) ShowOIDCLogoutBridge(c *fiber.Ctx) error {
+	if !handler.readOIDCLogoutBridgeCookie(c, time.Now()).valid() {
+		handler.clearOIDCLogoutBridgeCookie(c)
+		return c.Redirect("/login", fiber.StatusSeeOther)
+	}
+
+	c.Type("html", "utf-8")
+	return c.SendString(`<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=` + oidcLogoutBridgeRedirectPath + `"></head><body></body></html>`)
+}
+
+func (handler *Handler) RedirectOIDCLogout(c *fiber.Ctx) error {
+	logoutPayload := handler.readOIDCLogoutBridgeCookie(c, time.Now())
+	handler.clearOIDCLogoutBridgeCookie(c)
+
+	providerLogoutURL := handler.providerLogoutRedirectURLFromPayload(logoutPayload)
+	if providerLogoutURL == "" {
+		return c.Redirect("/login", fiber.StatusSeeOther)
+	}
+	return c.Redirect(providerLogoutURL, fiber.StatusSeeOther)
 }

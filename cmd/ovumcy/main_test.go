@@ -293,7 +293,7 @@ func TestResolveOIDCConfig(t *testing.T) {
 		t.Setenv("OIDC_REDIRECT_URL", "")
 		t.Setenv("OIDC_AUTO_PROVISION", "")
 
-		config, err := resolveOIDCConfig(false)
+		config, err := resolveOIDCConfig(false, services.RegistrationModeOpen)
 		if err != nil {
 			t.Fatalf("expected disabled OIDC config to validate, got %v", err)
 		}
@@ -309,7 +309,7 @@ func TestResolveOIDCConfig(t *testing.T) {
 		t.Setenv("OIDC_CLIENT_SECRET", "secret")
 		t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com"+security.OIDCCallbackPath)
 
-		if _, err := resolveOIDCConfig(false); err == nil || !strings.Contains(err.Error(), "COOKIE_SECURE=true") {
+		if _, err := resolveOIDCConfig(false, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "COOKIE_SECURE=true") {
 			t.Fatalf("expected secure-cookie validation error, got %v", err)
 		}
 	})
@@ -321,8 +321,13 @@ func TestResolveOIDCConfig(t *testing.T) {
 		t.Setenv("OIDC_CLIENT_SECRET", "secret")
 		t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com"+security.OIDCCallbackPath)
 		t.Setenv("OIDC_AUTO_PROVISION", "false")
+		t.Setenv("OIDC_LOGIN_MODE", "oidc_only")
+		t.Setenv("OIDC_LOGOUT_MODE", "provider")
+		t.Setenv("OIDC_POST_LOGOUT_REDIRECT_URL", "https://ovumcy.example.com/login")
+		t.Setenv("OIDC_AUTO_PROVISION_ALLOWED_DOMAINS", "example.com, staff.example.com")
+		t.Setenv("OIDC_CA_FILE", writeOIDCCATestFile(t))
 
-		config, err := resolveOIDCConfig(true)
+		config, err := resolveOIDCConfig(true, services.RegistrationModeOpen)
 		if err != nil {
 			t.Fatalf("expected valid OIDC config, got %v", err)
 		}
@@ -335,14 +340,29 @@ func TestResolveOIDCConfig(t *testing.T) {
 		if config.RedirectURL != "https://ovumcy.example.com"+security.OIDCCallbackPath {
 			t.Fatalf("expected redirect URL to be preserved, got %q", config.RedirectURL)
 		}
+		if config.LoginMode != security.OIDCLoginModeOIDCOnly {
+			t.Fatalf("expected oidc_only login mode, got %q", config.LoginMode)
+		}
+		if config.LogoutMode != security.OIDCLogoutModeProvider {
+			t.Fatalf("expected provider logout mode, got %q", config.LogoutMode)
+		}
+		if config.PostLogoutRedirectURL != "https://ovumcy.example.com/login" {
+			t.Fatalf("expected post-logout redirect URL to be preserved, got %q", config.PostLogoutRedirectURL)
+		}
+		if config.CAFile == "" {
+			t.Fatal("expected OIDC CA file to be preserved")
+		}
+		if len(config.AutoProvisionAllowedDomains) != 2 || config.AutoProvisionAllowedDomains[0] != "example.com" || config.AutoProvisionAllowedDomains[1] != "staff.example.com" {
+			t.Fatalf("expected normalized domain allowlist, got %#v", config.AutoProvisionAllowedDomains)
+		}
 	})
 
 	t.Run("rejects auto provision", func(t *testing.T) {
 		setValidOIDCTestEnv(t)
 		t.Setenv("OIDC_AUTO_PROVISION", "true")
 
-		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), "not supported yet") {
-			t.Fatalf("expected auto-provision validation error, got %v", err)
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeClosed); err == nil || !strings.Contains(err.Error(), "REGISTRATION_MODE=open") {
+			t.Fatalf("expected auto-provision registration-mode validation error, got %v", err)
 		}
 	})
 
@@ -350,7 +370,7 @@ func TestResolveOIDCConfig(t *testing.T) {
 		setValidOIDCTestEnv(t)
 		t.Setenv("OIDC_ISSUER_URL", "http://id.example.com")
 
-		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), "OIDC_ISSUER_URL must use https") {
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "OIDC_ISSUER_URL must use https") {
 			t.Fatalf("expected insecure issuer validation error, got %v", err)
 		}
 	})
@@ -358,13 +378,13 @@ func TestResolveOIDCConfig(t *testing.T) {
 	t.Run("rejects issuer query and redirect fragment", func(t *testing.T) {
 		setValidOIDCTestEnv(t)
 		t.Setenv("OIDC_ISSUER_URL", "https://id.example.com?tenant=main")
-		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), "OIDC_ISSUER_URL must not include query or fragment") {
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "OIDC_ISSUER_URL must not include query or fragment") {
 			t.Fatalf("expected issuer query validation error, got %v", err)
 		}
 
 		setValidOIDCTestEnv(t)
 		t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com"+security.OIDCCallbackPath+"#done")
-		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), "OIDC_REDIRECT_URL must not include query or fragment") {
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "OIDC_REDIRECT_URL must not include query or fragment") {
 			t.Fatalf("expected redirect fragment validation error, got %v", err)
 		}
 	})
@@ -373,8 +393,66 @@ func TestResolveOIDCConfig(t *testing.T) {
 		setValidOIDCTestEnv(t)
 		t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com/auth/callback")
 
-		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), security.OIDCCallbackPath) {
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), security.OIDCCallbackPath) {
 			t.Fatalf("expected redirect path validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects invalid login mode", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_LOGIN_MODE", "sso_only")
+
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "OIDC_LOGIN_MODE") {
+			t.Fatalf("expected login mode validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects invalid logout mode", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_LOGOUT_MODE", "idp")
+
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "OIDC_LOGOUT_MODE") {
+			t.Fatalf("expected logout mode validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects post logout redirect on another origin", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_POST_LOGOUT_REDIRECT_URL", "https://elsewhere.example.com/login")
+
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "match the OIDC redirect origin") {
+			t.Fatalf("expected post-logout origin validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects invalid auto provision allowlist", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_AUTO_PROVISION_ALLOWED_DOMAINS", "example.com, bad domain")
+
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "OIDC_AUTO_PROVISION_ALLOWED_DOMAINS") {
+			t.Fatalf("expected auto-provision allowlist validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects unreadable oidc ca file", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_CA_FILE", filepath.Join(t.TempDir(), "missing-ca.pem"))
+
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "OIDC_CA_FILE") {
+			t.Fatalf("expected OIDC CA file validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects invalid oidc ca file contents", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		invalidPath := filepath.Join(t.TempDir(), "invalid-ca.pem")
+		if err := os.WriteFile(invalidPath, []byte("not a pem bundle"), 0o600); err != nil {
+			t.Fatalf("write invalid oidc ca file: %v", err)
+		}
+		t.Setenv("OIDC_CA_FILE", invalidPath)
+
+		if _, err := resolveOIDCConfig(true, services.RegistrationModeOpen); err == nil || !strings.Contains(err.Error(), "OIDC_CA_FILE") {
+			t.Fatalf("expected invalid OIDC CA file contents error, got %v", err)
 		}
 	})
 }
@@ -388,6 +466,40 @@ func setValidOIDCTestEnv(t *testing.T) {
 	t.Setenv("OIDC_CLIENT_SECRET", "secret")
 	t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com"+security.OIDCCallbackPath)
 	t.Setenv("OIDC_AUTO_PROVISION", "false")
+	t.Setenv("OIDC_LOGIN_MODE", "hybrid")
+	t.Setenv("OIDC_LOGOUT_MODE", "local")
+	t.Setenv("OIDC_POST_LOGOUT_REDIRECT_URL", "")
+	t.Setenv("OIDC_AUTO_PROVISION_ALLOWED_DOMAINS", "")
+	t.Setenv("OIDC_CA_FILE", "")
+}
+
+func writeOIDCCATestFile(t *testing.T) string {
+	t.Helper()
+
+	const certPEM = `-----BEGIN CERTIFICATE-----
+MIIC9DCCAdygAwIBAgIBATANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDEwkxMjcu
+MC4wLjEwHhcNMjYwMzI4MTczMDIzWhcNMzYwMzI4MTgzMDIzWjAUMRIwEAYDVQQD
+EwkxMjcuMC4wLjEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCfTEzc
+4zujGs9PmM6PHzFQIphEOjPAQmcaoUmCBRWjSWiVA1hIzbe0AM2wKGVE7pz8xDeY
+qGAgrXP0aUF98U+gFcNLihw8xMVkAW6R+FkV+PXAuMW7ZQAmrvq6fOkHfMWEA3/3
+4pA73uNPQDtWPOIjTz77jNRNOvymCvaUhy/bt3PqvnEzWNa9PdVSOTcLTaydGkx+
+9eq8b/Do/Tlca8pncZ7Luy+SEQAQlTPVMe4h8WWKSlyW1YVloZm5XX5Wvj4xzMmh
+oHwDwLU+wojt9hl2I6nEF8LJi3YMfYcuaUXrxC9DxToI13gzWXJqAnH40fJC7QC2
+wMZPD73wTU/nb36TAgMBAAGjUTBPMA4GA1UdDwEB/wQEAwIFoDATBgNVHSUEDDAK
+BggrBgEFBQcDATAMBgNVHRMBAf8EAjAAMBoGA1UdEQQTMBGCCWxvY2FsaG9zdIcE
+fwAAATANBgkqhkiG9w0BAQsFAAOCAQEANg0b76OBe8BtSG4JcCeQhT2IiIeIWmVs
+KLD4o/u7EzQ5d9PRodCFkkBVkP2B6fg7z1GAl/H1tKKBFidovJAbXQ/yJHqhT7IC
+QrCubmlgRkIl9YUJvaOsW0rPBLlWqz2emJH0xftH3QNPWHBVnP3R3BjrIqUG/1xU
+ADS7/yMYzyqEmi2+/nnyVMcDvPQfA9K+D32fHHteAsX8HhF2W4YAg1TlsUjpIsYc
+lILxHyF4qIl18bap1H7cTSH4ABA2fmMkIl7uqGapSzeJaMkxgSq8RxUy6k43dWOm
+Al6FYKyHksUwdVrLUsSoFtlfM7w8UhjdXDF/fvAvqvwWm9bPVCahEg==
+-----END CERTIFICATE-----`
+
+	path := filepath.Join(t.TempDir(), "oidc-ca.pem")
+	if err := os.WriteFile(path, []byte(certPEM), 0o600); err != nil {
+		t.Fatalf("write oidc ca test file: %v", err)
+	}
+	return path
 }
 
 func TestLoadRuntimeConfigBuildsExpectedSettings(t *testing.T) {

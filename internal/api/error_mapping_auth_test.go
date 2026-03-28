@@ -182,4 +182,10 @@ func TestAuthSessionErrorSpecs(t *testing.T) {
 	if got := authSessionRevokeErrorSpec(); got != globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to revoke session") {
 		t.Fatalf("unexpected revoke session error spec: %#v", got)
 	}
+	if got := authLocalSignInDisabledErrorSpec(); got != authFormErrorSpec(fiber.StatusForbidden, APIErrorCategoryForbidden, "local sign-in unavailable") {
+		t.Fatalf("unexpected local sign-in disabled error spec: %#v", got)
+	}
+	if got := authLocalRecoveryDisabledErrorSpec(); got != authFormErrorSpec(fiber.StatusForbidden, APIErrorCategoryForbidden, "local recovery unavailable") {
+		t.Fatalf("unexpected local recovery disabled error spec: %#v", got)
+	}
 }

@@ -7,6 +7,7 @@ import { finished } from "node:stream/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { startLocalHTTPSProxy, startLocalOIDCProvider } from "./e2e-runtime.mjs";
 
 const RUN_TIMEOUT_MS = 60_000;
 const SHUTDOWN_TIMEOUT_MS = 5_000;
@@ -229,12 +230,18 @@ function spawnAndWait(command, args, options) {
 function printRunContext(context) {
   console.log(`[e2e] mode=${context.mode}`);
   console.log(`[e2e] base_url=${context.baseURL}`);
+  if (context.appURL !== context.baseURL) {
+    console.log(`[e2e] app_url=${context.appURL}`);
+  }
   console.log(`[e2e] db_driver=${context.dbDriver}`);
   console.log(`[e2e] log_file=${context.appLogPath}`);
   if (context.dbDriver === "sqlite") {
     console.log(`[e2e] db_path=${context.dbPath}`);
   } else {
     console.log("[e2e] db_runtime=temporary-docker-postgres");
+  }
+  if (context.localOIDCIssuer) {
+    console.log(`[e2e] oidc_issuer=${context.localOIDCIssuer}`);
   }
   if (context.workerOverride !== null) {
     console.log(`[e2e] workers=${context.workerOverride}`);
@@ -394,12 +401,27 @@ async function main() {
   await mkdir(tmpDir, { recursive: true });
 
   const appPort = await resolveAppPort();
+  const localOIDCProviderEnabled =
+    String(process.env.E2E_OIDC_PROVIDER ?? "").trim().toLowerCase() === "local";
+  const cookieSecureEnabled = String(process.env.COOKIE_SECURE ?? "false").trim().toLowerCase() === "true";
+  const useHTTPSProxy =
+    String(process.env.E2E_USE_HTTPS_PROXY ?? "").trim().toLowerCase() === "true" ||
+    cookieSecureEnabled ||
+    localOIDCProviderEnabled;
+  const publicPort = useHTTPSProxy ? await reservePort(0) : appPort;
+  const appURL = `http://127.0.0.1:${appPort}`;
+  const baseURL =
+    process.env.PLAYWRIGHT_BASE_URL ??
+    (useHTTPSProxy ? `https://127.0.0.1:${publicPort}` : appURL);
+  const localOIDCPort = localOIDCProviderEnabled ? await reservePort(0) : null;
+  const localOIDCIssuer = localOIDCPort ? `https://127.0.0.1:${localOIDCPort}` : "";
+  const fixtureCertPath = path.join(repoRoot, "scripts", "fixtures", "e2e-localhost-cert.pem");
+  const fixtureKeyPath = path.join(repoRoot, "scripts", "fixtures", "e2e-localhost-key.pem");
 
   const dbPath = path.join(tmpDir, `run-${runID}.db`);
   const appLogPath = path.join(tmpDir, `app-${runID}.log`);
   const appLogStream = createWriteStream(appLogPath, { flags: "a" });
 
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${appPort}`;
   const workerOverrideFromEnv = Number.parseInt(process.env.E2E_PLAYWRIGHT_WORKERS ?? "", 10);
   const workerOverride =
     Number.isInteger(workerOverrideFromEnv) && workerOverrideFromEnv > 0
@@ -411,14 +433,43 @@ async function main() {
   const runContext = {
     mode,
     baseURL,
+    appURL,
     appLogPath,
     dbPath,
     dbDriver: db,
+    localOIDCIssuer,
     workerOverride,
   };
   printRunContext(runContext);
 
   const postgresRuntime = db === "postgres" ? await startPostgresRuntime(runID) : null;
+  const httpsProxy =
+    useHTTPSProxy
+      ? await startLocalHTTPSProxy({
+          certPath: fixtureCertPath,
+          keyPath: fixtureKeyPath,
+          listenPort: publicPort,
+          targetPort: appPort,
+        })
+      : null;
+  const localOIDCProvider =
+    localOIDCProviderEnabled
+      ? await startLocalOIDCProvider({
+          certPath: fixtureCertPath,
+          keyPath: fixtureKeyPath,
+          listenPort: localOIDCPort,
+          clientID: process.env.OIDC_CLIENT_ID ?? "ovumcy-e2e",
+          clientSecret: process.env.OIDC_CLIENT_SECRET ?? "ovumcy-e2e-secret",
+          redirectURL: process.env.OIDC_REDIRECT_URL ?? `${baseURL}/auth/oidc/callback`,
+          issuerURL: localOIDCIssuer,
+          testEmail: process.env.OIDC_TEST_PROVIDER_EMAIL ?? "oidc-browser@example.com",
+          testSubject: process.env.OIDC_TEST_PROVIDER_SUB ?? "oidc-browser-user",
+          testName: process.env.OIDC_TEST_PROVIDER_NAME ?? "OIDC Browser User",
+          emailVerified:
+            String(process.env.OIDC_TEST_PROVIDER_EMAIL_VERIFIED ?? "true").trim().toLowerCase() !==
+            "false",
+        })
+      : null;
 
   const appEnv = {
     ...process.env,
@@ -429,10 +480,37 @@ async function main() {
     PORT: String(appPort),
     TZ: process.env.TZ ?? "UTC",
     DEFAULT_LANGUAGE: process.env.DEFAULT_LANGUAGE ?? "en",
-    COOKIE_SECURE: process.env.COOKIE_SECURE ?? "false",
+    COOKIE_SECURE: process.env.COOKIE_SECURE ?? (useHTTPSProxy ? "true" : "false"),
     RATE_LIMIT_LOGIN_MAX: process.env.RATE_LIMIT_LOGIN_MAX ?? "500",
     RATE_LIMIT_FORGOT_PASSWORD_MAX: process.env.RATE_LIMIT_FORGOT_PASSWORD_MAX ?? "500",
     RATE_LIMIT_API_MAX: process.env.RATE_LIMIT_API_MAX ?? "5000",
+    OIDC_ENABLED: process.env.OIDC_ENABLED ?? (localOIDCProviderEnabled ? "true" : "false"),
+    OIDC_ISSUER_URL: process.env.OIDC_ISSUER_URL ?? localOIDCIssuer,
+    OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID ?? (localOIDCProviderEnabled ? "ovumcy-e2e" : ""),
+    OIDC_CLIENT_SECRET:
+      process.env.OIDC_CLIENT_SECRET ?? (localOIDCProviderEnabled ? "ovumcy-e2e-secret" : ""),
+    OIDC_REDIRECT_URL:
+      process.env.OIDC_REDIRECT_URL ??
+      (localOIDCProviderEnabled ? `${baseURL}/auth/oidc/callback` : ""),
+    OIDC_CA_FILE: process.env.OIDC_CA_FILE ?? (localOIDCProviderEnabled ? fixtureCertPath : ""),
+    OIDC_POST_LOGOUT_REDIRECT_URL:
+      process.env.OIDC_POST_LOGOUT_REDIRECT_URL ??
+      (localOIDCProviderEnabled ? `${baseURL}/login` : ""),
+    SSL_CERT_FILE: process.env.SSL_CERT_FILE ?? (localOIDCProviderEnabled ? fixtureCertPath : ""),
+  };
+  const playwrightEnv = {
+    ...process.env,
+    PLAYWRIGHT_BASE_URL: baseURL,
+    PLAYWRIGHT_IGNORE_HTTPS_ERRORS: useHTTPSProxy || localOIDCProviderEnabled ? "true" : "false",
+    COOKIE_SECURE: appEnv.COOKIE_SECURE,
+    OIDC_ENABLED: appEnv.OIDC_ENABLED,
+    OIDC_ISSUER_URL: appEnv.OIDC_ISSUER_URL,
+    OIDC_CLIENT_ID: appEnv.OIDC_CLIENT_ID,
+    OIDC_REDIRECT_URL: appEnv.OIDC_REDIRECT_URL,
+    OIDC_CA_FILE: appEnv.OIDC_CA_FILE,
+    OIDC_LOGIN_MODE: process.env.OIDC_LOGIN_MODE ?? "hybrid",
+    OIDC_AUTO_PROVISION: process.env.OIDC_AUTO_PROVISION ?? "false",
+    OIDC_POST_LOGOUT_REDIRECT_URL: appEnv.OIDC_POST_LOGOUT_REDIRECT_URL,
   };
 
   const appArgs = ["run", "./cmd/ovumcy"];
@@ -445,7 +523,7 @@ async function main() {
   appProcess.stderr.pipe(appLogStream);
 
   try {
-    await waitForServer(`${baseURL}/login`, appProcess, RUN_TIMEOUT_MS);
+    await waitForServer(`${appURL}/login`, appProcess, RUN_TIMEOUT_MS);
 
     const playwrightArgs = [playwrightCLIPath, "test"];
     if (workerOverride !== null && !hasWorkersArg(passthrough)) {
@@ -455,10 +533,7 @@ async function main() {
 
     const result = await spawnAndWait(process.execPath, playwrightArgs, {
       cwd: repoRoot,
-      env: {
-        ...process.env,
-        PLAYWRIGHT_BASE_URL: baseURL,
-      },
+      env: playwrightEnv,
       stdio: "inherit",
     });
 
@@ -471,6 +546,12 @@ async function main() {
     appProcess.stderr.unpipe(appLogStream);
     appLogStream.end();
     await finished(appLogStream);
+    if (localOIDCProvider) {
+      await localOIDCProvider.close().catch(() => {});
+    }
+    if (httpsProxy) {
+      await httpsProxy.close().catch(() => {});
+    }
     if (postgresRuntime?.containerID) {
       await runDockerCapture(["rm", "-f", postgresRuntime.containerID]).catch(() => {});
     }

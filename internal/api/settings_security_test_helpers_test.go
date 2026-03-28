@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/ovumcy/ovumcy-web/internal/models"
@@ -28,6 +29,45 @@ func newSettingsSecurityTestContext(t *testing.T, email string) settingsSecurity
 	app, database := newOnboardingTestAppWithCSRF(t)
 	user := createOnboardingTestUser(t, database, email, "StrongPass1", true)
 	authCookie := loginAndExtractAuthCookieWithCSRF(t, app, user.Email, "StrongPass1")
+	csrfCookie, csrfToken := loadSettingsCSRFContext(t, app, authCookie)
+
+	return settingsSecurityTestContext{
+		app:        app,
+		database:   database,
+		user:       user,
+		authCookie: authCookie,
+		csrfCookie: csrfCookie,
+		csrfToken:  csrfToken,
+	}
+}
+
+func newOIDCOnlySettingsSecurityTestContext(t *testing.T, email string) settingsSecurityTestContext {
+	t.Helper()
+
+	app, database := newOnboardingTestAppWithCSRF(t)
+	user := models.User{
+		Email:               strings.ToLower(strings.TrimSpace(email)),
+		LocalAuthEnabled:    false,
+		Role:                models.RoleOwner,
+		OnboardingCompleted: true,
+		AuthSessionVersion:  1,
+		CycleLength:         28,
+		PeriodLength:        5,
+		AutoPeriodFill:      true,
+		CreatedAt:           time.Now().UTC(),
+	}
+	if err := database.Create(&user).Error; err != nil {
+		t.Fatalf("create oidc-only user: %v", err)
+	}
+	var persisted models.User
+	if err := database.First(&persisted, user.ID).Error; err != nil {
+		t.Fatalf("reload oidc-only user: %v", err)
+	}
+	if persisted.LocalAuthEnabled {
+		t.Fatal("expected oidc-only test user to persist with local auth disabled")
+	}
+
+	authCookie := issueAuthCookieForUser(t, user)
 	csrfCookie, csrfToken := loadSettingsCSRFContext(t, app, authCookie)
 
 	return settingsSecurityTestContext{

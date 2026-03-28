@@ -8,6 +8,15 @@ import (
 )
 
 func (handler *Handler) ForgotPassword(c *fiber.Ctx) error {
+	if !handler.localPublicAuthEnabled() {
+		spec := authLocalRecoveryDisabledErrorSpec()
+		handler.logSecurityError(c, "auth.recovery_start", spec)
+		if acceptsJSON(c) || isHTMX(c) {
+			return handler.respondMappedError(c, spec)
+		}
+		handler.setFlashCookie(c, FlashPayload{AuthError: spec.Key})
+		return c.Redirect("/login", fiber.StatusSeeOther)
+	}
 	now := time.Now().In(handler.location)
 	input, parseError := parseForgotPasswordInput(c)
 	if parseError != "" {
@@ -94,6 +103,7 @@ func (handler *Handler) ResetPassword(c *fiber.Ctx) error {
 		handler.logSecurityError(c, "auth.reset_password", spec)
 		return handler.respondMappedError(c, spec)
 	}
+	handler.clearOIDCLogoutTransportCookies(c)
 	handler.clearResetPasswordCookie(c)
 	handler.logSecurityEvent(c, "auth.reset_password", "success")
 

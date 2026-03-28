@@ -364,6 +364,7 @@
       </section>
 
       <section id="settings-change-password" class="journal-panel settings-account-block space-y-4">
+        {{if .CurrentUser.LocalAuthEnabled}}
         <div>
           <h3 class="field-label">{{t .Messages "settings.change_password.title"}}</h3>
           <p class="journal-muted mt-1 text-sm">{{t .Messages "settings.change_password.subtitle"}}</p>
@@ -415,6 +416,52 @@
             <div id="settings-change-password-status" class="save-status text-sm" data-success-toast="true" aria-live="polite"></div>
           </div>
         </form>
+        {{else}}
+        <div>
+          <h3 class="field-label">{{t .Messages "settings.local_password.title"}}</h3>
+          <p class="journal-muted mt-1 text-sm">{{t .Messages "settings.local_password.subtitle"}}</p>
+        </div>
+
+        <form
+          id="settings-change-password-form"
+          action="/api/settings/change-password"
+          method="post"
+          hx-post="/api/settings/change-password"
+          hx-target="#settings-change-password-status"
+          hx-swap="innerHTML"
+          class="space-y-4"
+          data-settings-local-password-form
+          novalidate
+          data-required-message="{{t .Messages "validation.required"}}"
+          data-password-mismatch-message="{{t .Messages "auth.error.password_mismatch"}}"
+          data-weak-password-message="{{t .Messages "auth.password_requirements"}}"
+          data-save-feedback>
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          {{template "password_username_context_field" (dict "Value" .CurrentUser.Email)}}
+
+          {{template "password_toggle_field" (dict
+            "Messages" .Messages
+            "LabelKey" "auth.new_password"
+            "FieldID" "settings-new-password"
+            "FieldName" "new_password"
+            "Autocomplete" "new-password"
+            "Required" true)}}
+
+          {{template "password_toggle_field" (dict
+            "Messages" .Messages
+            "LabelKey" "auth.confirm_password"
+            "FieldID" "settings-confirm-password"
+            "FieldName" "confirm_password"
+            "Autocomplete" "new-password"
+            "Required" true)}}
+          {{template "password_requirements_checklist" (dict "Messages" .Messages)}}
+
+          <div class="settings-form-actions">
+            <button type="submit" class="btn-primary" data-save-button data-saving-label="{{t .Messages "common.saving"}}">{{t .Messages "settings.local_password.submit"}}</button>
+            <div id="settings-change-password-status" class="save-status text-sm" data-success-toast="true" aria-live="polite"></div>
+          </div>
+        </form>
+        {{end}}
       </section>
 
       <section class="journal-panel settings-account-block space-y-4">
@@ -428,6 +475,7 @@
           <p class="journal-muted mt-1 text-sm">{{t .Messages "settings.recovery_code.subtitle"}}</p>
         </div>
 
+        {{if .CurrentUser.LocalAuthEnabled}}
         <form
           action="/api/settings/regenerate-recovery-code"
           method="post"
@@ -436,6 +484,9 @@
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button type="submit" class="btn-secondary">{{t .Messages "settings.recovery_code.submit"}}</button>
         </form>
+        {{else}}
+        <p class="journal-muted text-sm" data-settings-recovery-code-unavailable>{{t .Messages "settings.local_password.recovery_unavailable"}}</p>
+        {{end}}
       </section>
     </div>
   </section>
@@ -552,6 +603,7 @@
     <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.danger_zone.subtitle"}}</p>
 
     {{if eq .CurrentUser.Role "owner"}}
+    {{if .CurrentUser.LocalAuthEnabled}}
     <div class="journal-panel danger-card-soft mt-5 space-y-4">
       <div>
         <h3 class="field-label">{{t .Messages "settings.clear_data.title"}}</h3>
@@ -582,8 +634,15 @@
         <div id="settings-clear-data-status" class="save-status text-sm"></div>
       </form>
     </div>
+    {{else}}
+    <div class="journal-panel danger-card-soft mt-5 space-y-3">
+      <h3 class="field-label">{{t .Messages "settings.clear_data.title"}}</h3>
+      <p class="journal-muted text-sm">{{t .Messages "settings.local_password.danger_hint"}}</p>
+    </div>
+    {{end}}
     {{end}}
 
+    {{if .CurrentUser.LocalAuthEnabled}}
     <div class="journal-panel danger-card-soft mt-5 space-y-4">
       <form
         hx-delete="/api/settings/delete-account"
@@ -607,6 +666,12 @@
         <div id="delete-account-feedback" class="save-status text-sm"></div>
       </form>
     </div>
+    {{else}}
+    <div class="journal-panel danger-card-soft mt-5 space-y-3">
+      <h3 class="field-label">{{t .Messages "settings.delete_account.title"}}</h3>
+      <p class="journal-muted text-sm">{{t .Messages "settings.local_password.required_before_sensitive_actions"}}</p>
+    </div>
+    {{end}}
   </section>
 </section>
 {{if eq .CurrentUser.Role "owner"}}

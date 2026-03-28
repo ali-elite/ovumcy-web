@@ -1,14 +1,40 @@
 import { expect, test } from '@playwright/test';
-import { expectNoSensitiveAuthParams } from './support/auth-helpers';
+import {
+  DEFAULT_STRONG_PASSWORD,
+  completeOnboardingIfPresent,
+  continueFromRecoveryCode,
+  expectDedicatedRecoveryPage,
+  expectInlineRegisterRecoveryStep,
+  expectNoSensitiveAuthParams,
+  registerOwnerViaUI,
+  readRecoveryCode,
+} from './support/auth-helpers';
+
+const oidcEnabled = process.env.OIDC_ENABLED === 'true';
+const localOIDCProvider = process.env.E2E_OIDC_PROVIDER === 'local';
+const loginMode = process.env.OIDC_LOGIN_MODE ?? 'hybrid';
+const autoProvisionEnabled = process.env.OIDC_AUTO_PROVISION === 'true';
+const providerEmail = process.env.OIDC_TEST_PROVIDER_EMAIL ?? 'oidc-browser@example.com';
+const providerIssuer = process.env.OIDC_ISSUER_URL ?? '';
 
 test.describe('Auth: OIDC login entry', () => {
-  test.skip(process.env.OIDC_ENABLED !== 'true', 'Requires OIDC_ENABLED=true');
+  test.use({ ignoreHTTPSErrors: true });
+  test.skip(!oidcEnabled, 'Requires OIDC_ENABLED=true');
 
   test('shows SSO CTA and falls back to login with safe error UX', async ({ page }) => {
+    test.skip(localOIDCProvider, 'Focused on the unavailable-provider browser lane');
+
     await page.goto('/login');
     await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
 
-    await expect(page.locator('#login-form')).toBeVisible();
+    if (loginMode === 'hybrid') {
+      await expect(page.locator('#login-form')).toBeVisible();
+    } else {
+      await expect(page.locator('#login-form')).toHaveCount(0);
+      await expect(page.locator('[data-auth-signup-cta]')).toHaveCount(0);
+      await expect(page.locator('a[href="/forgot-password"]')).toHaveCount(0);
+    }
+
     const ssoCTA = page.locator('[data-auth-sso-cta]');
     await expect(ssoCTA).toBeVisible();
     await expect(ssoCTA).toContainText('Sign in with SSO');
@@ -20,6 +46,101 @@ test.describe('Auth: OIDC login entry', () => {
     await expect(page.locator('[data-auth-server-error]')).toContainText(
       'SSO sign-in is currently unavailable.'
     );
+
+    if (loginMode === 'hybrid') {
+      await expect(page.locator('#login-form')).toBeVisible();
+    } else {
+      await expect(page.locator('#login-form')).toHaveCount(0);
+    }
+  });
+
+  test('hybrid mode keeps local auth visible and signs in via verified email match', async ({
+    page,
+  }) => {
+    test.skip(!localOIDCProvider || loginMode !== 'hybrid', 'Requires local OIDC provider in hybrid mode');
+
+    const credentials = { email: providerEmail, password: DEFAULT_STRONG_PASSWORD };
+
+    await page.goto('/login');
+    await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
     await expect(page.locator('#login-form')).toBeVisible();
+    await expect(page.locator('[data-auth-signup-cta]')).toBeVisible();
+    await expect(page.locator('a[href="/forgot-password"]')).toBeVisible();
+    await expect(page.locator('[data-auth-sso-cta]')).toBeVisible();
+
+    await registerOwnerViaUI(page, credentials);
+    await expectInlineRegisterRecoveryStep(page);
+    await continueFromRecoveryCode(page);
+    await completeOnboardingIfPresent(page);
+    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
+
+    await page.locator('.nav-logout-form button[type="submit"]').click();
+    await expect(page.locator('#confirm-modal')).toBeVisible();
+    await page.locator('#confirm-modal-accept').click();
+    await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
+    expectNoSensitiveAuthParams(page.url());
+
+    await page.locator('[data-auth-sso-cta]').click();
+    await completeOnboardingIfPresent(page);
+    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
+    await expect(page.locator('[data-nav-account-actions]')).toBeVisible();
+  });
+
+  test('oidc_only auto-provision enables a local password and provider logout', async ({
+    page,
+  }) => {
+    test.skip(
+      !localOIDCProvider || loginMode !== 'oidc_only' || !autoProvisionEnabled,
+      'Requires local OIDC provider, oidc_only mode, and auto-provision',
+    );
+
+    let providerLogoutSeen = false;
+    page.on('request', (request) => {
+      if (providerIssuer && request.url().startsWith(`${providerIssuer}/logout`)) {
+        providerLogoutSeen = true;
+      }
+    });
+
+    await page.goto('/login');
+    await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
+    await expect(page.locator('#login-form')).toHaveCount(0);
+    await expect(page.locator('[data-auth-signup-cta]')).toHaveCount(0);
+    await expect(page.locator('a[href="/forgot-password"]')).toHaveCount(0);
+    await expect(page.locator('[data-auth-sso-cta]')).toBeVisible();
+
+    await page.locator('[data-auth-sso-cta]').click();
+    await completeOnboardingIfPresent(page);
+    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
+
+    await page.goto('/settings');
+    await expect(page).toHaveURL(/\/settings(?:\?.*)?$/);
+    await expect(page.locator('[data-settings-local-password-form]')).toBeVisible();
+    await expect(page.locator('[data-settings-recovery-code-unavailable]')).toBeVisible();
+    await expect(page.locator('form[action="/api/settings/regenerate-recovery-code"]')).toHaveCount(0);
+
+    const localPassword = 'LocalStrongPass2';
+    await page.locator('#settings-new-password').fill(localPassword);
+    await page.locator('#settings-confirm-password').fill(localPassword);
+    await page.locator('[data-settings-local-password-form] button[type="submit"]').click();
+
+    await expectDedicatedRecoveryPage(page);
+    await readRecoveryCode(page);
+    await page.locator('#recovery-code-saved').check();
+    await page.locator('form[action="/settings"] button[type="submit"]').click();
+
+    await expect(page).toHaveURL(/\/settings(?:\?.*)?$/);
+    await expect(page.locator('[data-settings-local-password-form]')).toHaveCount(0);
+    await expect(page.locator('form[action="/api/settings/regenerate-recovery-code"]')).toHaveCount(1);
+    await expect(page.locator('form[action="/api/settings/clear-data"]')).toHaveCount(1);
+    await expect(page.locator('form[hx-delete="/api/settings/delete-account"]')).toHaveCount(1);
+
+    await page.locator('.nav-logout-form button[type="submit"]').click();
+    await expect(page.locator('#confirm-modal')).toBeVisible();
+    await page.locator('#confirm-modal-accept').click();
+    await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
+    expectNoSensitiveAuthParams(page.url());
+    await expect(page.locator('[data-auth-sso-cta]')).toBeVisible();
+    await expect(page.locator('#login-form')).toHaveCount(0);
+    await expect.poll(() => providerLogoutSeen).toBe(true);
   });
 });

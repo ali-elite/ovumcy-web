@@ -11,6 +11,7 @@ var ErrRegistrationSeedSymptoms = errors.New("registration seed symptoms failed"
 
 type RegistrationAuthService interface {
 	RegisterOwner(email string, rawPassword string, confirmPassword string, createdAt time.Time) (models.User, string, error)
+	BuildOIDCOwnerUser(email string, createdAt time.Time) (models.User, error)
 }
 
 type RegistrationPersistence interface {
@@ -56,6 +57,29 @@ func (service *RegistrationService) RegisterOwnerAccount(email string, rawPasswo
 	}
 
 	return user, recoveryCode, nil
+}
+
+func (service *RegistrationService) AutoProvisionOwnerAccount(email string, createdAt time.Time) (models.User, error) {
+	if !service.RegistrationOpen() {
+		return models.User{}, ErrAuthRegistrationDisabled
+	}
+
+	user, err := service.auth.BuildOIDCOwnerUser(email, createdAt)
+	if err != nil {
+		return models.User{}, ErrAuthRegisterFailed
+	}
+
+	if err := service.store.CreateUserWithSymptoms(&user, BuiltinSymptomRecordsForUser(0)); err != nil {
+		if isRegistrationUniqueConstraintError(err) {
+			return models.User{}, ErrAuthEmailExists
+		}
+		if isRegistrationSymptomSeedError(err) {
+			return models.User{}, ErrRegistrationSeedSymptoms
+		}
+		return models.User{}, ErrAuthRegisterFailed
+	}
+
+	return user, nil
 }
 
 type registrationUniqueConstraintError interface {

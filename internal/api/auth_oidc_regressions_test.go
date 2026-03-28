@@ -16,6 +16,7 @@ import (
 
 type stubOIDCWorkflowService struct {
 	enabled               bool
+	localPublicAuthEnabled bool
 	authURL               string
 	startErr              error
 	result                services.OIDCLoginResult
@@ -32,6 +33,16 @@ type stubOIDCWorkflowService struct {
 
 func (stub *stubOIDCWorkflowService) Enabled() bool {
 	return stub.enabled
+}
+
+func (stub *stubOIDCWorkflowService) LocalPublicAuthEnabled() bool {
+	if !stub.enabled {
+		return true
+	}
+	if !stub.localPublicAuthEnabled {
+		return false
+	}
+	return true
 }
 
 func (stub *stubOIDCWorkflowService) StartAuth(ctx context.Context, state string, nonce string, codeVerifier string) (string, error) {
@@ -375,7 +386,10 @@ func TestOIDCCallbackResetRequiredRedirectsToResetPassword(t *testing.T) {
 }
 
 func newStubOIDCWorkflowService(enabled bool) *stubOIDCWorkflowService {
-	return &stubOIDCWorkflowService{enabled: enabled}
+	return &stubOIDCWorkflowService{
+		enabled:                enabled,
+		localPublicAuthEnabled: true,
+	}
 }
 
 func assertOIDCDeadline(t *testing.T, deadline time.Time) {

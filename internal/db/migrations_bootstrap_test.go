@@ -47,6 +47,7 @@ func assertMigratedLegacyUserDefaults(t *testing.T, database *gorm.DB) {
 	var migratedUser struct {
 		Email               string `gorm:"column:email"`
 		DisplayName         string `gorm:"column:display_name"`
+		LocalAuthEnabled    bool   `gorm:"column:local_auth_enabled"`
 		AuthSessionVersion  int    `gorm:"column:auth_session_version"`
 		OnboardingCompleted bool   `gorm:"column:onboarding_completed"`
 		CycleLength         int    `gorm:"column:cycle_length"`
@@ -64,6 +65,7 @@ func assertMigratedLegacyUserDefaults(t *testing.T, database *gorm.DB) {
 		Select(
 			"email",
 			"display_name",
+			"local_auth_enabled",
 			"auth_session_version",
 			"onboarding_completed",
 			"cycle_length",
@@ -83,6 +85,9 @@ func assertMigratedLegacyUserDefaults(t *testing.T, database *gorm.DB) {
 
 	if migratedUser.DisplayName != "" {
 		t.Fatalf("expected display_name default to be empty, got %q", migratedUser.DisplayName)
+	}
+	if !migratedUser.LocalAuthEnabled {
+		t.Fatal("expected local_auth_enabled default to be true")
 	}
 	if migratedUser.AuthSessionVersion != 1 {
 		t.Fatalf("expected auth_session_version default to be 1, got %d", migratedUser.AuthSessionVersion)
@@ -287,6 +292,7 @@ func assertUsersSchemaReconciled(t *testing.T, database *gorm.DB) {
 		"luteal_phase",
 		"auto_period_fill",
 		"auth_session_version",
+		"local_auth_enabled",
 		"irregular_cycle",
 		"track_bbt",
 		"temperature_unit",

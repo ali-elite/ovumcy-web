@@ -30,6 +30,11 @@ func TestSettingsGeneralErrorSpecs(t *testing.T) {
 			want: settingsFormErrorSpec(fiber.StatusUnauthorized, APIErrorCategoryUnauthorized, "invalid password"),
 		},
 		{
+			name: "local password required",
+			got:  settingsLocalPasswordRequiredErrorSpec(),
+			want: settingsFormErrorSpec(fiber.StatusForbidden, APIErrorCategoryForbidden, "local password required"),
+		},
+		{
 			name: "cycle update",
 			got:  settingsCycleUpdateErrorSpec(),
 			want: globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to update cycle settings"),
@@ -114,6 +119,11 @@ func TestMapSettingsDeleteAccountPasswordError(t *testing.T) {
 			name: "invalid password",
 			err:  services.ErrSettingsPasswordInvalid,
 			want: settingsInvalidPasswordErrorSpec(),
+		},
+		{
+			name: "local password required",
+			err:  services.ErrSettingsLocalPasswordNotSet,
+			want: settingsLocalPasswordRequiredErrorSpec(),
 		},
 		{
 			name: "unknown",

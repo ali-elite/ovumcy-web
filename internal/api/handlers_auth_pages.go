@@ -19,11 +19,21 @@ func (handler *Handler) ShowLoginPage(c *fiber.Ctx) error {
 	}
 
 	flash := handler.popFlashCookie(c)
-	data := buildLoginPageData(currentMessages(c), flash, needsSetup, handler.registrationService.RegistrationOpen(), handler.oidcService.Enabled())
+	data := buildLoginPageData(
+		currentMessages(c),
+		flash,
+		needsSetup,
+		handler.registrationService.RegistrationOpen(),
+		handler.oidcEnabled(),
+		handler.localPublicAuthEnabled(),
+	)
 	return handler.render(c, "login", data)
 }
 
 func (handler *Handler) ShowRegisterPage(c *fiber.Ctx) error {
+	if !handler.localPublicAuthEnabled() {
+		return c.Redirect("/login", fiber.StatusSeeOther)
+	}
 	if user := handler.optionalAuthenticatedUser(c); user != nil {
 		recoveryState := handler.readRecoveryCodeDisplayState(c, user.ID, services.PostLoginRedirectPath(user))
 		if recoveryState.RecoveryCode != "" && recoveryState.Surface == recoveryCodeSurfaceInlineRegister {
@@ -79,6 +89,9 @@ func (handler *Handler) ShowRecoveryCodePage(c *fiber.Ctx) error {
 }
 
 func (handler *Handler) ShowForgotPasswordPage(c *fiber.Ctx) error {
+	if !handler.localPublicAuthEnabled() {
+		return c.Redirect("/login", fiber.StatusSeeOther)
+	}
 	flash := handler.popFlashCookie(c)
 	data := buildForgotPasswordPageData(currentMessages(c), flash)
 	return handler.render(c, "forgot_password", data)

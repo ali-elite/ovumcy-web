@@ -53,6 +53,7 @@ func (handler *Handler) clearAuthCookie(c *fiber.Ctx) {
 
 func (handler *Handler) clearAuthRelatedCookies(c *fiber.Ctx) {
 	handler.clearAuthCookie(c)
+	handler.clearOIDCLogoutTransportCookies(c)
 	handler.clearRecoveryCodePageCookie(c)
 	handler.clearResetPasswordCookie(c)
 }

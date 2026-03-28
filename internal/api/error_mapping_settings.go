@@ -21,6 +21,10 @@ func settingsInvalidPasswordErrorSpec() APIErrorSpec {
 	return settingsFormErrorSpec(fiber.StatusUnauthorized, APIErrorCategoryUnauthorized, "invalid password")
 }
 
+func settingsLocalPasswordRequiredErrorSpec() APIErrorSpec {
+	return settingsFormErrorSpec(fiber.StatusForbidden, APIErrorCategoryForbidden, "local password required")
+}
+
 func settingsCycleUpdateErrorSpec() APIErrorSpec {
 	return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to update cycle settings")
 }
@@ -62,6 +66,8 @@ func mapSettingsDeleteAccountPasswordError(err error) APIErrorSpec {
 		return settingsMissingPasswordErrorSpec()
 	case services.SettingsDeleteAccountPasswordErrorInvalid:
 		return settingsInvalidPasswordErrorSpec()
+	case services.SettingsDeleteAccountPasswordErrorLocalPasswordNotSet:
+		return settingsLocalPasswordRequiredErrorSpec()
 	default:
 		return settingsValidatePasswordErrorSpec()
 	}

@@ -22,6 +22,7 @@ type User struct {
 	Email               string     `gorm:"uniqueIndex;not null"`
 	PasswordHash        string     `gorm:"not null"`
 	RecoveryCodeHash    string     `gorm:"column:recovery_code_hash"`
+	LocalAuthEnabled    bool       `gorm:"column:local_auth_enabled;not null"`
 	AuthSessionVersion  int        `gorm:"column:auth_session_version;not null;default:1"`
 	MustChangePassword  bool       `gorm:"column:must_change_password;not null;default:false"`
 	Role                string     `gorm:"not null;default:owner"`

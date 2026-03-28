@@ -12,6 +12,7 @@
     <div class="status-error mt-5" data-auth-server-error>{{t .Messages .ErrorKey}}</div>
     {{end}}
 
+    {{if .LocalPublicAuthEnabled}}
     <form
       id="login-form"
       action="/api/auth/login"
@@ -45,13 +46,15 @@
       <div id="login-client-status" class="save-status text-sm" aria-live="polite"></div>
       <button type="submit" class="btn-primary w-full">{{t .Messages "auth.login"}}</button>
     </form>
+    {{end}}
 
     {{if .OIDCEnabled}}
-    <div class="mt-4">
+    <div class="{{if .LocalPublicAuthEnabled}}mt-4{{else}}mt-5{{end}}">
       <a href="/auth/oidc/start" class="btn-secondary w-full justify-center" data-auth-sso-cta>{{t .Messages "auth.login_with_sso"}}</a>
     </div>
     {{end}}
 
+    {{if .LocalPublicAuthEnabled}}
     <div class="mt-5 space-y-2 text-sm">
       {{if .RegistrationOpen}}
       <p class="journal-muted">
@@ -63,6 +66,7 @@
         <a href="/forgot-password" class="inline-link">{{t .Messages "auth.forgot_password"}}</a>
       </p>
     </div>
+    {{end}}
   </div>
 </section>
 {{end}}

@@ -120,7 +120,7 @@ The privacy-safe hero demo asset pack, including the mobile install prompt captu
 - Calendar and statistics views for longer-term pattern spotting.
 - Mobile home-screen install support on the current `main` branch.
 - CSV, JSON, and PDF export for backup, portability, and personal review.
-- Optional OIDC sign-in in hybrid mode for existing local accounts.
+- Optional OIDC sign-in in hybrid or SSO-only mode, with guarded owner auto-provision and provider logout support.
 - English, Russian, Spanish, French, and German localization.
 - Self-hosted deployment with Docker or a single Go binary.
 
@@ -266,13 +266,18 @@ TRUST_PROXY_ENABLED=false
 PROXY_HEADER=X-Forwarded-For
 TRUSTED_PROXIES=127.0.0.1,::1
 
-# Optional OIDC sign-in for existing local accounts only
+# Optional OIDC sign-in / SSO
 # OIDC_ENABLED=true
 # OIDC_ISSUER_URL=https://id.example.com
 # OIDC_CLIENT_ID=ovumcy
 # OIDC_CLIENT_SECRET=replace_with_a_client_secret
 # OIDC_REDIRECT_URL=https://ovumcy.example.com/auth/oidc/callback
+# OIDC_CA_FILE=/run/certs/oidc-provider-ca.pem
+# OIDC_LOGIN_MODE=hybrid
 # OIDC_AUTO_PROVISION=false
+# OIDC_AUTO_PROVISION_ALLOWED_DOMAINS=
+# OIDC_LOGOUT_MODE=local
+# OIDC_POST_LOGOUT_REDIRECT_URL=https://ovumcy.example.com/login
 ```
 
 Important notes:
@@ -284,10 +289,13 @@ Important notes:
 - `REGISTRATION_MODE` supports `open` and `closed`; use `closed` for pre-provisioned or otherwise operator-restricted internet-facing instances where self-service sign-up must stay disabled.
 - `HOST_BIND_ADDRESS=127.0.0.1` keeps the base compose path local/private by default. Only change it deliberately for a specific private-network bind.
 - Set `COOKIE_SECURE=true` when serving over HTTPS.
-- OIDC sign-in is optional, currently supports existing local accounts only, and requires HTTPS plus `COOKIE_SECURE=true`.
-- The first OIDC sign-in matches an existing local account by verified email, then stores the `(issuer, subject)` identity link for future sign-ins.
-- Keep `OIDC_AUTO_PROVISION=false`; auto-provisioning is not supported yet.
-- Provider-specific setup steps, callback troubleshooting, and example recipes for Keycloak, Authentik, Authelia, and ZITADEL live in [docs/oidc.md](docs/oidc.md).
+- OIDC sign-in is optional, supports `hybrid` and `oidc_only` login modes, and requires HTTPS plus `COOKIE_SECURE=true`.
+- `OIDC_CA_FILE` is optional and lets Ovumcy trust a readable PEM CA bundle for private or internal identity-provider certificates.
+- The first OIDC sign-in uses an existing `(issuer, subject)` link when present, otherwise it falls back to a verified email match.
+- `OIDC_AUTO_PROVISION=true` is supported only with `REGISTRATION_MODE=open`; it creates `owner` accounts and can be restricted with `OIDC_AUTO_PROVISION_ALLOWED_DOMAINS`.
+- Auto-provisioned users start without a local password. They can set one later in `Settings` to enable recovery codes and password-confirmed danger-zone actions.
+- `OIDC_LOGOUT_MODE` controls whether logout stays local or redirects to the provider when discovery metadata includes `end_session_endpoint`.
+- [docs/oidc.md](docs/oidc.md) now includes a provider compatibility matrix: live-verified support for Keycloak, authentik, and Authelia; current hardened-model exclusions for Dex and Pocket ID; and ZITADEL deployment requirements for browser sign-in.
 - Enable `TRUST_PROXY_ENABLED` only when running behind a trusted reverse proxy.
 - SQLite is the supported baseline default; Postgres is an advanced self-hosted path that requires `DATABASE_URL`.
 - Keep database storage persistent, whether that is a SQLite volume/bind mount or operator-managed Postgres storage.

@@ -9,6 +9,15 @@ import (
 )
 
 func (handler *Handler) Register(c *fiber.Ctx) error {
+	if !handler.localPublicAuthEnabled() {
+		spec := authLocalSignInDisabledErrorSpec()
+		handler.logSecurityError(c, "auth.register", spec)
+		if acceptsJSON(c) || isHTMX(c) {
+			return handler.respondMappedError(c, spec)
+		}
+		handler.setFlashCookie(c, FlashPayload{AuthError: spec.Key})
+		return c.Redirect("/login", fiber.StatusSeeOther)
+	}
 	credentials, err := parseCredentials(c)
 	if err != nil {
 		spec := authInvalidInputErrorSpec()
@@ -33,12 +42,22 @@ func (handler *Handler) Register(c *fiber.Ctx) error {
 		handler.logSecurityError(c, "auth.register", spec)
 		return handler.respondMappedError(c, spec)
 	}
+	handler.clearOIDCLogoutTransportCookies(c)
 
 	handler.logSecurityEvent(c, "auth.register", "success")
 	return handler.renderRegisterInlineRecoveryResponse(c, &user, recoveryCode, fiber.StatusCreated)
 }
 
 func (handler *Handler) Login(c *fiber.Ctx) error {
+	if !handler.localPublicAuthEnabled() {
+		spec := authLocalSignInDisabledErrorSpec()
+		handler.logSecurityError(c, "auth.login", spec)
+		if acceptsJSON(c) || isHTMX(c) {
+			return handler.respondMappedError(c, spec)
+		}
+		handler.setFlashCookie(c, FlashPayload{AuthError: spec.Key})
+		return c.Redirect("/login", fiber.StatusSeeOther)
+	}
 	credentials, err := parseCredentials(c)
 	if err != nil {
 		spec := authInvalidInputErrorSpec()
@@ -78,6 +97,7 @@ func (handler *Handler) Login(c *fiber.Ctx) error {
 		handler.logSecurityError(c, "auth.login", spec)
 		return handler.respondMappedError(c, spec)
 	}
+	handler.clearOIDCLogoutTransportCookies(c)
 
 	handler.logSecurityEvent(
 		c,
@@ -101,8 +121,25 @@ func (handler *Handler) Logout(c *fiber.Ctx) error {
 		handler.logSecurityError(c, "auth.logout", spec)
 		return handler.respondMappedError(c, spec)
 	}
+	logoutTransportPath := ""
+	logoutPayload := handler.readOIDCLogoutCookie(c)
 	handler.clearAuthRelatedCookies(c)
+	if logoutPayload.valid() {
+		if err := handler.setOIDCLogoutBridgeCookie(c, logoutPayload, time.Now()); err == nil {
+			logoutTransportPath = oidcLogoutBridgePath
+		}
+	}
 	handler.logSecurityEvent(c, "auth.logout", "success")
+	if logoutTransportPath != "" {
+		if isHTMX(c) {
+			c.Set("HX-Redirect", logoutTransportPath)
+			return c.SendStatus(fiber.StatusOK)
+		}
+		if acceptsJSON(c) {
+			return c.JSON(fiber.Map{"ok": true, "redirect": logoutTransportPath})
+		}
+		return c.Redirect(logoutTransportPath, fiber.StatusSeeOther)
+	}
 	if isHTMX(c) {
 		c.Set("HX-Redirect", "/login")
 		return c.SendStatus(fiber.StatusOK)

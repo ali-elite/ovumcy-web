@@ -172,6 +172,7 @@ type stubSettingsUserRepo struct {
 	updatePasswordCalled      bool
 	updatedUserID             uint
 	updatedPasswordHash       string
+	updatedRecoveryHash       string
 	updatedMustChangePassword bool
 	updatePasswordErr         error
 }
@@ -192,6 +193,15 @@ func (stub *stubSettingsUserRepo) UpdatePasswordAndRevokeSessions(userID uint, p
 	return stub.updatePasswordErr
 }
 
+func (stub *stubSettingsUserRepo) UpdatePasswordRecoveryCodeAndRevokeSessions(userID uint, passwordHash string, recoveryHash string, mustChangePassword bool) error {
+	stub.updatePasswordCalled = true
+	stub.updatedUserID = userID
+	stub.updatedPasswordHash = passwordHash
+	stub.updatedRecoveryHash = recoveryHash
+	stub.updatedMustChangePassword = mustChangePassword
+	return stub.updatePasswordErr
+}
+
 func (stub *stubSettingsUserRepo) UpdateByID(uint, map[string]any) error {
 	return nil
 }
@@ -206,4 +216,34 @@ func (stub *stubSettingsUserRepo) ClearAllDataAndResetSettings(uint) error {
 
 func (stub *stubSettingsUserRepo) DeleteAccountAndRelatedData(uint) error {
 	return nil
+}
+
+func TestEnableLocalPasswordIssuesRecoveryCode(t *testing.T) {
+	repo := &stubSettingsUserRepo{}
+	service := NewSettingsService(repo)
+	user := &models.User{
+		ID:                 77,
+		LocalAuthEnabled:   false,
+		AuthSessionVersion: 5,
+	}
+
+	recoveryCode, err := service.EnableLocalPassword(user, "EvenStronger2", "EvenStronger2")
+	if err != nil {
+		t.Fatalf("EnableLocalPassword() unexpected error: %v", err)
+	}
+	if recoveryCode == "" {
+		t.Fatal("expected recovery code after enabling local password")
+	}
+	if !repo.updatePasswordCalled {
+		t.Fatal("expected password+recovery update")
+	}
+	if repo.updatedRecoveryHash == "" {
+		t.Fatal("expected persisted recovery hash")
+	}
+	if !user.LocalAuthEnabled {
+		t.Fatal("expected LocalAuthEnabled=true after enable flow")
+	}
+	if user.AuthSessionVersion != 6 {
+		t.Fatalf("expected auth session version to increment to 6, got %d", user.AuthSessionVersion)
+	}
 }

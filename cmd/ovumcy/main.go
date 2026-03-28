@@ -137,7 +137,7 @@ func loadRuntimeConfig(location *time.Location) (runtimeConfig, error) {
 	}
 
 	cookieSecure := getEnvBool("COOKIE_SECURE", false)
-	oidcConfig, err := resolveOIDCConfig(cookieSecure)
+	oidcConfig, err := resolveOIDCConfig(cookieSecure, registrationMode)
 	if err != nil {
 		return runtimeConfig{}, err
 	}
@@ -171,16 +171,21 @@ func resolveRegistrationMode() (services.RegistrationMode, error) {
 	return mode, nil
 }
 
-func resolveOIDCConfig(cookieSecure bool) (security.OIDCConfig, error) {
+func resolveOIDCConfig(cookieSecure bool, registrationMode services.RegistrationMode) (security.OIDCConfig, error) {
 	config := security.OIDCConfig{
-		Enabled:       getEnvBool("OIDC_ENABLED", false),
-		IssuerURL:     getEnv("OIDC_ISSUER_URL", ""),
-		ClientID:      getEnv("OIDC_CLIENT_ID", ""),
-		ClientSecret:  getEnv("OIDC_CLIENT_SECRET", ""),
-		RedirectURL:   getEnv("OIDC_REDIRECT_URL", ""),
-		AutoProvision: getEnvBool("OIDC_AUTO_PROVISION", false),
+		Enabled:                     getEnvBool("OIDC_ENABLED", false),
+		IssuerURL:                   getEnv("OIDC_ISSUER_URL", ""),
+		ClientID:                    getEnv("OIDC_CLIENT_ID", ""),
+		ClientSecret:                getEnv("OIDC_CLIENT_SECRET", ""),
+		RedirectURL:                 getEnv("OIDC_REDIRECT_URL", ""),
+		CAFile:                      getEnv("OIDC_CA_FILE", ""),
+		AutoProvision:               getEnvBool("OIDC_AUTO_PROVISION", false),
+		LoginMode:                   security.OIDCLoginMode(getEnv("OIDC_LOGIN_MODE", string(security.OIDCLoginModeHybrid))),
+		LogoutMode:                  security.OIDCLogoutMode(getEnv("OIDC_LOGOUT_MODE", string(security.OIDCLogoutModeLocal))),
+		PostLogoutRedirectURL:       getEnv("OIDC_POST_LOGOUT_REDIRECT_URL", ""),
+		AutoProvisionAllowedDomains: parseCSV(getEnv("OIDC_AUTO_PROVISION_ALLOWED_DOMAINS", "")),
 	}
-	if err := config.Validate(cookieSecure); err != nil {
+	if err := config.Validate(cookieSecure, registrationMode == services.RegistrationModeOpen); err != nil {
 		return security.OIDCConfig{}, err
 	}
 	return config, nil
@@ -242,6 +247,7 @@ func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager,
 		security.NewOIDCClient(oidcConfig),
 		repositories.OIDCIdentities,
 		repositories.Users,
+		registrationService,
 	)
 
 	return api.Dependencies{

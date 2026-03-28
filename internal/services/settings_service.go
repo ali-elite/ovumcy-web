@@ -12,12 +12,14 @@ import (
 var (
 	ErrSettingsPasswordMissing = errors.New("settings password missing")
 	ErrSettingsPasswordInvalid = errors.New("settings password invalid")
+	ErrSettingsLocalPasswordNotSet = errors.New("settings local password not set")
 )
 
 type SettingsUserRepository interface {
 	UpdateDisplayName(userID uint, displayName string) error
 	UpdateRecoveryCodeHash(userID uint, recoveryHash string) error
 	UpdatePasswordAndRevokeSessions(userID uint, passwordHash string, mustChangePassword bool) error
+	UpdatePasswordRecoveryCodeAndRevokeSessions(userID uint, passwordHash string, recoveryHash string, mustChangePassword bool) error
 	UpdateByID(userID uint, updates map[string]any) error
 	LoadSettingsByID(userID uint) (models.User, error)
 	ClearAllDataAndResetSettings(userID uint) error
@@ -53,6 +55,9 @@ func (service *SettingsService) UpdateRecoveryCodeHash(userID uint, recoveryHash
 }
 
 func (service *SettingsService) ValidateCurrentPassword(passwordHash string, rawPassword string) error {
+	if strings.TrimSpace(passwordHash) == "" {
+		return ErrSettingsLocalPasswordNotSet
+	}
 	password := strings.TrimSpace(rawPassword)
 	if password == "" {
 		return ErrSettingsPasswordMissing

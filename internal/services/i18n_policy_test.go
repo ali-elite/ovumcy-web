@@ -9,6 +9,15 @@ func TestAuthErrorTranslationKey(t *testing.T) {
 	if got := AuthErrorTranslationKey(" too_many_sso_attempts "); got != "auth.error.too_many_sso_attempts" {
 		t.Fatalf("expected normalized sso attempts key, got %q", got)
 	}
+	if got := AuthErrorTranslationKey(" local sign-in unavailable "); got != "auth.error.local_sign_in_unavailable" {
+		t.Fatalf("expected local sign-in unavailable key, got %q", got)
+	}
+	if got := AuthErrorTranslationKey(" local recovery unavailable "); got != "auth.error.local_recovery_unavailable" {
+		t.Fatalf("expected local recovery unavailable key, got %q", got)
+	}
+	if got := AuthErrorTranslationKey(" local password required "); got != "settings.error.local_password_required" {
+		t.Fatalf("expected local password required key, got %q", got)
+	}
 	if got := AuthErrorTranslationKey(" too many requests "); got != "common.error.too_many_requests" {
 		t.Fatalf("expected generic rate-limit key, got %q", got)
 	}

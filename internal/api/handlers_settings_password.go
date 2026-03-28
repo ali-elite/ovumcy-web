@@ -19,6 +19,24 @@ func (handler *Handler) ChangePassword(c *fiber.Ctx) error {
 		handler.logSecurityError(c, "auth.password_change", spec)
 		return handler.respondMappedError(c, spec)
 	}
+
+	if !user.LocalAuthEnabled {
+		recoveryCode, err := handler.settingsService.EnableLocalPassword(user, input.NewPassword, input.ConfirmPassword)
+		if err != nil {
+			spec := mapSettingsPasswordChangeError(err)
+			handler.logSecurityError(c, "auth.password_change", spec)
+			return handler.respondMappedError(c, spec)
+		}
+		if err := handler.setAuthCookie(c, user, false); err != nil {
+			handler.clearAuthCookie(c)
+			spec := authSessionCreateErrorSpec()
+			handler.logSecurityError(c, "auth.password_change", spec)
+			return handler.respondMappedError(c, spec)
+		}
+		handler.logSecurityEvent(c, "auth.password_change", "local_password_enabled")
+		return handler.renderRecoveryCodeResponseWithContinuePath(c, user, recoveryCode, fiber.StatusOK, "/settings")
+	}
+
 	if err := handler.settingsService.ChangePassword(user, input.CurrentPassword, input.NewPassword, input.ConfirmPassword); err != nil {
 		spec := mapSettingsPasswordChangeError(err)
 		handler.logSecurityError(c, "auth.password_change", spec)

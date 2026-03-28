@@ -7,15 +7,16 @@ import (
 	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
-func buildLoginPageData(messages map[string]string, flash FlashPayload, needsSetup bool, registrationOpen bool, oidcEnabled bool) fiber.Map {
+func buildLoginPageData(messages map[string]string, flash FlashPayload, needsSetup bool, registrationOpen bool, oidcEnabled bool, localPublicAuthEnabled bool) fiber.Map {
 	errorSource := services.ResolveAuthErrorSource(flash.AuthError)
 	return fiber.Map{
-		"Title":            localizedPageTitle(messages, "meta.title.login", "Ovumcy | Login"),
-		"ErrorKey":         services.AuthErrorTranslationKey(errorSource),
-		"Email":            services.ResolveAuthPageEmail(flash.LoginEmail),
-		"IsFirstLaunch":    needsSetup,
-		"RegistrationOpen": registrationOpen,
-		"OIDCEnabled":      oidcEnabled,
+		"Title":                  localizedPageTitle(messages, "meta.title.login", "Ovumcy | Login"),
+		"ErrorKey":               services.AuthErrorTranslationKey(errorSource),
+		"Email":                  services.ResolveAuthPageEmail(flash.LoginEmail),
+		"IsFirstLaunch":          needsSetup,
+		"RegistrationOpen":       registrationOpen,
+		"OIDCEnabled":            oidcEnabled,
+		"LocalPublicAuthEnabled": localPublicAuthEnabled,
 	}
 }
 

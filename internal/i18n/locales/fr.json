@@ -119,6 +119,8 @@
   "auth.error.sso_temporarily_unavailable": "La connexion SSO est actuellement indisponible. Utilisez la connexion locale ou réessayez plus tard.",
   "auth.error.sso_authentication_failed": "La connexion SSO n'a pas pu être finalisée. Veuillez réessayer.",
   "auth.error.sso_sign_in_unavailable": "Ce compte SSO ne peut pas encore se connecter. Utilisez la connexion locale ou contactez l'opérateur.",
+  "auth.error.local_sign_in_unavailable": "La connexion locale est désactivée pour cette instance. Utilisez le SSO.",
+  "auth.error.local_recovery_unavailable": "La récupération locale n'est pas disponible tant qu'un mot de passe local n'est pas défini pour ce compte.",
   "auth.error.too_many_forgot_password_attempts": "Trop de tentatives de récupération. Veuillez patienter 1 heure.",
   "auth.error.invalid_reset_token": "Le lien de réinitialisation est invalide ou expiré.",
   "auth.error.generic": "Impossible de continuer. Veuillez réessayer.",
@@ -223,6 +225,9 @@
   "settings.change_password.title": "Changer le mot de passe",
   "settings.change_password.subtitle": "Mettez à jour le mot de passe de votre compte.",
   "settings.change_password.submit": "Changer le mot de passe",
+  "settings.local_password.title": "Définir un mot de passe local",
+  "settings.local_password.subtitle": "Ce compte se connecte actuellement uniquement via SSO. Définissez un mot de passe local si vous voulez des codes de récupération et des actions sensibles confirmées par mot de passe.",
+  "settings.local_password.submit": "Définir le mot de passe local",
   "settings.current_password": "Mot de passe actuel",
 
   "settings.security.advanced": "Sécurité avancée",
@@ -231,6 +236,7 @@
   "settings.recovery_code.title": "Code de récupération",
   "settings.recovery_code.subtitle": "Générez un nouveau code de récupération. Votre code précédent ne fonctionnera plus.",
   "settings.recovery_code.submit": "Régénérer le code de récupération",
+  "settings.local_password.recovery_unavailable": "Les codes de récupération seront disponibles après avoir défini un mot de passe local pour ce compte.",
 
   "settings.symptoms.title": "Symptômes personnalisés",
   "settings.symptoms.subtitle": "Créez de courtes étiquettes privées pour les schémas que vous souhaitez enregistrer. Les symptômes masqués restent dans les anciens enregistrements et les exports.",
@@ -291,8 +297,11 @@
 
   "settings.danger_zone.title": "Zone de danger",
   "settings.danger_zone.subtitle": "Supprimez définitivement votre compte. Cette action est irréversible.",
+  "settings.local_password.danger_hint": "Définissez d'abord un mot de passe local si vous voulez utiliser des actions sensibles confirmées par mot de passe, comme l'effacement des données de santé.",
+  "settings.delete_account.title": "Supprimer le compte",
   "settings.delete_account.password": "Confirmer avec le mot de passe",
   "settings.delete_account.submit": "Supprimer le compte",
+  "settings.local_password.required_before_sensitive_actions": "Définissez un mot de passe local avant de supprimer ce compte ou d'utiliser d'autres actions sensibles confirmées par mot de passe.",
 
   "settings.confirm_regenerate_recovery_code": "Régénérer votre code de récupération ? L'ancien code ne fonctionnera plus.",
   "settings.confirm_clear_data": "Supprimer tous les enregistrements du calendrier, réinitialiser votre cycle et supprimer les symptômes personnalisés ? Cette action est irréversible.",
@@ -319,6 +328,7 @@
   "settings.error.invalid_current_password": "Le mot de passe actuel est incorrect.",
   "settings.error.password_unchanged": "Le nouveau mot de passe doit être différent du mot de passe actuel.",
   "settings.error.invalid_password": "Mot de passe invalide.",
+  "settings.error.local_password_required": "Définissez d'abord un mot de passe local pour utiliser cette action.",
 
   "settings.symptoms.error.invalid_name": "Saisissez un nom de symptôme.",
   "settings.symptoms.error.name_required": "Saisissez un nom de symptôme.",

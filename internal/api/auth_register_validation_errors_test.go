@@ -98,6 +98,7 @@ func TestRegisterRejectsCaseInsensitiveDuplicateEmail(t *testing.T) {
 	existingUser := models.User{
 		Email:               existingEmail,
 		PasswordHash:        string(passwordHash),
+		LocalAuthEnabled:    true,
 		Role:                models.RoleOwner,
 		OnboardingCompleted: true,
 		CycleLength:         models.DefaultCycleLength,
@@ -153,6 +154,7 @@ func TestRegisterRejectsExactDuplicateEmail(t *testing.T) {
 	existingUser := models.User{
 		Email:               existingEmail,
 		PasswordHash:        string(passwordHash),
+		LocalAuthEnabled:    true,
 		Role:                models.RoleOwner,
 		OnboardingCompleted: true,
 		CycleLength:         models.DefaultCycleLength,
@@ -208,6 +210,7 @@ func TestRegisterRejectsExactDuplicateEmailHTMLFlow(t *testing.T) {
 	existingUser := models.User{
 		Email:               existingEmail,
 		PasswordHash:        string(passwordHash),
+		LocalAuthEnabled:    true,
 		Role:                models.RoleOwner,
 		OnboardingCompleted: true,
 		CycleLength:         models.DefaultCycleLength,

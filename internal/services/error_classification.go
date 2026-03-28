@@ -69,6 +69,7 @@ const (
 	OIDCAuthErrorAccountUnavailable
 	OIDCAuthErrorIdentityResolveFailed
 	OIDCAuthErrorLinkFailed
+	OIDCAuthErrorProvisionFailed
 )
 
 func ClassifyOIDCAuthError(err error) OIDCAuthErrorKind {
@@ -87,6 +88,8 @@ func ClassifyOIDCAuthError(err error) OIDCAuthErrorKind {
 		return OIDCAuthErrorIdentityResolveFailed
 	case errors.Is(err, ErrOIDCLinkFailed):
 		return OIDCAuthErrorLinkFailed
+	case errors.Is(err, ErrOIDCProvisionFailed):
+		return OIDCAuthErrorProvisionFailed
 	default:
 		return OIDCAuthErrorUnknown
 	}
@@ -463,6 +466,7 @@ const (
 	SettingsDeleteAccountPasswordErrorUnknown SettingsDeleteAccountPasswordErrorKind = iota
 	SettingsDeleteAccountPasswordErrorMissing
 	SettingsDeleteAccountPasswordErrorInvalid
+	SettingsDeleteAccountPasswordErrorLocalPasswordNotSet
 )
 
 func ClassifySettingsDeleteAccountPasswordError(err error) SettingsDeleteAccountPasswordErrorKind {
@@ -471,6 +475,8 @@ func ClassifySettingsDeleteAccountPasswordError(err error) SettingsDeleteAccount
 		return SettingsDeleteAccountPasswordErrorMissing
 	case errors.Is(err, ErrSettingsPasswordInvalid):
 		return SettingsDeleteAccountPasswordErrorInvalid
+	case errors.Is(err, ErrSettingsLocalPasswordNotSet):
+		return SettingsDeleteAccountPasswordErrorLocalPasswordNotSet
 	default:
 		return SettingsDeleteAccountPasswordErrorUnknown
 	}
@@ -483,9 +489,11 @@ const (
 	SettingsPasswordChangeErrorInvalidInput
 	SettingsPasswordChangeErrorPasswordMismatch
 	SettingsPasswordChangeErrorInvalidCurrentPassword
+	SettingsPasswordChangeErrorLocalPasswordNotSet
 	SettingsPasswordChangeErrorNewPasswordMustDiffer
 	SettingsPasswordChangeErrorWeakPassword
 	SettingsPasswordChangeErrorHashFailed
+	SettingsPasswordChangeErrorRecoveryCodeFailed
 	SettingsPasswordChangeErrorUpdateFailed
 )
 
@@ -497,12 +505,16 @@ func ClassifySettingsPasswordChangeError(err error) SettingsPasswordChangeErrorK
 		return SettingsPasswordChangeErrorPasswordMismatch
 	case errors.Is(err, ErrSettingsInvalidCurrentPassword):
 		return SettingsPasswordChangeErrorInvalidCurrentPassword
+	case errors.Is(err, ErrSettingsLocalPasswordNotSet):
+		return SettingsPasswordChangeErrorLocalPasswordNotSet
 	case errors.Is(err, ErrSettingsNewPasswordMustDiffer):
 		return SettingsPasswordChangeErrorNewPasswordMustDiffer
 	case errors.Is(err, ErrSettingsWeakPassword):
 		return SettingsPasswordChangeErrorWeakPassword
 	case errors.Is(err, ErrSettingsPasswordHashFailed):
 		return SettingsPasswordChangeErrorHashFailed
+	case errors.Is(err, ErrSettingsRecoveryCodeGenerateFailed):
+		return SettingsPasswordChangeErrorRecoveryCodeFailed
 	case errors.Is(err, ErrSettingsPasswordUpdateFailed):
 		return SettingsPasswordChangeErrorUpdateFailed
 	default:

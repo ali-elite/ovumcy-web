@@ -13,13 +13,22 @@ import (
 type stubOIDCProviderClient struct {
 	enabled     bool
 	authURL     string
-	claims      security.OIDCClaims
+	config      security.OIDCConfig
+	exchange    security.OIDCExchangeResult
 	authErr     error
 	exchangeErr error
 }
 
 func (stub *stubOIDCProviderClient) Enabled() bool {
 	return stub.enabled
+}
+
+func (stub *stubOIDCProviderClient) LocalPublicAuthEnabled() bool {
+	return stub.config.LocalPublicAuthEnabled()
+}
+
+func (stub *stubOIDCProviderClient) Config() security.OIDCConfig {
+	return stub.config
 }
 
 func (stub *stubOIDCProviderClient) AuthCodeURL(context.Context, string, string, string) (string, error) {
@@ -29,11 +38,11 @@ func (stub *stubOIDCProviderClient) AuthCodeURL(context.Context, string, string,
 	return stub.authURL, nil
 }
 
-func (stub *stubOIDCProviderClient) ExchangeCode(context.Context, string, string, string) (security.OIDCClaims, error) {
+func (stub *stubOIDCProviderClient) ExchangeCode(context.Context, string, string, string) (security.OIDCExchangeResult, error) {
 	if stub.exchangeErr != nil {
-		return security.OIDCClaims{}, stub.exchangeErr
+		return security.OIDCExchangeResult{}, stub.exchangeErr
 	}
-	return stub.claims, nil
+	return stub.exchange, nil
 }
 
 type stubOIDCIdentityStore struct {
@@ -80,6 +89,22 @@ type stubOIDCUserStore struct {
 	lastLookupEmail string
 }
 
+type stubOIDCAutoProvisioner struct {
+	user   models.User
+	err    error
+	called bool
+	email  string
+}
+
+func (stub *stubOIDCAutoProvisioner) AutoProvisionOwnerAccount(email string, _ time.Time) (models.User, error) {
+	stub.called = true
+	stub.email = email
+	if stub.err != nil {
+		return models.User{}, stub.err
+	}
+	return stub.user, nil
+}
+
 func (stub *stubOIDCUserStore) FindByID(uint) (models.User, error) {
 	if stub.byIDErr != nil {
 		return models.User{}, stub.byIDErr
@@ -101,7 +126,7 @@ func (stub *stubOIDCUserStore) FindByNormalizedEmailOptional(email string) (mode
 func TestOIDCLoginServiceStartAuthRequiresEnabledProvider(t *testing.T) {
 	t.Parallel()
 
-	service := NewOIDCLoginService(&stubOIDCProviderClient{}, &stubOIDCIdentityStore{}, &stubOIDCUserStore{})
+	service := NewOIDCLoginService(&stubOIDCProviderClient{}, &stubOIDCIdentityStore{}, &stubOIDCUserStore{}, nil)
 
 	if _, err := service.StartAuth(context.Background(), "state", "nonce", "verifier"); !errors.Is(err, ErrOIDCDisabled) {
 		t.Fatalf("expected ErrOIDCDisabled, got %v", err)
@@ -130,13 +155,15 @@ func TestOIDCLoginServiceAuthenticateUsesExistingIdentityLink(t *testing.T) {
 	}
 	service := NewOIDCLoginService(&stubOIDCProviderClient{
 		enabled: true,
-		claims: security.OIDCClaims{
-			Issuer:        "https://id.example.com",
-			Subject:       "owner-subject",
-			Email:         "owner@example.com",
-			EmailVerified: true,
+		exchange: security.OIDCExchangeResult{
+			Claims: security.OIDCClaims{
+				Issuer:        "https://id.example.com",
+				Subject:       "owner-subject",
+				Email:         "owner@example.com",
+				EmailVerified: true,
+			},
 		},
-	}, identities, users)
+	}, identities, users, nil)
 
 	result, err := service.Authenticate(context.Background(), "code", "verifier", "nonce", now)
 	if err != nil {
@@ -175,13 +202,15 @@ func TestOIDCLoginServiceAuthenticateLinksVerifiedEmailOnFirstLogin(t *testing.T
 	}
 	service := NewOIDCLoginService(&stubOIDCProviderClient{
 		enabled: true,
-		claims: security.OIDCClaims{
-			Issuer:        "https://id.example.com",
-			Subject:       "first-login-sub",
-			Email:         " Owner@Example.com ",
-			EmailVerified: true,
+		exchange: security.OIDCExchangeResult{
+			Claims: security.OIDCClaims{
+				Issuer:        "https://id.example.com",
+				Subject:       "first-login-sub",
+				Email:         " Owner@Example.com ",
+				EmailVerified: true,
+			},
 		},
-	}, identities, users)
+	}, identities, users, nil)
 
 	result, err := service.Authenticate(context.Background(), "code", "verifier", "nonce", now)
 	if err != nil {
@@ -215,13 +244,15 @@ func TestOIDCLoginServiceAuthenticateRejectsUnverifiedEmail(t *testing.T) {
 
 	service := NewOIDCLoginService(&stubOIDCProviderClient{
 		enabled: true,
-		claims: security.OIDCClaims{
-			Issuer:        "https://id.example.com",
-			Subject:       "no-verified-email",
-			Email:         "owner@example.com",
-			EmailVerified: false,
+		exchange: security.OIDCExchangeResult{
+			Claims: security.OIDCClaims{
+				Issuer:        "https://id.example.com",
+				Subject:       "no-verified-email",
+				Email:         "owner@example.com",
+				EmailVerified: false,
+			},
 		},
-	}, &stubOIDCIdentityStore{}, &stubOIDCUserStore{})
+	}, &stubOIDCIdentityStore{}, &stubOIDCUserStore{}, nil)
 
 	if _, err := service.Authenticate(context.Background(), "code", "verifier", "nonce", time.Time{}); !errors.Is(err, ErrOIDCAccountUnavailable) {
 		t.Fatalf("expected ErrOIDCAccountUnavailable, got %v", err)
@@ -233,20 +264,92 @@ func TestOIDCLoginServiceAuthenticateMapsLinkPersistenceFailure(t *testing.T) {
 
 	service := NewOIDCLoginService(&stubOIDCProviderClient{
 		enabled: true,
-		claims: security.OIDCClaims{
-			Issuer:        "https://id.example.com",
-			Subject:       "duplicate-link",
-			Email:         "owner@example.com",
-			EmailVerified: true,
+		exchange: security.OIDCExchangeResult{
+			Claims: security.OIDCClaims{
+				Issuer:        "https://id.example.com",
+				Subject:       "duplicate-link",
+				Email:         "owner@example.com",
+				EmailVerified: true,
+			},
 		},
 	}, &stubOIDCIdentityStore{
 		createErr: errors.New("duplicate key"),
 	}, &stubOIDCUserStore{
 		byEmailFound: true,
 		byEmail:      models.User{ID: 5, Email: "owner@example.com"},
-	})
+	}, nil)
 
 	if _, err := service.Authenticate(context.Background(), "code", "verifier", "nonce", time.Time{}); !errors.Is(err, ErrOIDCLinkFailed) {
 		t.Fatalf("expected ErrOIDCLinkFailed, got %v", err)
+	}
+}
+
+func TestOIDCLoginServiceAuthenticateAutoProvisionsWhenEnabled(t *testing.T) {
+	t.Parallel()
+
+	provisioner := &stubOIDCAutoProvisioner{
+		user: models.User{
+			ID:                  17,
+			Email:               "owner@example.com",
+			Role:                models.RoleOwner,
+			LocalAuthEnabled:    false,
+			OnboardingCompleted: false,
+		},
+	}
+	identities := &stubOIDCIdentityStore{}
+	service := NewOIDCLoginService(&stubOIDCProviderClient{
+		enabled: true,
+		config: security.OIDCConfig{
+			Enabled:                     true,
+			AutoProvision:               true,
+			AutoProvisionAllowedDomains: []string{"example.com"},
+		},
+		exchange: security.OIDCExchangeResult{
+			Claims: security.OIDCClaims{
+				Issuer:        "https://id.example.com",
+				Subject:       "autoprovision-sub",
+				Email:         "owner@example.com",
+				EmailVerified: true,
+			},
+		},
+	}, identities, &stubOIDCUserStore{}, provisioner)
+
+	result, err := service.Authenticate(context.Background(), "code", "verifier", "nonce", time.Time{})
+	if err != nil {
+		t.Fatalf("Authenticate() unexpected error: %v", err)
+	}
+	if !result.AutoProvisioned {
+		t.Fatal("expected auto-provisioned result")
+	}
+	if !provisioner.called || provisioner.email != "owner@example.com" {
+		t.Fatalf("expected auto-provisioner call for normalized email, got called=%v email=%q", provisioner.called, provisioner.email)
+	}
+	if !identities.createCallSeen || identities.created.UserID != 17 {
+		t.Fatalf("expected persisted identity link for auto-provisioned user, got %+v", identities.created)
+	}
+}
+
+func TestOIDCLoginServiceRejectsAutoProvisionOutsideAllowedDomains(t *testing.T) {
+	t.Parallel()
+
+	service := NewOIDCLoginService(&stubOIDCProviderClient{
+		enabled: true,
+		config: security.OIDCConfig{
+			Enabled:                     true,
+			AutoProvision:               true,
+			AutoProvisionAllowedDomains: []string{"example.com"},
+		},
+		exchange: security.OIDCExchangeResult{
+			Claims: security.OIDCClaims{
+				Issuer:        "https://id.example.com",
+				Subject:       "autoprovision-sub",
+				Email:         "owner@blocked.example.org",
+				EmailVerified: true,
+			},
+		},
+	}, &stubOIDCIdentityStore{}, &stubOIDCUserStore{}, &stubOIDCAutoProvisioner{})
+
+	if _, err := service.Authenticate(context.Background(), "code", "verifier", "nonce", time.Time{}); !errors.Is(err, ErrOIDCAccountUnavailable) {
+		t.Fatalf("expected ErrOIDCAccountUnavailable, got %v", err)
 	}
 }

@@ -8,8 +8,11 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/ovumcy/ovumcy-web/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func loginAndExtractAuthCookie(t *testing.T, app *fiber.App, email string, password string) string {
@@ -93,6 +96,26 @@ func loginAndExtractAuthCookieWithCSRF(t *testing.T, app *fiber.App, email strin
 
 	t.Fatal("auth cookie is missing in login response")
 	return ""
+}
+
+func issueAuthCookieForUser(t *testing.T, user models.User) string {
+	t.Helper()
+
+	service := services.NewAuthService(nil)
+	token, err := service.BuildAuthSessionToken([]byte("test-secret-key"), user.ID, user.Role, user.AuthSessionVersion, time.Hour, time.Now())
+	if err != nil {
+		t.Fatalf("build auth session token: %v", err)
+	}
+
+	codec, err := newSecureCookieCodec([]byte("test-secret-key"))
+	if err != nil {
+		t.Fatalf("init secure cookie codec: %v", err)
+	}
+	sealed, err := codec.seal(authCookieName, []byte(token))
+	if err != nil {
+		t.Fatalf("seal auth cookie token: %v", err)
+	}
+	return authCookieName + "=" + sealed
 }
 
 var csrfTokenMetaPatternForAuthTests = regexp.MustCompile(`<meta name="csrf-token" content="([^"]+)"`)

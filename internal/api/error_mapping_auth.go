@@ -63,11 +63,19 @@ func mapAuthOIDCError(err error) APIErrorSpec {
 		return authOIDCAuthenticationFailedErrorSpec()
 	case services.OIDCAuthErrorAccountUnavailable:
 		return authOIDCAccountUnavailableErrorSpec()
-	case services.OIDCAuthErrorIdentityResolveFailed, services.OIDCAuthErrorLinkFailed:
+	case services.OIDCAuthErrorIdentityResolveFailed, services.OIDCAuthErrorLinkFailed, services.OIDCAuthErrorProvisionFailed:
 		return authOIDCUnavailableErrorSpec()
 	default:
 		return authOIDCAuthenticationFailedErrorSpec()
 	}
+}
+
+func authLocalSignInDisabledErrorSpec() APIErrorSpec {
+	return authFormErrorSpec(fiber.StatusForbidden, APIErrorCategoryForbidden, "local sign-in unavailable")
+}
+
+func authLocalRecoveryDisabledErrorSpec() APIErrorSpec {
+	return authFormErrorSpec(fiber.StatusForbidden, APIErrorCategoryForbidden, "local recovery unavailable")
 }
 
 func mapPasswordRecoveryStartError(err error) APIErrorSpec {

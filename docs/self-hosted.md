@@ -14,7 +14,7 @@ Supported baseline assumptions:
 - Prefer a containerized reverse proxy stack where only the proxy publishes host ports.
 - Keep Ovumcy's plain HTTP port internal to a private network or loopback-only.
 - A strong, unique application secret provided through `SECRET_KEY` or `SECRET_KEY_FILE`.
-- Optional OIDC is supported in hybrid mode for existing local accounts only; it requires HTTPS, `COOKIE_SECURE=true`, and an `OIDC_REDIRECT_URL` that ends in `/auth/oidc/callback`.
+- Optional OIDC is supported with `hybrid` and `oidc_only` login modes; it requires HTTPS, `COOKIE_SECURE=true`, and an `OIDC_REDIRECT_URL` that ends in `/auth/oidc/callback`.
 
 Out of scope for this baseline:
 
@@ -75,27 +75,34 @@ These settings are valid, but they are not required for a safe first deployment:
 
 - `TZ` and `DEFAULT_LANGUAGE` (`en`, `ru`, `es`, `fr`, `de`) for operator preference
 - rate-limit variables if you need stricter or looser local policy
-- optional OIDC variables when you want the login page to offer external sign-in for existing local accounts: `OIDC_ENABLED`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URL`, and `OIDC_AUTO_PROVISION=false`
+- optional OIDC variables when you want the login page to offer external sign-in: `OIDC_ENABLED`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URL`, `OIDC_CA_FILE`, `OIDC_LOGIN_MODE`, `OIDC_AUTO_PROVISION`, `OIDC_AUTO_PROVISION_ALLOWED_DOMAINS`, `OIDC_LOGOUT_MODE`, and `OIDC_POST_LOGOUT_REDIRECT_URL`
 - `PROXY_HEADER` only if your trusted proxy uses a different real-client header contract
 - `DB_DRIVER=postgres` plus `DATABASE_URL=...` when you intentionally move the app runtime to Postgres, either through the bundled local/private Postgres stack or an operator-managed database service
 
 ## Optional OIDC Sign-In
 
-OIDC is intentionally narrow in the current contract:
+OIDC is supported in two public login modes:
 
-- it is optional and keeps the existing local username/password flow in place;
-- it links only existing local accounts;
-- the first successful OIDC sign-in must match an existing local account by verified email;
-- later sign-ins use the stored `(issuer, subject)` identity link;
-- `OIDC_AUTO_PROVISION` must stay `false` because automatic account creation is not supported yet.
+- `OIDC_LOGIN_MODE=hybrid` keeps the local username/password flow alongside SSO;
+- `OIDC_LOGIN_MODE=oidc_only` removes public local login, register, and forgot-password entry points from the browser UX.
+
+The current account contract is:
+
+- Ovumcy prefers an existing `(issuer, subject)` identity link when present;
+- otherwise the first successful OIDC sign-in falls back to a verified email match;
+- `OIDC_AUTO_PROVISION=true` may create a new `owner` account only when `REGISTRATION_MODE=open`;
+- `OIDC_AUTO_PROVISION_ALLOWED_DOMAINS` can restrict that creation to a domain allowlist;
+- auto-provisioned users start without a local password and must set one later in `Settings` if they want recovery codes or password-confirmed sensitive actions.
 
 Operator checklist for OIDC:
 
 - serve Ovumcy through HTTPS and set `COOKIE_SECURE=true`;
 - set `OIDC_REDIRECT_URL` to the public HTTPS URL ending in `/auth/oidc/callback`;
+- if the provider uses a private or internal CA, mount a readable PEM bundle into the container and point `OIDC_CA_FILE` at that in-container path;
 - keep `OIDC_CLIENT_SECRET` private just like `SECRET_KEY` and `.env`;
-- prefer the dedicated reverse-proxy stacks for public deployments so the callback URL and cookie policy stay aligned.
-- use [docs/oidc.md](oidc.md) for provider-specific recipes, flow details, and troubleshooting.
+- prefer the dedicated reverse-proxy stacks for public deployments so the callback URL and cookie policy stay aligned;
+- use `OIDC_LOGOUT_MODE=auto` when you want provider logout when available but do not want logout to break on providers that do not expose an end-session endpoint;
+- use [docs/oidc.md](oidc.md) for provider-specific recipes, rollout guidance, flow details, and troubleshooting.
 
 ## Privacy Responsibility Split
 

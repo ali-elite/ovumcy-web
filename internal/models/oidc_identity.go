@@ -10,3 +10,7 @@ type OIDCIdentity struct {
 	CreatedAt  time.Time  `gorm:"column:created_at;not null"`
 	LastUsedAt *time.Time `gorm:"column:last_used_at"`
 }
+
+func (OIDCIdentity) TableName() string {
+	return "oidc_identities"
+}

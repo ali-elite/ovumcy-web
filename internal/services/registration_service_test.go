@@ -11,8 +11,10 @@ import (
 type stubRegistrationAuthService struct {
 	user         models.User
 	recoveryCode string
+	oidcUser      models.User
 	err          error
 	called       bool
+	oidcCalled   bool
 }
 
 func (stub *stubRegistrationAuthService) RegisterOwner(string, string, string, time.Time) (models.User, string, error) {
@@ -21,6 +23,17 @@ func (stub *stubRegistrationAuthService) RegisterOwner(string, string, string, t
 		return models.User{}, "", stub.err
 	}
 	return stub.user, stub.recoveryCode, nil
+}
+
+func (stub *stubRegistrationAuthService) BuildOIDCOwnerUser(string, time.Time) (models.User, error) {
+	stub.oidcCalled = true
+	if stub.err != nil {
+		return models.User{}, stub.err
+	}
+	if stub.oidcUser.ID != 0 || stub.oidcUser.Email != "" {
+		return stub.oidcUser, nil
+	}
+	return stub.user, nil
 }
 
 type stubRegistrationStore struct {
@@ -159,6 +172,25 @@ func TestRegistrationServiceRegisterOwnerAccountRejectsClosedMode(t *testing.T) 
 	}
 	if store.called {
 		t.Fatalf("did not expect persistence call in closed mode")
+	}
+}
+
+func TestRegistrationServiceAutoProvisionOwnerAccountSuccess(t *testing.T) {
+	service, store := newRegistrationServiceForTest(stubRegistrationFixture{
+		userID:       88,
+		storeErr:     nil,
+		recoveryCode: "OVUM-ABCD-1234-EFGH",
+	})
+
+	user, err := service.AutoProvisionOwnerAccount("owner@example.com", registrationServiceTestNow)
+	if err != nil {
+		t.Fatalf("AutoProvisionOwnerAccount() unexpected error: %v", err)
+	}
+	if user.ID != 88 {
+		t.Fatalf("expected user id 88, got %d", user.ID)
+	}
+	if !store.called || store.lastPersisted.ID != 88 {
+		t.Fatalf("expected CreateUserWithSymptoms to persist provisioned user 88")
 	}
 }
 

@@ -21,6 +21,7 @@ func createOnboardingTestUser(t *testing.T, database *gorm.DB, email string, pas
 	user := models.User{
 		Email:               strings.ToLower(strings.TrimSpace(email)),
 		PasswordHash:        string(passwordHash),
+		LocalAuthEnabled:    true,
 		Role:                models.RoleOwner,
 		OnboardingCompleted: onboardingCompleted,
 		CycleLength:         28,

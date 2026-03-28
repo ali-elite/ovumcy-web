@@ -153,6 +153,7 @@ func buildResolvedSettingsUser(user *models.User, persisted models.User, today t
 	resolvedUser.CycleLength = cycleLength
 	resolvedUser.PeriodLength = periodLength
 	resolvedUser.AutoPeriodFill = persisted.AutoPeriodFill
+	resolvedUser.LocalAuthEnabled = persisted.LocalAuthEnabled
 	resolvedUser.IrregularCycle = persisted.IrregularCycle
 	resolvedUser.UnpredictableCycle = persisted.UnpredictableCycle
 	resolvedUser.AgeGroup = NormalizeAgeGroup(persisted.AgeGroup)

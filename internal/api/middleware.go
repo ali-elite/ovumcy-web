@@ -6,18 +6,22 @@ import (
 )
 
 const (
-	authCookieName          = "ovumcy_auth"
-	languageCookieName      = "ovumcy_lang"
-	timezoneCookieName      = "ovumcy_tz"
-	timezoneHeaderName      = "X-Ovumcy-Timezone"
-	flashCookieName         = "ovumcy_flash"
-	recoveryCodeCookieName  = "ovumcy_recovery_code"
-	resetPasswordCookieName = "ovumcy_reset_password" // #nosec G101 -- cookie name contains "password" but is not a secret or credential.
-	oidcStateCookieName     = "ovumcy_oidc_auth"
-	contextUserKey          = "current_user"
-	contextLanguageKey      = "current_language"
-	contextMessagesKey      = "current_messages"
-	contextLocationKey      = "current_location"
+	authCookieName               = "ovumcy_auth"
+	languageCookieName           = "ovumcy_lang"
+	timezoneCookieName           = "ovumcy_tz"
+	timezoneHeaderName           = "X-Ovumcy-Timezone"
+	flashCookieName              = "ovumcy_flash"
+	recoveryCodeCookieName       = "ovumcy_recovery_code"
+	resetPasswordCookieName      = "ovumcy_reset_password" // #nosec G101 -- cookie name contains "password" but is not a secret or credential.
+	oidcStateCookieName          = "ovumcy_oidc_auth"
+	oidcLogoutCookieName         = "ovumcy_oidc_logout"
+	oidcLogoutBridgeCookieName   = "ovumcy_oidc_logout_bridge"
+	oidcLogoutBridgePath         = "/auth/oidc/logout"
+	oidcLogoutBridgeRedirectPath = "/auth/oidc/logout/redirect"
+	contextUserKey               = "current_user"
+	contextLanguageKey           = "current_language"
+	contextMessagesKey           = "current_messages"
+	contextLocationKey           = "current_location"
 )
 
 func currentUser(c *fiber.Ctx) (*models.User, bool) {

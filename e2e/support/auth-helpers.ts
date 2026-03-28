@@ -106,6 +106,16 @@ export async function continueFromRecoveryCode(page: Page): Promise<void> {
 }
 
 export async function completeOnboardingIfPresent(page: Page): Promise<void> {
+  const currentPath = pathOf(page.url());
+  if (currentPath !== '/onboarding' && currentPath !== '/dashboard') {
+    await page
+      .waitForURL((url) => {
+        const path = new URL(url).pathname;
+        return path === '/onboarding' || path === '/dashboard' || path === '/login';
+      })
+      .catch(() => {});
+  }
+
   if (pathOf(page.url()) !== '/onboarding') {
     return;
   }

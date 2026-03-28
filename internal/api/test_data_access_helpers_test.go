@@ -46,6 +46,7 @@ func createDataAccessTestUser(t *testing.T, database *gorm.DB, email string) mod
 	user := models.User{
 		Email:               email,
 		PasswordHash:        "test-hash",
+		LocalAuthEnabled:    true,
 		Role:                models.RoleOwner,
 		OnboardingCompleted: true,
 		CycleLength:         28,

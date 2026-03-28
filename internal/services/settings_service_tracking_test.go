@@ -102,6 +102,10 @@ func (stub *stubSettingsTrackingUserRepo) UpdatePasswordAndRevokeSessions(uint, 
 	return nil
 }
 
+func (stub *stubSettingsTrackingUserRepo) UpdatePasswordRecoveryCodeAndRevokeSessions(uint, string, string, bool) error {
+	return nil
+}
+
 func (stub *stubSettingsTrackingUserRepo) UpdateByID(userID uint, updates map[string]any) error {
 	stub.updatedUserID = userID
 	stub.updates = updates
