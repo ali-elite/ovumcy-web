@@ -13,10 +13,12 @@ func registerPageRoutes(app *fiber.App, handler *Handler) {
 	app.Get("/lang/:lang", handler.SetLanguage)
 
 	app.Get("/login", handler.ShowLoginPage)
+	app.Get("/auth/oidc/start", handler.StartOIDCLogin)
 	app.Get("/register", handler.ShowRegisterPage)
 	app.Get("/recovery-code", handler.ShowRecoveryCodePage)
 	app.Get("/forgot-password", handler.ShowForgotPasswordPage)
 	app.Get("/reset-password", handler.ShowResetPasswordPage)
+	app.Post("/auth/oidc/callback", handler.CompleteOIDCLogin)
 	app.Post("/logout", handler.AuthRequired, handler.Logout)
 	app.Get("/privacy", handler.ShowPrivacyPage)
 	app.Get("/onboarding", handler.AuthRequired, handler.ShowOnboarding)

@@ -3,7 +3,7 @@ package services
 import (
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 func ApplyUserCycleBaseline(user *models.User, logs []models.DailyLog, stats CycleStats, now time.Time, location *time.Location) CycleStats {

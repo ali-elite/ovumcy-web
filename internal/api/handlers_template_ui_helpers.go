@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 func templateUserIdentity(user *models.User) string {

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	embeddedmigrations "github.com/terraincognita07/ovumcy/migrations"
+	embeddedmigrations "github.com/ovumcy/ovumcy-web/migrations"
 	"gorm.io/gorm"
 )
 

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 const flashCookieTTL = 5 * time.Minute

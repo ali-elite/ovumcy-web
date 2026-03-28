@@ -22,11 +22,12 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/terraincognita07/ovumcy/internal/api"
-	"github.com/terraincognita07/ovumcy/internal/cli"
-	"github.com/terraincognita07/ovumcy/internal/db"
-	"github.com/terraincognita07/ovumcy/internal/i18n"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/api"
+	"github.com/ovumcy/ovumcy-web/internal/cli"
+	"github.com/ovumcy/ovumcy-web/internal/db"
+	"github.com/ovumcy/ovumcy-web/internal/i18n"
+	"github.com/ovumcy/ovumcy-web/internal/security"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 	"gorm.io/gorm"
 )
 
@@ -38,6 +39,7 @@ type runtimeConfig struct {
 	DefaultLanguage  string
 	RegistrationMode services.RegistrationMode
 	CookieSecure     bool
+	OIDC             security.OIDCConfig
 	RateLimits       rateLimitSettings
 	Proxy            proxySettings
 }
@@ -88,7 +90,7 @@ func main() {
 	config := mustLoadRuntimeConfig(location)
 	database := mustOpenDatabase(config.DatabaseConfig)
 	i18nManager := mustNewI18nManager(config.DefaultLanguage)
-	dependencies := buildDependencies(db.NewRepositories(database), i18nManager, config.RateLimits, config.RegistrationMode)
+	dependencies := buildDependencies(db.NewRepositories(database), i18nManager, config.RateLimits, config.RegistrationMode, config.OIDC)
 	handler := mustNewHandler(config, i18nManager, dependencies)
 	app := newFiberApp(config, handler)
 	stopSignals := installGracefulShutdown(app)
@@ -134,6 +136,12 @@ func loadRuntimeConfig(location *time.Location) (runtimeConfig, error) {
 		return runtimeConfig{}, err
 	}
 
+	cookieSecure := getEnvBool("COOKIE_SECURE", false)
+	oidcConfig, err := resolveOIDCConfig(cookieSecure)
+	if err != nil {
+		return runtimeConfig{}, err
+	}
+
 	return runtimeConfig{
 		Location:         location,
 		SecretKey:        secretKey,
@@ -141,7 +149,8 @@ func loadRuntimeConfig(location *time.Location) (runtimeConfig, error) {
 		Port:             port,
 		DefaultLanguage:  getEnv("DEFAULT_LANGUAGE", "en"),
 		RegistrationMode: registrationMode,
-		CookieSecure:     getEnvBool("COOKIE_SECURE", false),
+		CookieSecure:     cookieSecure,
+		OIDC:             oidcConfig,
 		RateLimits: rateLimitSettings{
 			LoginMax:             getEnvInt("RATE_LIMIT_LOGIN_MAX", 8),
 			LoginWindow:          getEnvDuration("RATE_LIMIT_LOGIN_WINDOW", 15*time.Minute),
@@ -160,6 +169,21 @@ func resolveRegistrationMode() (services.RegistrationMode, error) {
 		return "", err
 	}
 	return mode, nil
+}
+
+func resolveOIDCConfig(cookieSecure bool) (security.OIDCConfig, error) {
+	config := security.OIDCConfig{
+		Enabled:       getEnvBool("OIDC_ENABLED", false),
+		IssuerURL:     getEnv("OIDC_ISSUER_URL", ""),
+		ClientID:      getEnv("OIDC_CLIENT_ID", ""),
+		ClientSecret:  getEnv("OIDC_CLIENT_SECRET", ""),
+		RedirectURL:   getEnv("OIDC_REDIRECT_URL", ""),
+		AutoProvision: getEnvBool("OIDC_AUTO_PROVISION", false),
+	}
+	if err := config.Validate(cookieSecure); err != nil {
+		return security.OIDCConfig{}, err
+	}
+	return config, nil
 }
 
 func resolveProxySettings() (proxySettings, error) {
@@ -197,7 +221,7 @@ func mustNewI18nManager(defaultLanguage string) *i18n.Manager {
 	return i18nManager
 }
 
-func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager, rateLimits rateLimitSettings, registrationMode services.RegistrationMode) api.Dependencies {
+func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager, rateLimits rateLimitSettings, registrationMode services.RegistrationMode, oidcConfig security.OIDCConfig) api.Dependencies {
 	authService := services.NewAuthService(repositories.Users)
 	attemptLimiter := services.NewAttemptLimiter()
 	passwordResetService := services.NewPasswordResetService(authService, attemptLimiter)
@@ -214,12 +238,18 @@ func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager,
 	exportService := services.NewExportService(dayService, symptomService)
 	settingsService := services.NewSettingsService(repositories.Users)
 	notificationService := services.NewNotificationService()
+	oidcLoginService := services.NewOIDCLoginService(
+		security.NewOIDCClient(oidcConfig),
+		repositories.OIDCIdentities,
+		repositories.Users,
+	)
 
 	return api.Dependencies{
 		AuthService:          authService,
 		RegistrationService:  registrationService,
 		PasswordResetService: passwordResetService,
 		LoginService:         loginService,
+		OIDCService:          oidcLoginService,
 		DayService:           dayService,
 		SymptomService:       symptomService,
 		ViewerService:        viewerService,
@@ -292,6 +322,13 @@ func configureFiberMiddleware(app *fiber.App, config runtimeConfig, handler *api
 			ErrorCode: "too_many_forgot_password_attempts",
 		}),
 	}))
+	app.Use("/auth/oidc", limiter.New(limiter.Config{
+		Max:        config.RateLimits.LoginMax,
+		Expiration: config.RateLimits.LoginWindow,
+		LimitReached: newAuthRateLimitHandler(handler, authRateLimitConfig{
+			ErrorCode: "too_many_sso_attempts",
+		}),
+	}))
 	app.Use("/api", limiter.New(limiter.Config{
 		Max:          config.RateLimits.APIMax,
 		Expiration:   config.RateLimits.APIWindow,
@@ -347,11 +384,12 @@ func installGracefulShutdown(app *fiber.App) context.CancelFunc {
 
 func logStartup(config runtimeConfig) {
 	log.Printf(
-		"Ovumcy listening on http://0.0.0.0:%s (rev: %s, tz: %s, registration=%s, rate_limits: login=%d/%s api=%d/%s, trusted_proxy=%t)",
+		"Ovumcy listening on http://0.0.0.0:%s (rev: %s, tz: %s, registration=%s, oidc=%t, rate_limits: login=%d/%s api=%d/%s, trusted_proxy=%t)",
 		config.Port,
 		buildRevision(),
 		config.Location.String(),
 		config.RegistrationMode,
+		config.OIDC.Enabled,
 		config.RateLimits.LoginMax,
 		config.RateLimits.LoginWindow,
 		config.RateLimits.APIMax,
@@ -572,6 +610,9 @@ func parseCSV(value string) []string {
 
 func csrfMiddlewareConfig(cookieSecure bool) csrf.Config {
 	return csrf.Config{
+		Next: func(c *fiber.Ctx) bool {
+			return c.Path() == security.OIDCCallbackPath
+		},
 		KeyLookup:      "form:csrf_token",
 		CookieName:     "ovumcy_csrf",
 		CookieSameSite: "Lax",
@@ -631,7 +672,7 @@ func rateLimitScope(c *fiber.Ctx) string {
 	switch {
 	case strings.HasPrefix(c.Path(), "/api/settings/"), strings.HasPrefix(c.Path(), "/settings/"):
 		return "settings"
-	case strings.HasPrefix(c.Path(), "/api/auth/"):
+	case strings.HasPrefix(c.Path(), "/api/auth/"), strings.HasPrefix(c.Path(), "/auth/oidc"):
 		return "auth"
 	default:
 		return "api"

@@ -3,7 +3,7 @@ package db
 import (
 	"testing"
 
-	"github.com/terraincognita07/ovumcy/internal/testdb"
+	"github.com/ovumcy/ovumcy-web/internal/testdb"
 )
 
 func startPostgresTestConfig(t *testing.T) Config {

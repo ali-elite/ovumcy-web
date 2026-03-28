@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 func TestProfileUpdateShowsMessageWhenDisplayNameCleared(t *testing.T) {

@@ -1,0 +1,20 @@
+# Default owner
+* @terraincognita07
+
+# Governance and AI-agent instructions
+/AGENTS.md @terraincognita07
+/AI_CONTEXT.md @terraincognita07
+/.agents/ @terraincognita07
+
+# Security-sensitive runtime and deployment surfaces
+/cmd/ovumcy/ @terraincognita07
+/internal/api/ @terraincognita07
+/internal/security/ @terraincognita07
+/internal/services/ @terraincognita07
+/internal/db/ @terraincognita07
+/migrations/ @terraincognita07
+/docker-compose.yml @terraincognita07
+/docker/ @terraincognita07
+/.env.example @terraincognita07
+/docs/self-hosted.md @terraincognita07
+/docs/examples/ @terraincognita07

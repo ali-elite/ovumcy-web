@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/httpx"
+	"github.com/ovumcy/ovumcy-web/internal/httpx"
 )
 
 func htmxDismissibleSuccessStatusMarkup(messages map[string]string, message string) string {

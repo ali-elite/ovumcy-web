@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 const exportDateLayout = "2006-01-02"

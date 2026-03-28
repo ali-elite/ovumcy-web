@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 func TestOnboardingPageRendersPersistedStep2Values(t *testing.T) {

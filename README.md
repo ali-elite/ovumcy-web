@@ -120,6 +120,7 @@ The privacy-safe hero demo asset pack, including the mobile install prompt captu
 - Calendar and statistics views for longer-term pattern spotting.
 - Mobile home-screen install support on the current `main` branch.
 - CSV, JSON, and PDF export for backup, portability, and personal review.
+- Optional OIDC sign-in in hybrid mode for existing local accounts.
 - English, Russian, Spanish, French, and German localization.
 - Self-hosted deployment with Docker or a single Go binary.
 
@@ -264,6 +265,14 @@ DB_PATH=data/ovumcy.db
 TRUST_PROXY_ENABLED=false
 PROXY_HEADER=X-Forwarded-For
 TRUSTED_PROXIES=127.0.0.1,::1
+
+# Optional OIDC sign-in for existing local accounts only
+# OIDC_ENABLED=true
+# OIDC_ISSUER_URL=https://id.example.com
+# OIDC_CLIENT_ID=ovumcy
+# OIDC_CLIENT_SECRET=replace_with_a_client_secret
+# OIDC_REDIRECT_URL=https://ovumcy.example.com/auth/oidc/callback
+# OIDC_AUTO_PROVISION=false
 ```
 
 Important notes:
@@ -275,12 +284,16 @@ Important notes:
 - `REGISTRATION_MODE` supports `open` and `closed`; use `closed` for pre-provisioned or otherwise operator-restricted internet-facing instances where self-service sign-up must stay disabled.
 - `HOST_BIND_ADDRESS=127.0.0.1` keeps the base compose path local/private by default. Only change it deliberately for a specific private-network bind.
 - Set `COOKIE_SECURE=true` when serving over HTTPS.
+- OIDC sign-in is optional, currently supports existing local accounts only, and requires HTTPS plus `COOKIE_SECURE=true`.
+- The first OIDC sign-in matches an existing local account by verified email, then stores the `(issuer, subject)` identity link for future sign-ins.
+- Keep `OIDC_AUTO_PROVISION=false`; auto-provisioning is not supported yet.
+- Provider-specific setup steps, callback troubleshooting, and example recipes for Keycloak, Authentik, Authelia, and ZITADEL live in [docs/oidc.md](docs/oidc.md).
 - Enable `TRUST_PROXY_ENABLED` only when running behind a trusted reverse proxy.
 - SQLite is the supported baseline default; Postgres is an advanced self-hosted path that requires `DATABASE_URL`.
 - Keep database storage persistent, whether that is a SQLite volume/bind mount or operator-managed Postgres storage.
 - Full deployment, backup, reverse-proxy, and Postgres guidance lives in [docs/self-hosted.md](docs/self-hosted.md).
 
-For deployment paths, reverse-proxy examples, backups, restores, and advanced Postgres setups, see [docs/self-hosted.md](docs/self-hosted.md).
+For deployment paths, reverse-proxy examples, backups, restores, and advanced Postgres setups, see [docs/self-hosted.md](docs/self-hosted.md). For provider-specific OIDC/SSO setup, see [docs/oidc.md](docs/oidc.md).
 
 ## Operator CLI
 

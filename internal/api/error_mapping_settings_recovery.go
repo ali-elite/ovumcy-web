@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func mapRecoveryCodeRegenerationError(err error) APIErrorSpec {

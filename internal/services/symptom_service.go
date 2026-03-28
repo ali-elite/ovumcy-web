@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 var ErrInvalidSymptomID = errors.New("invalid symptom id")

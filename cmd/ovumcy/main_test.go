@@ -15,8 +15,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/csrf"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/terraincognita07/ovumcy/internal/db"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/db"
+	"github.com/ovumcy/ovumcy-web/internal/security"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func TestResolveSecretKey(t *testing.T) {
@@ -283,6 +284,112 @@ func TestResolveRegistrationMode(t *testing.T) {
 	}
 }
 
+func TestResolveOIDCConfig(t *testing.T) {
+	t.Run("disabled by default", func(t *testing.T) {
+		t.Setenv("OIDC_ENABLED", "")
+		t.Setenv("OIDC_ISSUER_URL", "")
+		t.Setenv("OIDC_CLIENT_ID", "")
+		t.Setenv("OIDC_CLIENT_SECRET", "")
+		t.Setenv("OIDC_REDIRECT_URL", "")
+		t.Setenv("OIDC_AUTO_PROVISION", "")
+
+		config, err := resolveOIDCConfig(false)
+		if err != nil {
+			t.Fatalf("expected disabled OIDC config to validate, got %v", err)
+		}
+		if config.Enabled {
+			t.Fatal("expected OIDC to be disabled by default")
+		}
+	})
+
+	t.Run("enabled requires secure cookies and valid URLs", func(t *testing.T) {
+		t.Setenv("OIDC_ENABLED", "true")
+		t.Setenv("OIDC_ISSUER_URL", "https://id.example.com")
+		t.Setenv("OIDC_CLIENT_ID", "ovumcy")
+		t.Setenv("OIDC_CLIENT_SECRET", "secret")
+		t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com"+security.OIDCCallbackPath)
+
+		if _, err := resolveOIDCConfig(false); err == nil || !strings.Contains(err.Error(), "COOKIE_SECURE=true") {
+			t.Fatalf("expected secure-cookie validation error, got %v", err)
+		}
+	})
+
+	t.Run("enabled accepts valid hybrid config", func(t *testing.T) {
+		t.Setenv("OIDC_ENABLED", "true")
+		t.Setenv("OIDC_ISSUER_URL", "https://id.example.com")
+		t.Setenv("OIDC_CLIENT_ID", "ovumcy")
+		t.Setenv("OIDC_CLIENT_SECRET", "secret")
+		t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com"+security.OIDCCallbackPath)
+		t.Setenv("OIDC_AUTO_PROVISION", "false")
+
+		config, err := resolveOIDCConfig(true)
+		if err != nil {
+			t.Fatalf("expected valid OIDC config, got %v", err)
+		}
+		if !config.Enabled {
+			t.Fatal("expected OIDC to be enabled")
+		}
+		if config.IssuerURL != "https://id.example.com" {
+			t.Fatalf("expected issuer URL to be preserved, got %q", config.IssuerURL)
+		}
+		if config.RedirectURL != "https://ovumcy.example.com"+security.OIDCCallbackPath {
+			t.Fatalf("expected redirect URL to be preserved, got %q", config.RedirectURL)
+		}
+	})
+
+	t.Run("rejects auto provision", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_AUTO_PROVISION", "true")
+
+		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), "not supported yet") {
+			t.Fatalf("expected auto-provision validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects insecure issuer url", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_ISSUER_URL", "http://id.example.com")
+
+		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), "OIDC_ISSUER_URL must use https") {
+			t.Fatalf("expected insecure issuer validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects issuer query and redirect fragment", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_ISSUER_URL", "https://id.example.com?tenant=main")
+		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), "OIDC_ISSUER_URL must not include query or fragment") {
+			t.Fatalf("expected issuer query validation error, got %v", err)
+		}
+
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com"+security.OIDCCallbackPath+"#done")
+		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), "OIDC_REDIRECT_URL must not include query or fragment") {
+			t.Fatalf("expected redirect fragment validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects redirect path outside callback", func(t *testing.T) {
+		setValidOIDCTestEnv(t)
+		t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com/auth/callback")
+
+		if _, err := resolveOIDCConfig(true); err == nil || !strings.Contains(err.Error(), security.OIDCCallbackPath) {
+			t.Fatalf("expected redirect path validation error, got %v", err)
+		}
+	})
+}
+
+func setValidOIDCTestEnv(t *testing.T) {
+	t.Helper()
+
+	t.Setenv("OIDC_ENABLED", "true")
+	t.Setenv("OIDC_ISSUER_URL", "https://id.example.com")
+	t.Setenv("OIDC_CLIENT_ID", "ovumcy")
+	t.Setenv("OIDC_CLIENT_SECRET", "secret")
+	t.Setenv("OIDC_REDIRECT_URL", "https://ovumcy.example.com"+security.OIDCCallbackPath)
+	t.Setenv("OIDC_AUTO_PROVISION", "false")
+}
+
 func TestLoadRuntimeConfigBuildsExpectedSettings(t *testing.T) {
 	t.Setenv("SECRET_KEY", "0123456789abcdef0123456789abcdef")
 	t.Setenv("DB_DRIVER", "sqlite")
@@ -339,6 +446,9 @@ func assertBaseRuntimeConfig(t *testing.T, config runtimeConfig, location *time.
 	}
 	if !config.CookieSecure {
 		t.Fatal("expected cookie secure=true")
+	}
+	if config.OIDC.Enabled {
+		t.Fatal("expected OIDC to remain disabled when env is unset")
 	}
 }
 
@@ -861,4 +971,91 @@ func TestAuthRateLimitHandlerLogsSecurityEventWithoutPII(t *testing.T) {
 	if strings.Contains(logLine, "PlaintextPassword123!") {
 		t.Fatalf("did not expect password in rate-limit security logs: %q", logLine)
 	}
+}
+
+func TestConfigureFiberMiddlewareRateLimitsOIDCStart(t *testing.T) {
+	handler := newRateLimitTestHandler(t)
+	app := fiber.New()
+	configureFiberMiddleware(app, runtimeConfig{
+		CookieSecure: false,
+		RateLimits: rateLimitSettings{
+			LoginMax:             1,
+			LoginWindow:          time.Minute,
+			ForgotPasswordMax:    8,
+			ForgotPasswordWindow: time.Hour,
+			APIMax:               300,
+			APIWindow:            time.Minute,
+		},
+	}, handler)
+	app.Get("/auth/oidc/start", func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusNoContent)
+	})
+
+	request := httptest.NewRequest(http.MethodGet, "/auth/oidc/start", nil)
+	request.RemoteAddr = "203.0.113.10:43123"
+	first := mustRateLimitedResponse(t, app, request)
+	if first.StatusCode != http.StatusNoContent {
+		t.Fatalf("expected first OIDC start request to pass, got %d", first.StatusCode)
+	}
+
+	secondRequest := httptest.NewRequest(http.MethodGet, "/auth/oidc/start", nil)
+	secondRequest.RemoteAddr = "203.0.113.10:43123"
+	second := mustRateLimitedResponse(t, app, secondRequest)
+	if second.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected second OIDC start request to be rate limited, got %d", second.StatusCode)
+	}
+	if location := second.Header.Get("Location"); location != "/login" {
+		t.Fatalf("expected OIDC start rate limit redirect to /login, got %q", location)
+	}
+}
+
+func TestConfigureFiberMiddlewareRateLimitsOIDCCallback(t *testing.T) {
+	handler := newRateLimitTestHandler(t)
+	app := fiber.New()
+	configureFiberMiddleware(app, runtimeConfig{
+		CookieSecure: false,
+		RateLimits: rateLimitSettings{
+			LoginMax:             1,
+			LoginWindow:          time.Minute,
+			ForgotPasswordMax:    8,
+			ForgotPasswordWindow: time.Hour,
+			APIMax:               300,
+			APIWindow:            time.Minute,
+		},
+	}, handler)
+	app.Post(security.OIDCCallbackPath, func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusNoContent)
+	})
+
+	request := httptest.NewRequest(http.MethodPost, security.OIDCCallbackPath, strings.NewReader("state=one&code=provider-code"))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.RemoteAddr = "203.0.113.11:43123"
+	first := mustRateLimitedResponse(t, app, request)
+	if first.StatusCode != http.StatusNoContent {
+		t.Fatalf("expected first OIDC callback request to pass, got %d", first.StatusCode)
+	}
+
+	secondRequest := httptest.NewRequest(http.MethodPost, security.OIDCCallbackPath, strings.NewReader("state=two&code=provider-code"))
+	secondRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	secondRequest.RemoteAddr = "203.0.113.11:43123"
+	second := mustRateLimitedResponse(t, app, secondRequest)
+	if second.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected second OIDC callback request to be rate limited, got %d", second.StatusCode)
+	}
+	if location := second.Header.Get("Location"); location != "/login" {
+		t.Fatalf("expected OIDC callback rate limit redirect to /login, got %q", location)
+	}
+}
+
+func mustRateLimitedResponse(t *testing.T, app *fiber.App, request *http.Request) *http.Response {
+	t.Helper()
+
+	response, err := app.Test(request, -1)
+	if err != nil {
+		t.Fatalf("rate-limit request failed: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = response.Body.Close()
+	})
+	return response
 }

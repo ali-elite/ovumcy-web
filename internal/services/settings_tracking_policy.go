@@ -1,6 +1,6 @@
 package services
 
-import "github.com/terraincognita07/ovumcy/internal/models"
+import "github.com/ovumcy/ovumcy-web/internal/models"
 
 type TrackingSettingsUpdate struct {
 	TrackBBT           bool

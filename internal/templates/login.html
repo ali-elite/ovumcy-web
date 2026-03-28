@@ -46,6 +46,12 @@
       <button type="submit" class="btn-primary w-full">{{t .Messages "auth.login"}}</button>
     </form>
 
+    {{if .OIDCEnabled}}
+    <div class="mt-4">
+      <a href="/auth/oidc/start" class="btn-secondary w-full justify-center" data-auth-sso-cta>{{t .Messages "auth.login_with_sso"}}</a>
+    </div>
+    {{end}}
+
     <div class="mt-5 space-y-2 text-sm">
       {{if .RegistrationOpen}}
       <p class="journal-muted">

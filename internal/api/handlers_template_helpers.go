@@ -3,8 +3,8 @@ package api
 import (
 	"html/template"
 
-	"github.com/terraincognita07/ovumcy/internal/httpx"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/httpx"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func newTemplateFuncMap() template.FuncMap {

@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func authValidationErrorSpec(key string) APIErrorSpec {
@@ -55,6 +55,21 @@ func mapAuthLoginError(err error) APIErrorSpec {
 	}
 }
 
+func mapAuthOIDCError(err error) APIErrorSpec {
+	switch services.ClassifyOIDCAuthError(err) {
+	case services.OIDCAuthErrorDisabled, services.OIDCAuthErrorUnavailable:
+		return authOIDCUnavailableErrorSpec()
+	case services.OIDCAuthErrorCallbackInvalid, services.OIDCAuthErrorAuthenticationFailed:
+		return authOIDCAuthenticationFailedErrorSpec()
+	case services.OIDCAuthErrorAccountUnavailable:
+		return authOIDCAccountUnavailableErrorSpec()
+	case services.OIDCAuthErrorIdentityResolveFailed, services.OIDCAuthErrorLinkFailed:
+		return authOIDCUnavailableErrorSpec()
+	default:
+		return authOIDCAuthenticationFailedErrorSpec()
+	}
+}
+
 func mapPasswordRecoveryStartError(err error) APIErrorSpec {
 	switch services.ClassifyPasswordRecoveryStartError(err) {
 	case services.PasswordRecoveryStartErrorRateLimited:
@@ -97,4 +112,16 @@ func authResetTokenCreateErrorSpec() APIErrorSpec {
 
 func authRecoveryCodePersistErrorSpec() APIErrorSpec {
 	return globalErrorSpec(fiber.StatusInternalServerError, APIErrorCategoryInternal, "failed to persist recovery code")
+}
+
+func authOIDCUnavailableErrorSpec() APIErrorSpec {
+	return authFormErrorSpec(fiber.StatusServiceUnavailable, APIErrorCategoryInternal, "sso temporarily unavailable")
+}
+
+func authOIDCAuthenticationFailedErrorSpec() APIErrorSpec {
+	return authFormErrorSpec(fiber.StatusUnauthorized, APIErrorCategoryUnauthorized, "sso authentication failed")
+}
+
+func authOIDCAccountUnavailableErrorSpec() APIErrorSpec {
+	return authFormErrorSpec(fiber.StatusForbidden, APIErrorCategoryForbidden, "sso sign-in unavailable")
 }

@@ -14,6 +14,7 @@ Supported baseline assumptions:
 - Prefer a containerized reverse proxy stack where only the proxy publishes host ports.
 - Keep Ovumcy's plain HTTP port internal to a private network or loopback-only.
 - A strong, unique application secret provided through `SECRET_KEY` or `SECRET_KEY_FILE`.
+- Optional OIDC is supported in hybrid mode for existing local accounts only; it requires HTTPS, `COOKIE_SECURE=true`, and an `OIDC_REDIRECT_URL` that ends in `/auth/oidc/callback`.
 
 Out of scope for this baseline:
 
@@ -74,8 +75,27 @@ These settings are valid, but they are not required for a safe first deployment:
 
 - `TZ` and `DEFAULT_LANGUAGE` (`en`, `ru`, `es`, `fr`, `de`) for operator preference
 - rate-limit variables if you need stricter or looser local policy
+- optional OIDC variables when you want the login page to offer external sign-in for existing local accounts: `OIDC_ENABLED`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URL`, and `OIDC_AUTO_PROVISION=false`
 - `PROXY_HEADER` only if your trusted proxy uses a different real-client header contract
 - `DB_DRIVER=postgres` plus `DATABASE_URL=...` when you intentionally move the app runtime to Postgres, either through the bundled local/private Postgres stack or an operator-managed database service
+
+## Optional OIDC Sign-In
+
+OIDC is intentionally narrow in the current contract:
+
+- it is optional and keeps the existing local username/password flow in place;
+- it links only existing local accounts;
+- the first successful OIDC sign-in must match an existing local account by verified email;
+- later sign-ins use the stored `(issuer, subject)` identity link;
+- `OIDC_AUTO_PROVISION` must stay `false` because automatic account creation is not supported yet.
+
+Operator checklist for OIDC:
+
+- serve Ovumcy through HTTPS and set `COOKIE_SECURE=true`;
+- set `OIDC_REDIRECT_URL` to the public HTTPS URL ending in `/auth/oidc/callback`;
+- keep `OIDC_CLIENT_SECRET` private just like `SECRET_KEY` and `.env`;
+- prefer the dedicated reverse-proxy stacks for public deployments so the callback URL and cookie policy stay aligned.
+- use [docs/oidc.md](oidc.md) for provider-specific recipes, flow details, and troubleshooting.
 
 ## Privacy Responsibility Split
 

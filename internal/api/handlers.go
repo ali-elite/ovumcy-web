@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/i18n"
+	"github.com/ovumcy/ovumcy-web/internal/i18n"
 )
 
 func NewHandler(secret string, templateDir string, location *time.Location, i18nManager *i18n.Manager, cookieSecure bool, dependencies Dependencies) (*Handler, error) {

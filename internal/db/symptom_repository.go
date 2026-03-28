@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 	"gorm.io/gorm"
 )
 

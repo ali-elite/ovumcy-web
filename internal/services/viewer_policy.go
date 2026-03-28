@@ -1,6 +1,6 @@
 package services
 
-import "github.com/terraincognita07/ovumcy/internal/models"
+import "github.com/ovumcy/ovumcy-web/internal/models"
 
 func IsOwnerUser(user *models.User) bool {
 	return user != nil && user.Role == models.RoleOwner

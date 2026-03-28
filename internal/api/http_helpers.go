@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/httpx"
+	"github.com/ovumcy/ovumcy-web/internal/httpx"
 )
 
 func redirectOrJSON(c *fiber.Ctx, path string) error {

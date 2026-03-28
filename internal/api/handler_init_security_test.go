@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/db"
-	"github.com/terraincognita07/ovumcy/internal/i18n"
+	"github.com/ovumcy/ovumcy-web/internal/db"
+	"github.com/ovumcy/ovumcy-web/internal/i18n"
 )
 
 func TestNewHandlerRejectsEmptySecret(t *testing.T) {

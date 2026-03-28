@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 func TestExportSummaryRespectsRequestedDateRange(t *testing.T) {

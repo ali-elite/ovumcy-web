@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/glebarez/sqlite"
-	"github.com/terraincognita07/ovumcy/internal/models"
-	embeddedmigrations "github.com/terraincognita07/ovumcy/migrations"
+	"github.com/ovumcy/ovumcy-web/internal/models"
+	embeddedmigrations "github.com/ovumcy/ovumcy-web/migrations"
 	"gorm.io/gorm"
 )
 

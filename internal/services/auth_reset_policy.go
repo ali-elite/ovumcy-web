@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/terraincognita07/ovumcy/internal/security"
+	"github.com/ovumcy/ovumcy-web/internal/security"
 	"golang.org/x/crypto/bcrypt"
 )
 

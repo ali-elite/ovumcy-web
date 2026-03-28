@@ -3,7 +3,7 @@ package services
 import (
 	"testing"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 func TestNormalizeAgeGroup(t *testing.T) {

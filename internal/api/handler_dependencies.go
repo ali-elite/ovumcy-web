@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 type Dependencies struct {
@@ -12,6 +12,7 @@ type Dependencies struct {
 	RegistrationService  RegistrationWorkflowService
 	PasswordResetService *services.PasswordResetService
 	LoginService         LoginWorkflowService
+	OIDCService          OIDCWorkflowService
 	DayService           *services.DayService
 	SymptomService       *services.SymptomService
 	ViewerService        *services.ViewerService
@@ -45,6 +46,7 @@ func (dependencies Dependencies) requirements() []dependencyRequirement {
 		{value: dependencies.RegistrationService, message: "registration service is required"},
 		{value: dependencies.PasswordResetService, message: "password reset service is required"},
 		{value: dependencies.LoginService, message: "login service is required"},
+		{value: dependencies.OIDCService, message: "oidc service is required"},
 		{value: dependencies.DayService, message: "day service is required"},
 		{value: dependencies.SymptomService, message: "symptom service is required"},
 		{value: dependencies.ViewerService, message: "viewer service is required"},
@@ -78,6 +80,7 @@ func (handler *Handler) withDependencies(dependencies Dependencies) *Handler {
 	handler.registrationService = dependencies.RegistrationService
 	handler.passwordResetSvc = dependencies.PasswordResetService
 	handler.loginService = dependencies.LoginService
+	handler.oidcService = dependencies.OIDCService
 	handler.dayService = dependencies.DayService
 	handler.symptomService = dependencies.SymptomService
 	handler.viewerService = dependencies.ViewerService

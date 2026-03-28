@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/db"
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/db"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 	"gorm.io/gorm"
 )
 

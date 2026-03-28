@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func TestExportPDFCalendarMonthsKeepsLatestSixValidMonths(t *testing.T) {

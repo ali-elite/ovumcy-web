@@ -44,12 +44,20 @@ func (err *SymptomSeedError) SymptomSeedFailure() bool {
 }
 
 func classifyUserCreateError(err error) error {
+	return classifyUniqueConstraintError(err, "users.email")
+}
+
+func classifyOIDCIdentityCreateError(err error) error {
+	return classifyUniqueConstraintError(err, "oidc_identities.issuer_subject")
+}
+
+func classifyUniqueConstraintError(err error, defaultConstraint string) error {
 	if err == nil {
 		return nil
 	}
 	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		return &UniqueConstraintError{
-			Constraint: "users.email",
+			Constraint: defaultConstraint,
 			Err:        err,
 		}
 	}
@@ -57,7 +65,7 @@ func classifyUserCreateError(err error) error {
 	message := strings.ToLower(strings.TrimSpace(err.Error()))
 	if strings.Contains(message, "unique constraint failed") {
 		const marker = "unique constraint failed:"
-		constraint := "users.email"
+		constraint := defaultConstraint
 		index := strings.Index(message, marker)
 		if index >= 0 {
 			extracted := strings.TrimSpace(message[index+len(marker):])

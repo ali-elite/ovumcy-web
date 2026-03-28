@@ -28,6 +28,10 @@ export function expectNoSensitiveAuthParams(urlString: string): void {
 
   expect(combined).not.toContain('email=');
   expect(combined).not.toContain('error=');
+  expect(combined).not.toContain('error_description=');
+  expect(combined).not.toContain('code=');
+  expect(combined).not.toContain('state=');
+  expect(combined).not.toContain('iss=');
   expect(combined).not.toContain('token=');
   expect(combined).not.toContain('recovery=');
 }

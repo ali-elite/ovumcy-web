@@ -4,10 +4,10 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
-func buildLoginPageData(messages map[string]string, flash FlashPayload, needsSetup bool, registrationOpen bool) fiber.Map {
+func buildLoginPageData(messages map[string]string, flash FlashPayload, needsSetup bool, registrationOpen bool, oidcEnabled bool) fiber.Map {
 	errorSource := services.ResolveAuthErrorSource(flash.AuthError)
 	return fiber.Map{
 		"Title":            localizedPageTitle(messages, "meta.title.login", "Ovumcy | Login"),
@@ -15,6 +15,7 @@ func buildLoginPageData(messages map[string]string, flash FlashPayload, needsSet
 		"Email":            services.ResolveAuthPageEmail(flash.LoginEmail),
 		"IsFirstLaunch":    needsSetup,
 		"RegistrationOpen": registrationOpen,
+		"OIDCEnabled":      oidcEnabled,
 	}
 }
 

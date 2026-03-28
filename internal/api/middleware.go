@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 const (
@@ -13,6 +13,7 @@ const (
 	flashCookieName         = "ovumcy_flash"
 	recoveryCodeCookieName  = "ovumcy_recovery_code"
 	resetPasswordCookieName = "ovumcy_reset_password" // #nosec G101 -- cookie name contains "password" but is not a secret or credential.
+	oidcStateCookieName     = "ovumcy_oidc_auth"
 	contextUserKey          = "current_user"
 	contextLanguageKey      = "current_language"
 	contextMessagesKey      = "current_messages"

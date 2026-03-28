@@ -9,9 +9,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/csrf"
-	"github.com/terraincognita07/ovumcy/internal/db"
-	"github.com/terraincognita07/ovumcy/internal/i18n"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/db"
+	"github.com/ovumcy/ovumcy-web/internal/i18n"
+	"github.com/ovumcy/ovumcy-web/internal/security"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 	"gorm.io/gorm"
 )
 
@@ -39,6 +40,7 @@ type onboardingTestAppOptions struct {
 	cookieSecure     bool
 	enableCSRF       bool
 	registrationMode services.RegistrationMode
+	oidcService      OIDCWorkflowService
 }
 
 func newOnboardingTestAppWithOptions(t *testing.T, options onboardingTestAppOptions) (*fiber.App, *gorm.DB) {
@@ -72,7 +74,7 @@ func newOnboardingTestAppWithOptions(t *testing.T, options onboardingTestAppOpti
 		t.Fatalf("init i18n: %v", err)
 	}
 
-	handler, err := NewHandler("test-secret-key", templatesDir, time.UTC, i18nManager, options.cookieSecure, newTestHandlerDependencies(database, i18nManager, options.registrationMode))
+	handler, err := NewHandler("test-secret-key", templatesDir, time.UTC, i18nManager, options.cookieSecure, newTestHandlerDependencies(database, i18nManager, options))
 	if err != nil {
 		t.Fatalf("init handler: %v", err)
 	}
@@ -87,7 +89,12 @@ func newOnboardingTestAppWithOptions(t *testing.T, options onboardingTestAppOpti
 	return app, database
 }
 
-func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, registrationModes ...services.RegistrationMode) Dependencies {
+func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, options ...onboardingTestAppOptions) Dependencies {
+	var appOptions onboardingTestAppOptions
+	if len(options) > 0 {
+		appOptions = options[0]
+	}
+
 	repositories := db.NewRepositories(database)
 	authService := services.NewAuthService(repositories.Users)
 	attemptLimiter := services.NewAttemptLimiter()
@@ -95,6 +102,10 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, re
 	passwordResetService.ConfigureRecoveryAttemptLimits(services.DefaultRecoveryAttemptsLimit, time.Hour)
 	loginService := services.NewLoginService(authService, passwordResetService, attemptLimiter)
 	loginService.ConfigureAttemptLimits(services.DefaultLoginAttemptsLimit, services.DefaultLoginAttemptsWindow)
+	var oidcService OIDCWorkflowService = services.NewOIDCLoginService(security.NewOIDCClient(security.OIDCConfig{}), repositories.OIDCIdentities, repositories.Users)
+	if appOptions.oidcService != nil {
+		oidcService = appOptions.oidcService
+	}
 	dayService := services.NewDayService(repositories.DailyLogs, repositories.Users)
 	reservedBuiltinNames := make([]string, 0)
 	if i18nManager != nil {
@@ -102,8 +113,8 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, re
 	}
 	symptomService := services.NewSymptomService(repositories.Symptoms, reservedBuiltinNames...)
 	registrationMode := services.RegistrationModeOpen
-	if len(registrationModes) > 0 && registrationModes[0] != "" {
-		registrationMode = registrationModes[0]
+	if appOptions.registrationMode != "" {
+		registrationMode = appOptions.registrationMode
 	}
 	registrationService := services.NewRegistrationService(authService, repositories.Users, registrationMode)
 	viewerService := services.NewViewerService(dayService, symptomService)
@@ -122,6 +133,7 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, re
 		RegistrationService:  registrationService,
 		PasswordResetService: passwordResetService,
 		LoginService:         loginService,
+		OIDCService:          oidcService,
 		DayService:           dayService,
 		SymptomService:       symptomService,
 		ViewerService:        viewerService,
@@ -138,6 +150,9 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, re
 
 func testCSRFMiddlewareConfig(cookieSecure bool) csrf.Config {
 	return csrf.Config{
+		Next: func(c *fiber.Ctx) bool {
+			return c.Path() == security.OIDCCallbackPath
+		},
 		KeyLookup:      "form:csrf_token",
 		CookieName:     "ovumcy_csrf",
 		CookieSameSite: "Lax",

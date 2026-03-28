@@ -58,6 +58,40 @@ func ClassifyAuthLoginError(err error) AuthLoginErrorKind {
 	}
 }
 
+type OIDCAuthErrorKind uint8
+
+const (
+	OIDCAuthErrorUnknown OIDCAuthErrorKind = iota
+	OIDCAuthErrorDisabled
+	OIDCAuthErrorUnavailable
+	OIDCAuthErrorCallbackInvalid
+	OIDCAuthErrorAuthenticationFailed
+	OIDCAuthErrorAccountUnavailable
+	OIDCAuthErrorIdentityResolveFailed
+	OIDCAuthErrorLinkFailed
+)
+
+func ClassifyOIDCAuthError(err error) OIDCAuthErrorKind {
+	switch {
+	case errors.Is(err, ErrOIDCDisabled):
+		return OIDCAuthErrorDisabled
+	case errors.Is(err, ErrOIDCUnavailable):
+		return OIDCAuthErrorUnavailable
+	case errors.Is(err, ErrOIDCCallbackInvalid):
+		return OIDCAuthErrorCallbackInvalid
+	case errors.Is(err, ErrOIDCAuthenticationFailed):
+		return OIDCAuthErrorAuthenticationFailed
+	case errors.Is(err, ErrOIDCAccountUnavailable):
+		return OIDCAuthErrorAccountUnavailable
+	case errors.Is(err, ErrOIDCIdentityResolveFailed):
+		return OIDCAuthErrorIdentityResolveFailed
+	case errors.Is(err, ErrOIDCLinkFailed):
+		return OIDCAuthErrorLinkFailed
+	default:
+		return OIDCAuthErrorUnknown
+	}
+}
+
 type PasswordRecoveryStartErrorKind uint8
 
 const (

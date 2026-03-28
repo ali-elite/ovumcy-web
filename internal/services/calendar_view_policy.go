@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 var ErrCalendarMonthInvalid = errors.New("calendar invalid month")

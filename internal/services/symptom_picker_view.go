@@ -3,7 +3,7 @@ package services
 import (
 	"sort"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 func RankSymptomsForEntryPicker(symptoms []models.SymptomType, logs []models.DailyLog) []models.SymptomType {

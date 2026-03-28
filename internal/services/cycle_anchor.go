@@ -3,7 +3,7 @@ package services
 import (
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
 func latestCycleStartAnchorBeforeOrOn(user *models.User, explicitStart time.Time, day time.Time, location *time.Location) time.Time {

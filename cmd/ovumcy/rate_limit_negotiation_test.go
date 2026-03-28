@@ -12,10 +12,11 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/api"
-	"github.com/terraincognita07/ovumcy/internal/db"
-	"github.com/terraincognita07/ovumcy/internal/i18n"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/api"
+	"github.com/ovumcy/ovumcy-web/internal/db"
+	"github.com/ovumcy/ovumcy-web/internal/i18n"
+	"github.com/ovumcy/ovumcy-web/internal/security"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func newRateLimitTestI18nManager(t *testing.T) *i18n.Manager {
@@ -87,7 +88,7 @@ func newRateLimitTestHandler(t *testing.T) *api.Handler {
 			ForgotPasswordWindow: time.Hour,
 			APIMax:               300,
 			APIWindow:            time.Minute,
-		}, services.RegistrationModeOpen),
+		}, services.RegistrationModeOpen, security.OIDCConfig{}),
 	)
 	if err != nil {
 		t.Fatalf("init rate-limit test handler: %v", err)
@@ -155,6 +156,37 @@ func TestAuthRateLimitHandlerRedirectUsesSealedFlashCookie(t *testing.T) {
 	}
 	if strings.Contains(flashCookie.Value, "rate-limit@example.com") {
 		t.Fatalf("did not expect sealed flash cookie to expose email in plaintext: %q", flashCookie.Value)
+	}
+}
+
+func TestOIDCRateLimitHandlerRedirectUsesSealedFlashCookie(t *testing.T) {
+	handler := newRateLimitTestHandler(t)
+	app := fiber.New()
+	app.Use(handler.LanguageMiddleware)
+	app.Get("/auth/oidc/start", newAuthRateLimitHandler(handler, authRateLimitConfig{
+		ErrorCode: "too_many_sso_attempts",
+	}))
+
+	request := httptest.NewRequest(http.MethodGet, "/auth/oidc/start?error=access_denied", nil)
+	response, err := app.Test(request, -1)
+	if err != nil {
+		t.Fatalf("oidc rate-limit redirect request failed: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected status 303, got %d", response.StatusCode)
+	}
+	if location := response.Header.Get("Location"); location != "/login" {
+		t.Fatalf("expected redirect to /login, got %q", location)
+	}
+
+	flashCookie := testResponseCookie(response.Cookies(), "ovumcy_flash")
+	if flashCookie == nil {
+		t.Fatal("expected flash cookie in redirect response")
+	}
+	if strings.Contains(flashCookie.Value, "access_denied") {
+		t.Fatalf("did not expect sealed flash cookie to expose provider error in plaintext: %q", flashCookie.Value)
 	}
 }
 

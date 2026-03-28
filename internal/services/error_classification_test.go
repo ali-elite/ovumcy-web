@@ -53,6 +53,21 @@ func TestClassifyAuthAndRecoveryErrors(t *testing.T) {
 	if got := ClassifyPasswordResetCompleteError(ErrInvalidResetToken); got != PasswordResetCompleteErrorInvalidToken {
 		t.Fatalf("expected PasswordResetCompleteErrorInvalidToken, got %v", got)
 	}
+	if got := ClassifyOIDCAuthError(ErrOIDCDisabled); got != OIDCAuthErrorDisabled {
+		t.Fatalf("expected OIDCAuthErrorDisabled, got %v", got)
+	}
+	if got := ClassifyOIDCAuthError(ErrOIDCUnavailable); got != OIDCAuthErrorUnavailable {
+		t.Fatalf("expected OIDCAuthErrorUnavailable, got %v", got)
+	}
+	if got := ClassifyOIDCAuthError(ErrOIDCCallbackInvalid); got != OIDCAuthErrorCallbackInvalid {
+		t.Fatalf("expected OIDCAuthErrorCallbackInvalid, got %v", got)
+	}
+	if got := ClassifyOIDCAuthError(ErrOIDCAuthenticationFailed); got != OIDCAuthErrorAuthenticationFailed {
+		t.Fatalf("expected OIDCAuthErrorAuthenticationFailed, got %v", got)
+	}
+	if got := ClassifyOIDCAuthError(ErrOIDCAccountUnavailable); got != OIDCAuthErrorAccountUnavailable {
+		t.Fatalf("expected OIDCAuthErrorAccountUnavailable, got %v", got)
+	}
 }
 
 func TestClassifyRangeAndDayErrors(t *testing.T) {

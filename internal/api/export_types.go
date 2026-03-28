@@ -1,5 +1,5 @@
 package api
 
-import "github.com/terraincognita07/ovumcy/internal/services"
+import "github.com/ovumcy/ovumcy-web/internal/services"
 
 type exportJSONEntry = services.ExportJSONEntry

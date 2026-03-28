@@ -7,7 +7,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func formatTemplateDate(value time.Time, layout string) string {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func TestRegisterClosedModeReturnsForbiddenJSONError(t *testing.T) {

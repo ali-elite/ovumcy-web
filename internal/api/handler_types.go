@@ -1,12 +1,13 @@
 package api
 
 import (
+	"context"
 	"html/template"
 	"time"
 
-	"github.com/terraincognita07/ovumcy/internal/i18n"
-	"github.com/terraincognita07/ovumcy/internal/models"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/i18n"
+	"github.com/ovumcy/ovumcy-web/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 type RegistrationWorkflowService interface {
@@ -16,6 +17,12 @@ type RegistrationWorkflowService interface {
 
 type LoginWorkflowService interface {
 	Authenticate(secretKey []byte, clientKey string, email string, password string, resetTokenTTL time.Duration, now time.Time) (services.LoginResult, error)
+}
+
+type OIDCWorkflowService interface {
+	Enabled() bool
+	StartAuth(ctx context.Context, state string, nonce string, codeVerifier string) (string, error)
+	Authenticate(ctx context.Context, code string, codeVerifier string, expectedNonce string, now time.Time) (services.OIDCLoginResult, error)
 }
 
 type Handler struct {
@@ -29,6 +36,7 @@ type Handler struct {
 	registrationService  RegistrationWorkflowService
 	passwordResetSvc     *services.PasswordResetService
 	loginService         LoginWorkflowService
+	oidcService          OIDCWorkflowService
 	dayService           *services.DayService
 	symptomService       *services.SymptomService
 	viewerService        *services.ViewerService

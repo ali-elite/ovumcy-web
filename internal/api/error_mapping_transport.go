@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/httpx"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/httpx"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func apiError(c *fiber.Ctx, status int, message string) error {
@@ -24,7 +24,7 @@ func apiError(c *fiber.Ctx, status int, message string) error {
 }
 
 func (handler *Handler) respondAuthError(c *fiber.Ctx, status int, message string) error {
-	if strings.HasPrefix(c.Path(), "/api/auth/") && !acceptsJSON(c) && !isHTMX(c) {
+	if (strings.HasPrefix(c.Path(), "/api/auth/") || strings.HasPrefix(c.Path(), "/auth/oidc")) && !acceptsJSON(c) && !isHTMX(c) {
 		flash := FlashPayload{AuthError: message}
 		switch c.Path() {
 		case "/api/auth/register":
@@ -40,6 +40,9 @@ func (handler *Handler) respondAuthError(c *fiber.Ctx, status int, message strin
 			flash.ForgotEmail = services.NormalizeAuthEmail(c.FormValue("email"))
 			handler.setFlashCookie(c, flash)
 			return c.Redirect("/forgot-password", fiber.StatusSeeOther)
+		case "/auth/oidc", "/auth/oidc/start", "/auth/oidc/callback":
+			handler.setFlashCookie(c, flash)
+			return c.Redirect("/login", fiber.StatusSeeOther)
 		case "/api/auth/reset-password":
 			handler.setFlashCookie(c, flash)
 			return c.Redirect("/reset-password", fiber.StatusSeeOther)

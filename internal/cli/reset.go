@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/terraincognita07/ovumcy/internal/db"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/db"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func RunResetPasswordCommand(databaseConfig db.Config, email string) error {

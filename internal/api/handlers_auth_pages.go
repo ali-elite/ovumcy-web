@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func (handler *Handler) ShowLoginPage(c *fiber.Ctx) error {
@@ -19,7 +19,7 @@ func (handler *Handler) ShowLoginPage(c *fiber.Ctx) error {
 	}
 
 	flash := handler.popFlashCookie(c)
-	data := buildLoginPageData(currentMessages(c), flash, needsSetup, handler.registrationService.RegistrationOpen())
+	data := buildLoginPageData(currentMessages(c), flash, needsSetup, handler.registrationService.RegistrationOpen(), handler.oidcService.Enabled())
 	return handler.render(c, "login", data)
 }
 

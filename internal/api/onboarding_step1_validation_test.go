@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/terraincognita07/ovumcy/internal/services"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
