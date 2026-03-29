@@ -62,15 +62,6 @@ function sendNotFound(response) {
   response.end("not found");
 }
 
-function escapeHTML(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
 function isSafeOIDCTransportValue(value) {
   return /^[A-Za-z0-9._~-]{1,512}$/.test(String(value ?? ""));
 }
@@ -172,6 +163,7 @@ export async function startLocalOIDCProvider({
   const publicJWK = createPublicKey(key).export({ format: "jwk" });
   const keyID = "ovumcy-e2e-oidc";
   const authCodes = new Map();
+  const callbackPosts = new Map();
   const redirectOrigin = new URL(redirectURL).origin;
 
   const jwksPayload = {
@@ -246,17 +238,53 @@ export async function startLocalOIDCProvider({
           emailVerified,
         });
 
+        const callbackPostID = randomBytes(24).toString("hex");
+        callbackPosts.set(callbackPostID, { code, state });
+
         const callbackMarkup = `<!doctype html>
 <html lang="en">
   <body>
-    <form id="oidc-callback-form" action="${escapeHTML(redirectURL)}" method="post">
-      <input type="hidden" name="code" value="${code}">
-      <input type="hidden" name="state" value="${escapeHTML(state)}">
-    </form>
-    <script>document.getElementById("oidc-callback-form").submit();</script>
+    <script>
+      (async () => {
+        const response = await fetch("/callback-payload/${callbackPostID}", {
+          method: "GET",
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          document.body.textContent = "invalid_request";
+          return;
+        }
+        const payload = await response.json();
+        const form = document.createElement("form");
+        form.method = "post";
+        form.action = ${JSON.stringify(redirectURL)};
+        for (const [name, value] of Object.entries(payload)) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = name;
+          input.value = String(value);
+          form.appendChild(input);
+        }
+        document.body.appendChild(form);
+        form.submit();
+      })();
+    </script>
   </body>
 </html>`;
         sendHTML(response, 200, callbackMarkup);
+        return;
+      }
+
+      if (request.method === "GET" && url.pathname.startsWith("/callback-payload/")) {
+        const callbackPostID = url.pathname.slice("/callback-payload/".length);
+        const payload = callbackPosts.get(callbackPostID);
+        if (!payload) {
+          sendJSON(response, 404, { error: "invalid_request" });
+          return;
+        }
+        callbackPosts.delete(callbackPostID);
+        sendJSON(response, 200, payload);
         return;
       }
 
