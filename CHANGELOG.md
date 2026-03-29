@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-03-29
+
 ### Added
 - Optional OpenID Connect sign-in for self-hosted deployments, including `hybrid` and `oidc_only` login modes, first login by verified email, stored `(issuer, subject)` links, and operator-facing OIDC documentation.
 - OIDC auto-provision for owner accounts when registration is open and the configured allowlist permits the provider email domain.
@@ -225,7 +227,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/ovumcy/ovumcy-web/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/ovumcy/ovumcy-web/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/ovumcy/ovumcy-web/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/ovumcy/ovumcy-web/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/ovumcy/ovumcy-web/compare/v0.6.1...v0.7.0
