@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-03-29
+
+### Changed
+- Hardened the local OIDC browser-test runtime helper so it no longer reflects unvalidated transport values, echoes internal error messages in JSON, or accepts arbitrary post-logout redirects.
+
+### Security
+- This patch release keeps the `v0.8.0` OIDC feature set but removes the remaining CodeQL warnings from the local OIDC test harness before the public release tag.
+
 ## [0.8.0] - 2026-03-29
 
 ### Added
@@ -227,7 +235,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/ovumcy/ovumcy-web/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/ovumcy/ovumcy-web/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/ovumcy/ovumcy-web/compare/v0.7.0...v0.7.1

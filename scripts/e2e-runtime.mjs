@@ -71,6 +71,30 @@ function escapeHTML(value) {
     .replaceAll("'", "&#39;");
 }
 
+function isSafeOIDCTransportValue(value) {
+  return /^[A-Za-z0-9._~-]{1,512}$/.test(String(value ?? ""));
+}
+
+function normalizeAllowedLogoutRedirect(rawValue, allowedOrigin) {
+  const trimmed = String(rawValue ?? "").trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.origin !== allowedOrigin) {
+      return "";
+    }
+    if (parsed.username || parsed.password || parsed.hash) {
+      return "";
+    }
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
 function codeChallengeS256(verifier) {
   return createHash("sha256").update(String(verifier)).digest("base64url");
 }
@@ -148,6 +172,7 @@ export async function startLocalOIDCProvider({
   const publicJWK = createPublicKey(key).export({ format: "jwk" });
   const keyID = "ovumcy-e2e-oidc";
   const authCodes = new Map();
+  const redirectOrigin = new URL(redirectURL).origin;
 
   const jwksPayload = {
     keys: [
@@ -200,6 +225,8 @@ export async function startLocalOIDCProvider({
           redirectURI !== redirectURL ||
           state === "" ||
           nonce === "" ||
+          !isSafeOIDCTransportValue(state) ||
+          !isSafeOIDCTransportValue(nonce) ||
           codeChallenge === "" ||
           codeChallengeMethod !== "S256" ||
           responseMode !== "form_post"
@@ -222,8 +249,8 @@ export async function startLocalOIDCProvider({
         const callbackMarkup = `<!doctype html>
 <html lang="en">
   <body>
-    <form id="oidc-callback-form" action="${escapeHTML(redirectURI)}" method="post">
-      <input type="hidden" name="code" value="${escapeHTML(code)}">
+    <form id="oidc-callback-form" action="${escapeHTML(redirectURL)}" method="post">
+      <input type="hidden" name="code" value="${code}">
       <input type="hidden" name="state" value="${escapeHTML(state)}">
     </form>
     <script>document.getElementById("oidc-callback-form").submit();</script>
@@ -292,10 +319,17 @@ export async function startLocalOIDCProvider({
       }
 
       if ((request.method === "GET" || request.method === "POST") && url.pathname === "/logout") {
-        const redirectURI = url.searchParams.get("post_logout_redirect_uri") ?? "";
+        const redirectURI = normalizeAllowedLogoutRedirect(
+          url.searchParams.get("post_logout_redirect_uri"),
+          redirectOrigin,
+        );
         if (redirectURI) {
           response.writeHead(303, { location: redirectURI, "cache-control": "no-store" });
           response.end();
+          return;
+        }
+        if (url.searchParams.has("post_logout_redirect_uri")) {
+          sendJSON(response, 400, { error: "invalid_request" });
           return;
         }
         sendHTML(response, 200, "<!doctype html><html lang=\"en\"><body>signed out</body></html>");
@@ -304,8 +338,12 @@ export async function startLocalOIDCProvider({
 
       sendNotFound(response);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      sendJSON(response, 500, { error: "server_error", message });
+      if (error instanceof Error) {
+        console.error("[e2e-runtime] local OIDC provider error:", error.message);
+      } else {
+        console.error("[e2e-runtime] local OIDC provider error");
+      }
+      sendJSON(response, 500, { error: "server_error" });
     }
   });
 
