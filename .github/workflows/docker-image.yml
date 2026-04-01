@@ -62,6 +62,72 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Select public image reference
+        id: public_ref
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "value=latest" >> "$GITHUB_OUTPUT"
+
+      - name: Verify anonymous GHCR pull access
+        shell: bash
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository }}
+          IMAGE_REF: ${{ steps.public_ref.outputs.value }}
+        run: |
+          set -euo pipefail
+
+          token_body="$(mktemp)"
+          manifest_body="$(mktemp)"
+          trap 'rm -f "$token_body" "$manifest_body"' EXIT
+
+          token_status="$(
+            curl -sSLo "$token_body" -w '%{http_code}' \
+              "https://ghcr.io/token?service=ghcr.io&scope=repository:${GITHUB_REPOSITORY}:pull"
+          )"
+
+          if [[ "$token_status" != "200" ]]; then
+            echo "::error::Anonymous GHCR token request for ${IMAGE_NAME}:${IMAGE_REF} returned HTTP ${token_status}. Ensure the package is linked to ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} and that the package visibility is set to public."
+            cat "$token_body"
+            exit 1
+          fi
+
+          token="$(
+            python3 - "$token_body" <<'PY'
+import json
+import pathlib
+import sys
+
+body = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+print(body.get("token", ""))
+PY
+          )"
+
+          if [[ -z "$token" ]]; then
+            echo "::error::Anonymous GHCR token response for ${IMAGE_NAME}:${IMAGE_REF} did not include a bearer token."
+            cat "$token_body"
+            exit 1
+          fi
+
+          manifest_status="$(
+            curl -sSLo "$manifest_body" -w '%{http_code}' \
+              -H "Authorization: Bearer ${token}" \
+              -H "Accept: application/vnd.oci.image.index.v1+json,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.docker.distribution.manifest.v2+json" \
+              "https://ghcr.io/v2/${GITHUB_REPOSITORY}/manifests/${IMAGE_REF}"
+          )"
+
+          if [[ "$manifest_status" != "200" ]]; then
+            echo "::error::Anonymous GHCR manifest request for ${IMAGE_NAME}:${IMAGE_REF} returned HTTP ${manifest_status}. Ensure the package is publicly pullable before considering this release published."
+            cat "$manifest_body"
+            exit 1
+          fi
+
       - name: Install Cosign
         uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
 
