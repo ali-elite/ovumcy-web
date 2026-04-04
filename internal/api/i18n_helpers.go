@@ -59,9 +59,7 @@ func (handler *Handler) withTemplateDefaults(c *fiber.Ctx, data fiber.Map) fiber
 		data["Lang"] = language
 	}
 
-	if existingPath, ok := data["CurrentPath"].(string); ok && strings.TrimSpace(existingPath) != "" {
-		currentPath = existingPath
-	} else {
+	if existingPath, ok := data["CurrentPath"].(string); !ok || strings.TrimSpace(existingPath) == "" {
 		data["CurrentPath"] = currentPath
 	}
 
@@ -70,7 +68,7 @@ func (handler *Handler) withTemplateDefaults(c *fiber.Ctx, data fiber.Map) fiber
 	}
 
 	if _, ok := data["LanguageOptions"]; !ok {
-		data["LanguageOptions"] = buildLanguageSwitchOptions(messages, currentPath, language, supportedLanguages)
+		data["LanguageOptions"] = buildLanguageSwitchOptions(messages, language, supportedLanguages)
 	}
 
 	if _, ok := data["CSRFToken"]; !ok {

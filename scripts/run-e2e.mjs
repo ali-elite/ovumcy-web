@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { createWriteStream } from "node:fs";
+import { createWriteStream, existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import net from "node:net";
 import { createRequire } from "node:module";
@@ -60,7 +60,29 @@ function isValidDB(db) {
 }
 
 function goBinary() {
-  return process.platform === "win32" ? "go.exe" : "go";
+  if (process.platform !== "win32") {
+    return "go";
+  }
+
+  const configured = String(process.env.GO_BINARY ?? "").trim();
+  if (configured) {
+    return configured;
+  }
+
+  const candidates = [
+    path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Go", "bin", "go.exe"),
+  ];
+  if (process.env.GOROOT) {
+    candidates.unshift(path.join(process.env.GOROOT, "bin", "go.exe"));
+  }
+
+  for (const candidate of candidates) {
+    if (candidate && existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return "go.exe";
 }
 
 function dockerBinary() {
@@ -306,6 +328,22 @@ async function runDockerCapture(args) {
   });
 }
 
+async function generateLocalTLSFixture(tmpDir, runID) {
+  const certPath = path.join(tmpDir, `localhost-${runID}.cert.pem`);
+  const keyPath = path.join(tmpDir, `localhost-${runID}.key.pem`);
+
+  await spawnAndCapture(
+    goBinary(),
+    ["run", "./scripts/e2e-tls-cert", "--cert", certPath, "--key", keyPath],
+    {
+      cwd: repoRoot,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+
+  return { certPath, keyPath };
+}
+
 async function waitForDockerPostgres(containerID, user, databaseName) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < RUN_TIMEOUT_MS) {
@@ -408,6 +446,7 @@ async function main() {
     String(process.env.E2E_USE_HTTPS_PROXY ?? "").trim().toLowerCase() === "true" ||
     cookieSecureEnabled ||
     localOIDCProviderEnabled;
+  const tlsFixture = useHTTPSProxy || localOIDCProviderEnabled ? await generateLocalTLSFixture(tmpDir, runID) : null;
   const publicPort = useHTTPSProxy ? await reservePort(0) : appPort;
   const appURL = `http://127.0.0.1:${appPort}`;
   const baseURL =
@@ -415,8 +454,6 @@ async function main() {
     (useHTTPSProxy ? `https://127.0.0.1:${publicPort}` : appURL);
   const localOIDCPort = localOIDCProviderEnabled ? await reservePort(0) : null;
   const localOIDCIssuer = localOIDCPort ? `https://127.0.0.1:${localOIDCPort}` : "";
-  const fixtureCertPath = path.join(repoRoot, "scripts", "fixtures", "e2e-localhost-cert.pem");
-  const fixtureKeyPath = path.join(repoRoot, "scripts", "fixtures", "e2e-localhost-key.pem");
 
   const dbPath = path.join(tmpDir, `run-${runID}.db`);
   const appLogPath = path.join(tmpDir, `app-${runID}.log`);
@@ -446,8 +483,8 @@ async function main() {
   const httpsProxy =
     useHTTPSProxy
       ? await startLocalHTTPSProxy({
-          certPath: fixtureCertPath,
-          keyPath: fixtureKeyPath,
+          certPath: tlsFixture.certPath,
+          keyPath: tlsFixture.keyPath,
           listenPort: publicPort,
           targetPort: appPort,
         })
@@ -455,8 +492,8 @@ async function main() {
   const localOIDCProvider =
     localOIDCProviderEnabled
       ? await startLocalOIDCProvider({
-          certPath: fixtureCertPath,
-          keyPath: fixtureKeyPath,
+          certPath: tlsFixture.certPath,
+          keyPath: tlsFixture.keyPath,
           listenPort: localOIDCPort,
           clientID: process.env.OIDC_CLIENT_ID ?? "ovumcy-e2e",
           clientSecret: process.env.OIDC_CLIENT_SECRET ?? "ovumcy-e2e-secret",
@@ -492,11 +529,11 @@ async function main() {
     OIDC_REDIRECT_URL:
       process.env.OIDC_REDIRECT_URL ??
       (localOIDCProviderEnabled ? `${baseURL}/auth/oidc/callback` : ""),
-    OIDC_CA_FILE: process.env.OIDC_CA_FILE ?? (localOIDCProviderEnabled ? fixtureCertPath : ""),
+    OIDC_CA_FILE: process.env.OIDC_CA_FILE ?? (localOIDCProviderEnabled ? tlsFixture.certPath : ""),
     OIDC_POST_LOGOUT_REDIRECT_URL:
       process.env.OIDC_POST_LOGOUT_REDIRECT_URL ??
       (localOIDCProviderEnabled ? `${baseURL}/login` : ""),
-    SSL_CERT_FILE: process.env.SSL_CERT_FILE ?? (localOIDCProviderEnabled ? fixtureCertPath : ""),
+    SSL_CERT_FILE: process.env.SSL_CERT_FILE ?? (localOIDCProviderEnabled ? tlsFixture.certPath : ""),
   };
   const playwrightEnv = {
     ...process.env,

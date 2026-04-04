@@ -23,10 +23,6 @@ func (handler *Handler) LanguageMiddleware(c *fiber.Ctx) error {
 		language = handler.i18n.NormalizeLanguage(cookieLanguage)
 	}
 
-	if cookieLanguage != language {
-		handler.setLanguageCookie(c, language)
-	}
-
 	c.Locals(contextLanguageKey, language)
 	c.Locals(contextMessagesKey, handler.i18n.Messages(language))
 	c.Locals(contextLocationKey, requestLocation)

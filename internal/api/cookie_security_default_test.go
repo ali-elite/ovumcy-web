@@ -73,7 +73,12 @@ func TestSecureCookiesDisabledByDefault(t *testing.T) {
 		t.Fatalf("expected recovery cookie SameSite=Lax, got %v", recoveryCookie.SameSite)
 	}
 
-	languageRequest := httptest.NewRequest(http.MethodGet, "/lang/en?next=/login", nil)
+	languageForm := url.Values{
+		"lang": {"en"},
+		"next": {"/login"},
+	}
+	languageRequest := httptest.NewRequest(http.MethodPost, "/lang", strings.NewReader(languageForm.Encode()))
+	languageRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	languageResponse, err := app.Test(languageRequest, -1)
 	if err != nil {
 		t.Fatalf("language switch request failed: %v", err)

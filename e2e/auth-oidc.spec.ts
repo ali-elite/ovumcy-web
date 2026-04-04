@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   DEFAULT_STRONG_PASSWORD,
   completeOnboardingIfPresent,
+  confirmRecoveryCode,
   continueFromRecoveryCode,
   expectDedicatedRecoveryPage,
   expectInlineRegisterRecoveryStep,
@@ -141,8 +142,7 @@ test.describe('Auth: OIDC login entry', () => {
 
       await expectDedicatedRecoveryPage(page);
       await readRecoveryCode(page);
-      await page.locator('#recovery-code-saved').check();
-      await page.locator('form[action="/settings"] button[type="submit"]').click();
+      await confirmRecoveryCode(page);
 
       await expect(page).toHaveURL(/\/settings(?:\?.*)?$/);
     }

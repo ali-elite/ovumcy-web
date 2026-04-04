@@ -2,6 +2,7 @@
 .github
 .local
 .agents
+.codex
 
 .env
 .env.*
@@ -23,6 +24,7 @@ coverage.*
 profile.cov
 
 AGENTS.md
+AI_CONTEXT.md
 PROJECT_CONTEXT.md
 BUGFIXES.md
 TASK-*.md

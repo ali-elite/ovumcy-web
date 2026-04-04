@@ -33,7 +33,13 @@ func TestSecureLanguageCookieEnabledWhenConfigured(t *testing.T) {
 	t.Parallel()
 
 	app, _ := newOnboardingTestAppWithCookieSecure(t, true)
-	response := mustAppResponse(t, app, httptest.NewRequest(http.MethodGet, "/lang/en?next=/login", nil))
+	form := url.Values{
+		"lang": {"en"},
+		"next": {"/login"},
+	}
+	request := httptest.NewRequest(http.MethodPost, "/lang", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	response := mustAppResponse(t, app, request)
 	assertStatusCode(t, response, http.StatusSeeOther)
 
 	languageCookie := responseCookie(response.Cookies(), languageCookieName)

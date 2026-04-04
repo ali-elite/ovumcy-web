@@ -9,6 +9,7 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
+import { switchPublicLanguage } from './support/language-helpers';
 
 function toISODate(date: Date): string {
   const copy = new Date(date);
@@ -73,8 +74,7 @@ async function registerAndOpenOnboarding(page: Page, emailPrefix: string) {
   await expectInlineRegisterRecoveryStep(page);
 
   await readRecoveryCode(page);
-  await page.locator('#recovery-code-saved').check();
-  await page.locator('form[action] button[type="submit"]').click();
+  await continueFromRecoveryCode(page);
 
   await ensureOnboardingStepOneVisible(page);
   return creds;
@@ -182,7 +182,7 @@ test.describe('Onboarding flow', () => {
     await readRecoveryCode(page);
     await continueFromRecoveryCode(page);
 
-    await page.goto(`/lang/ru?next=${encodeURIComponent('/onboarding')}`);
+    await switchPublicLanguage(page, 'ru');
     await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
 
@@ -272,7 +272,7 @@ test.describe('Onboarding flow', () => {
     await expect(page).toHaveURL(/\/dashboard$/);
   });
 
-  test('step query is preserved by the language route and keeps step 2 visible', async ({ page }) => {
+  test('step query is preserved by the public language switch and keeps step 2 visible', async ({ page }) => {
     const creds = createCredentials('onboarding-step-query');
 
     await registerOwnerViaUI(page, creds);
@@ -285,7 +285,7 @@ test.describe('Onboarding flow', () => {
     await page.goto('/onboarding?step=2');
     await expect(onboardingStepTwoForm(page)).toBeVisible();
 
-    await page.goto(`/lang/ru?next=${encodeURIComponent('/onboarding?step=2')}`);
+    await switchPublicLanguage(page, 'ru');
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
 
     const currentURL = new URL(page.url());

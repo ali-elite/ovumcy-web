@@ -43,16 +43,34 @@
           </span>
         </a>
 
-        {{if and .CurrentUser (not .HideNavigation)}}
         <div class="flex min-w-0 items-center gap-3">
+          {{if or (not .CurrentUser) .HideNavigation}}
+          <form action="/lang" method="post" class="lang-switch" aria-label="{{t .Messages "lang.switch"}}" data-language-switch-form>
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <input type="hidden" name="next" value="{{.CurrentPath}}">
+            {{range .LanguageOptions}}
+            <button
+              type="submit"
+              name="lang"
+              value="{{.Code}}"
+              class="lang-link{{if .Active}} lang-link-active{{end}}"
+              data-language-switch-option="{{.Code}}"
+              aria-pressed="{{if .Active}}true{{else}}false{{end}}">
+              {{.Label}}
+            </button>
+            {{end}}
+          </form>
+          {{end}}
+
+          {{if and .CurrentUser (not .HideNavigation)}}
           <button
             type="button"
             class="menu-toggle sm:hidden"
             data-mobile-menu-toggle
             aria-expanded="false"
             aria-controls="mobile-menu">{{t .Messages "nav.menu"}}</button>
+          {{end}}
         </div>
-        {{end}}
       </div>
 
       {{if and .CurrentUser (not .HideNavigation)}}

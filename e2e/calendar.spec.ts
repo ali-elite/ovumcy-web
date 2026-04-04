@@ -7,6 +7,7 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
+import { saveSettingsLanguage } from './support/language-helpers';
 import { expectElementAboveMobileTabbar } from './support/mobile-layout-helpers';
 import { ensureNotesFieldVisible } from './support/note-helpers';
 import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
@@ -244,7 +245,7 @@ test.describe('Calendar page', () => {
     await expect(page.locator(`[data-day-editor-form][data-day-editor-date="${futureISO}"]`)).toBeVisible();
   });
 
-  test('language route preserves selected month/day query and visible panel', async ({ page }) => {
+  test('saved language keeps selected month/day query localized after returning from settings', async ({ page }) => {
     await registerOwnerOnCalendar(page, 'calendar-lang-query');
 
     const todayISO = await todayISOFromCalendar(page);
@@ -254,7 +255,10 @@ test.describe('Calendar page', () => {
     await page.goto(`/calendar?month=${pastMonth}&day=${pastISO}`);
     await expect(page.locator(`[data-day-editor-open="${pastISO}"]`)).toBeVisible();
 
-    await page.goto(`/lang/ru?next=${encodeURIComponent(`/calendar?month=${pastMonth}&day=${pastISO}`)}`);
+    await page.goto('/settings');
+    await saveSettingsLanguage(page, 'ru');
+
+    await page.goto(`/calendar?month=${pastMonth}&day=${pastISO}`);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
 
     const currentURL = new URL(page.url());

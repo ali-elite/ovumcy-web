@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   completeOnboardingIfPresent,
+  continueFromRecoveryCode,
   cookieByName,
   createCredentials,
   expectInlineRegisterRecoveryStep,
@@ -283,8 +284,7 @@ test.describe('Auth: register, login, logout', () => {
 
     await registerOwnerViaUI(page, creds);
     await expectInlineRegisterRecoveryStep(page);
-    await page.locator('#recovery-code-saved').check();
-    await page.locator('form[action] button[type="submit"]').click();
+    await continueFromRecoveryCode(page);
     await completeOnboardingIfPresent(page);
 
     await logoutViaAPI(page);
@@ -330,8 +330,7 @@ test.describe('Auth: register, login, logout', () => {
     const creds = createCredentials('auth-toggle-settings');
     await registerOwnerViaUI(page, creds);
     await expectInlineRegisterRecoveryStep(page);
-    await page.locator('#recovery-code-saved').check();
-    await page.locator('form[action] button[type="submit"]').click();
+    await continueFromRecoveryCode(page);
     await completeOnboardingIfPresent(page);
 
     await page.goto('/settings');
@@ -356,8 +355,7 @@ test.describe('Auth: register, login, logout', () => {
 
     await registerOwnerViaUI(page, creds);
     await expectInlineRegisterRecoveryStep(page);
-    await page.locator('#recovery-code-saved').check();
-    await page.locator('form[action] button[type="submit"]').click();
+    await continueFromRecoveryCode(page);
     await completeOnboardingIfPresent(page);
 
     await page.locator('.nav-logout-form button[type="submit"]').click();

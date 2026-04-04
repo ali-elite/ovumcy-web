@@ -29,7 +29,7 @@ test.describe('Auth: recovery and reset password', () => {
 
     const recoveryCode = await readRecoveryCode(page);
 
-    const continueButton = page.locator('form[data-recovery-code-confirm] button[type="submit"]');
+    const continueButton = page.locator('[data-recovery-code-submit]');
     await expect(continueButton).toHaveAttribute('aria-disabled', 'true');
     await expectInlineRegisterRecoveryStep(page);
     await expect(page.locator('#recovery-code-saved')).not.toBeChecked();

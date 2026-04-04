@@ -103,9 +103,19 @@ export async function readRecoveryCode(page: Page): Promise<string> {
   return recoveryCode;
 }
 
+export async function confirmRecoveryCode(page: Page): Promise<void> {
+  const form = page.locator('form[data-recovery-code-confirm]');
+  const checkbox = form.locator('[data-recovery-code-checkbox]');
+  const submit = form.locator('[data-recovery-code-submit]');
+
+  await expect(form).toBeVisible();
+  await checkbox.check();
+  await expect(submit).toHaveAttribute('aria-disabled', 'false');
+  await submit.click();
+}
+
 export async function continueFromRecoveryCode(page: Page): Promise<void> {
-  await page.locator('#recovery-code-saved').check();
-  await page.locator('form[action] button[type="submit"]').click();
+  await confirmRecoveryCode(page);
   await expect(page).toHaveURL(/\/(onboarding|dashboard)(?:\?.*)?$/);
 }
 

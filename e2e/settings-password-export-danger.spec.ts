@@ -4,6 +4,7 @@ import { ensureNotesFieldVisible } from './support/note-helpers';
 import { setRequestTimezoneFromBrowser } from './support/timezone-helpers';
 import {
   completeOnboardingIfPresent,
+  confirmRecoveryCode,
   continueFromRecoveryCode,
   createCredentials,
   expectDedicatedRecoveryPage,
@@ -254,8 +255,7 @@ test.describe('Settings: password, export, clear data, delete account', () => {
     const regeneratedRecoveryCode = await readRecoveryCode(page);
     expect(regeneratedRecoveryCode).not.toBe(state.recoveryCode);
 
-    await page.locator('#recovery-code-saved').check();
-    await page.locator('form[action="/settings"] button[type="submit"]').click();
+    await confirmRecoveryCode(page);
 
     await expect(page).toHaveURL(/\/settings(?:\?.*)?$/);
     await expect(page.locator('.recovery-code-box')).toHaveCount(0);

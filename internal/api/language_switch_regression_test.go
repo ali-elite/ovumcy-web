@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -11,7 +12,7 @@ import (
 func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 	tests := []struct {
 		name               string
-		switchPath         string
+		switchLanguage     string
 		expectedCookie     string
 		expectedHTMLLang   string
 		expectedTitle      string
@@ -19,7 +20,7 @@ func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 	}{
 		{
 			name:               "english",
-			switchPath:         "/lang/en?next=/login",
+			switchLanguage:     "en",
 			expectedCookie:     "en",
 			expectedHTMLLang:   "en",
 			expectedTitle:      "Stay signed in for 30 days",
@@ -27,7 +28,7 @@ func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 		},
 		{
 			name:               "russian",
-			switchPath:         "/lang/ru?next=/login",
+			switchLanguage:     "ru",
 			expectedCookie:     "ru",
 			expectedHTMLLang:   "ru",
 			expectedTitle:      "Оставаться в системе 30 дней",
@@ -35,7 +36,7 @@ func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 		},
 		{
 			name:               "spanish",
-			switchPath:         "/lang/es?next=/login",
+			switchLanguage:     "es",
 			expectedCookie:     "es",
 			expectedHTMLLang:   "es",
 			expectedTitle:      "Mantener la sesión iniciada durante 30 días",
@@ -43,7 +44,7 @@ func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 		},
 		{
 			name:               "german",
-			switchPath:         "/lang/de?next=/login",
+			switchLanguage:     "de",
 			expectedCookie:     "de",
 			expectedHTMLLang:   "de",
 			expectedTitle:      "30 Tage angemeldet bleiben",
@@ -51,7 +52,7 @@ func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 		},
 		{
 			name:               "french",
-			switchPath:         "/lang/fr?next=/login",
+			switchLanguage:     "fr",
 			expectedCookie:     "fr",
 			expectedHTMLLang:   "fr",
 			expectedTitle:      "Rester connecté(e) pendant 30 jours",
@@ -63,8 +64,13 @@ func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			app, _ := newOnboardingTestApp(t)
 
-			switchRequest := httptest.NewRequest(http.MethodGet, testCase.switchPath, nil)
+			switchForm := url.Values{
+				"lang": {testCase.switchLanguage},
+				"next": {"/login"},
+			}
+			switchRequest := httptest.NewRequest(http.MethodPost, "/lang", strings.NewReader(switchForm.Encode()))
 			switchRequest.Header.Set("Accept-Language", "en")
+			switchRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			switchResponse, err := app.Test(switchRequest, -1)
 			if err != nil {
 				t.Fatalf("switch language request failed: %v", err)
@@ -107,4 +113,30 @@ func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLoginPageRendersVisibleLanguageSwitchForm(t *testing.T) {
+	app, _ := newOnboardingTestApp(t)
+
+	request := httptest.NewRequest(http.MethodGet, "/login", nil)
+	request.Header.Set("Accept-Language", "ru")
+
+	response, err := app.Test(request, -1)
+	if err != nil {
+		t.Fatalf("login page request failed: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected login page status 200, got %d", response.StatusCode)
+	}
+
+	rendered := mustReadBodyString(t, response.Body)
+	assertBodyContainsAll(t, rendered,
+		bodyStringMatch{fragment: `action="/lang"`, message: "expected visible public language switch form"},
+		bodyStringMatch{fragment: `data-language-switch-form`, message: "expected public language switch hook"},
+		bodyStringMatch{fragment: `data-language-switch-option="ru"`, message: "expected russian language option"},
+		bodyStringMatch{fragment: `name="next" value="/login"`, message: "expected language switch to preserve the current auth path"},
+		bodyStringMatch{fragment: `class="lang-link lang-link-active"`, message: "expected current language option to be visibly active"},
+	)
 }

@@ -1,15 +1,22 @@
 package api
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func (handler *Handler) SetLanguage(c *fiber.Ctx) error {
-	language := handler.i18n.NormalizeLanguage(c.Params("lang"))
+	languageInput := strings.TrimSpace(c.FormValue("lang"))
+	if languageInput == "" {
+		return fiber.ErrBadRequest
+	}
+
+	language := handler.i18n.NormalizeLanguage(languageInput)
 	handler.setLanguageCookie(c, language)
 
-	nextPath := services.SanitizeRedirectPath(c.Query("next"), "/")
+	nextPath := services.SanitizeRedirectPath(c.FormValue("next"), "/")
 	if isHTMX(c) {
 		c.Set("HX-Redirect", nextPath)
 		return c.SendStatus(fiber.StatusOK)

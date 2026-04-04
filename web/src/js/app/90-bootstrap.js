@@ -14,7 +14,6 @@
   onDocumentReady(function () {
     initThemePreference();
     initAuthPanelTransitions();
-    initLanguageSwitcher();
     initPasswordToggles();
     initLoginValidation();
     initForgotPasswordValidation();

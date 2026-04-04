@@ -201,6 +201,7 @@
   .theme-switch {
     display: inline-flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.2rem;
     border-radius: 999px;
     border: 1px solid var(--line-soft);
@@ -304,6 +305,7 @@
   }
 
   .lang-link {
+    appearance: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -312,6 +314,7 @@
     border: 1px solid transparent;
     background: transparent;
     padding: 0.28rem 0.72rem;
+    font-family: inherit;
     font-size: 0.72rem;
     line-height: 1.25;
     font-weight: 700;
@@ -3093,6 +3096,10 @@
       width: 100%;
     }
 
+    .lang-switch {
+      justify-content: flex-end;
+    }
+
     .settings-switch {
       width: 100%;
     }
@@ -3100,6 +3107,12 @@
     .theme-switch-option {
       flex: 1 1 0;
       min-width: 0;
+    }
+
+    .lang-link {
+      min-width: 2.2rem;
+      padding: 0.24rem 0.55rem;
+      font-size: 0.68rem;
     }
 
     .period-toggle {

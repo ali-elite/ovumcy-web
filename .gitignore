@@ -50,7 +50,6 @@ Thumbs.db
 # Local task notes and scratch files
 AGENTS.md
 SKILL.md
-!.codex/skills/**/SKILL.md
 AI_CONTEXT.md
 PROJECT_CONTEXT.md
 BUGFIXES.md
@@ -59,6 +58,7 @@ TASK-*.md
 .tmp*/
 .local/
 .agents/
+.codex/
 test-results/
 playwright-report/
 docs/screenshots/ovumcy-social-preview.png

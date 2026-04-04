@@ -9,11 +9,9 @@ import {
   readRecoveryCode,
   registerOwnerViaUI,
 } from './support/auth-helpers';
+import { saveSettingsLanguage, switchPublicLanguage } from './support/language-helpers';
 
-async function registerAndReachDashboard(
-  page: Page,
-  prefix: string
-): Promise<{ email: string; password: string }> {
+async function registerAndReachDashboard(page: Page, prefix: string): Promise<{ email: string; password: string }> {
   const creds = createCredentials(prefix);
 
   await registerOwnerViaUI(page, creds);
@@ -27,23 +25,6 @@ async function registerAndReachDashboard(
   await expect(page).toHaveURL(/\/dashboard$/);
 
   return creds;
-}
-
-async function switchLanguageViaRoute(page: Page, code: string, next: string): Promise<void> {
-  await page.goto(`/lang/${code}?next=${encodeURIComponent(next)}`);
-}
-
-async function saveSettingsLanguage(page: Page, code: string): Promise<void> {
-  const form = page.locator('[data-settings-interface-form]');
-  const option = form.locator(`[data-settings-interface-language-option="${code}"]`);
-  if ((await option.getAttribute('data-selected')) !== 'true') {
-    await option.locator('.radio-tile').click();
-    await form.locator('[data-settings-interface-save]').click();
-  }
-  await expect(form.locator(`[data-settings-interface-language-option="${code}"]`)).toHaveAttribute(
-    'data-selected',
-    'true'
-  );
 }
 
 async function expectDateFieldVisible(page: Page, fieldID: string): Promise<void> {
@@ -76,11 +57,11 @@ test.describe('Navigation and language switch', () => {
     await expect(page).toHaveURL(/\/dashboard$/);
   });
 
-  test('language route on login page toggles EN/ES/RU/FR/DE and persists after reload', async ({ page }) => {
+  test('public language switch on login page toggles EN/ES/RU/FR/DE and persists after reload', async ({ page }) => {
     await page.goto('/login');
     await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
 
-    await switchLanguageViaRoute(page, 'en', '/login');
+    await switchPublicLanguage(page, 'en');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('h1.journal-title')).toContainText('Log in to your account');
@@ -89,7 +70,7 @@ test.describe('Navigation and language switch', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('h1.journal-title')).toContainText('Log in to your account');
 
-    await switchLanguageViaRoute(page, 'es', '/login');
+    await switchPublicLanguage(page, 'es');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
     await expect(page.locator('h1.journal-title')).toContainText('Inicia sesión en tu cuenta');
@@ -98,7 +79,7 @@ test.describe('Navigation and language switch', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
     await expect(page.locator('h1.journal-title')).toContainText('Inicia sesión en tu cuenta');
 
-    await switchLanguageViaRoute(page, 'ru', '/login');
+    await switchPublicLanguage(page, 'ru');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
     await expect(page.locator('h1.journal-title')).toContainText('Войти в аккаунт');
@@ -109,7 +90,7 @@ test.describe('Navigation and language switch', () => {
     await expect(page.locator('h1.journal-title')).toContainText('Войти в аккаунт');
     await expect(page.locator('label[for="login-email"]')).toHaveText('Эл. почта');
 
-    await switchLanguageViaRoute(page, 'fr', '/login');
+    await switchPublicLanguage(page, 'fr');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
     await expect(page.locator('h1.journal-title')).toContainText('Connexion à votre compte');
@@ -120,7 +101,7 @@ test.describe('Navigation and language switch', () => {
     await expect(page.locator('h1.journal-title')).toContainText('Connexion à votre compte');
     await expect(page.locator('label[for="login-email"]')).toHaveText('E-mail');
 
-    await switchLanguageViaRoute(page, 'de', '/login');
+    await switchPublicLanguage(page, 'de');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'de');
     await expect(page.locator('h1.journal-title')).toContainText('Melden Sie sich bei Ihrem Konto an');
