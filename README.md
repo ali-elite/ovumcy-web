@@ -212,7 +212,7 @@ For production-style setups:
 
 Requirements:
 
-- Go 1.24+
+- Go 1.25+
 - Node.js 18+
 
 ```bash
