@@ -59,6 +59,17 @@ func TestGenerateCertificateIncludesProvidedHosts(t *testing.T) {
 		t.Fatalf("generateCertificate returned error: %v", err)
 	}
 
+	certificate := mustParseCertificate(t, certificatePEM)
+	privateKey := mustParseRSAPrivateKey(t, privateKeyPEM)
+
+	assertCertificateSubjectAndSANs(t, certificate)
+	assertCertificateLifetime(t, certificate)
+	assertCertificateMatchesPrivateKey(t, certificate, privateKey)
+}
+
+func mustParseCertificate(t *testing.T, certificatePEM []byte) *x509.Certificate {
+	t.Helper()
+
 	certBlock, _ := pem.Decode(certificatePEM)
 	if certBlock == nil || certBlock.Type != "CERTIFICATE" {
 		t.Fatalf("expected certificate PEM block, got %#v", certBlock)
@@ -67,6 +78,11 @@ func TestGenerateCertificateIncludesProvidedHosts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse certificate: %v", err)
 	}
+	return certificate
+}
+
+func mustParseRSAPrivateKey(t *testing.T, privateKeyPEM []byte) *rsa.PrivateKey {
+	t.Helper()
 
 	keyBlock, _ := pem.Decode(privateKeyPEM)
 	if keyBlock == nil || keyBlock.Type != "RSA PRIVATE KEY" {
@@ -76,6 +92,11 @@ func TestGenerateCertificateIncludesProvidedHosts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse private key: %v", err)
 	}
+	return privateKey
+}
+
+func assertCertificateSubjectAndSANs(t *testing.T, certificate *x509.Certificate) {
+	t.Helper()
 
 	if certificate.Subject.CommonName != "ovumcy-e2e-localhost" {
 		t.Fatalf("unexpected certificate common name %q", certificate.Subject.CommonName)
@@ -86,12 +107,21 @@ func TestGenerateCertificateIncludesProvidedHosts(t *testing.T) {
 	if !containsString(certificate.DNSNames, "localhost") || !containsString(certificate.DNSNames, "example.test") {
 		t.Fatalf("expected DNS SANs to include localhost and example.test, got %#v", certificate.DNSNames)
 	}
+}
+
+func assertCertificateLifetime(t *testing.T, certificate *x509.Certificate) {
+	t.Helper()
+
 	if !certificate.NotAfter.After(certificate.NotBefore) {
 		t.Fatalf("expected certificate lifetime to be positive, got notBefore=%s notAfter=%s", certificate.NotBefore, certificate.NotAfter)
 	}
 	if lifetime := certificate.NotAfter.Sub(certificate.NotBefore); lifetime < 23*time.Hour {
 		t.Fatalf("expected certificate lifetime near %s, got %s", time.Duration(certificateHours)*time.Hour, lifetime)
 	}
+}
+
+func assertCertificateMatchesPrivateKey(t *testing.T, certificate *x509.Certificate, privateKey *rsa.PrivateKey) {
+	t.Helper()
 
 	publicKey, ok := certificate.PublicKey.(*rsa.PublicKey)
 	if !ok {

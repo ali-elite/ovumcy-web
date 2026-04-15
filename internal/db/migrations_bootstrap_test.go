@@ -89,50 +89,44 @@ func assertMigratedLegacyUserDefaults(t *testing.T, database *gorm.DB) {
 		t.Fatalf("load migrated legacy user: %v", err)
 	}
 
-	if migratedUser.DisplayName != "" {
-		t.Fatalf("expected display_name default to be empty, got %q", migratedUser.DisplayName)
+	assertStringDefault(t, "display_name", migratedUser.DisplayName, "")
+	assertBoolDefault(t, "local_auth_enabled", migratedUser.LocalAuthEnabled, true)
+	assertIntDefault(t, "auth_session_version", migratedUser.AuthSessionVersion, 1)
+	assertBoolDefault(t, "onboarding_completed", migratedUser.OnboardingCompleted, false)
+	assertIntDefault(t, "cycle_length", migratedUser.CycleLength, 28)
+	assertIntDefault(t, "period_length", migratedUser.PeriodLength, 5)
+	assertIntDefault(t, "luteal_phase", migratedUser.LutealPhase, 14)
+	assertBoolDefault(t, "auto_period_fill", migratedUser.AutoPeriodFill, true)
+	assertBoolDefault(t, "irregular_cycle", migratedUser.IrregularCycle, false)
+	assertBoolDefault(t, "track_bbt", migratedUser.TrackBBT, false)
+	assertStringDefault(t, "temperature_unit", migratedUser.TemperatureUnit, "c")
+	assertBoolDefault(t, "track_cervical_mucus", migratedUser.TrackCervicalMucus, false)
+	assertBoolDefault(t, "hide_sex_chip", migratedUser.HideSexChip, false)
+	assertBoolDefault(t, "hide_cycle_factors", migratedUser.HideCycleFactors, false)
+	assertBoolDefault(t, "hide_notes_field", migratedUser.HideNotesField, false)
+}
+
+func assertStringDefault(t *testing.T, field string, got string, want string) {
+	t.Helper()
+
+	if got != want {
+		t.Fatalf("expected %s default to be %q, got %q", field, want, got)
 	}
-	if !migratedUser.LocalAuthEnabled {
-		t.Fatal("expected local_auth_enabled default to be true")
+}
+
+func assertIntDefault(t *testing.T, field string, got int, want int) {
+	t.Helper()
+
+	if got != want {
+		t.Fatalf("expected %s default to be %d, got %d", field, want, got)
 	}
-	if migratedUser.AuthSessionVersion != 1 {
-		t.Fatalf("expected auth_session_version default to be 1, got %d", migratedUser.AuthSessionVersion)
-	}
-	if migratedUser.OnboardingCompleted {
-		t.Fatal("expected onboarding_completed default to be false")
-	}
-	if migratedUser.CycleLength != 28 {
-		t.Fatalf("expected cycle_length default to be 28, got %d", migratedUser.CycleLength)
-	}
-	if migratedUser.PeriodLength != 5 {
-		t.Fatalf("expected period_length default to be 5, got %d", migratedUser.PeriodLength)
-	}
-	if migratedUser.LutealPhase != 14 {
-		t.Fatalf("expected luteal_phase default to be 14, got %d", migratedUser.LutealPhase)
-	}
-	if !migratedUser.AutoPeriodFill {
-		t.Fatal("expected auto_period_fill default to be true")
-	}
-	if migratedUser.IrregularCycle {
-		t.Fatal("expected irregular_cycle default to be false")
-	}
-	if migratedUser.TrackBBT {
-		t.Fatal("expected track_bbt default to be false")
-	}
-	if migratedUser.TemperatureUnit != "c" {
-		t.Fatalf("expected temperature_unit default to be c, got %q", migratedUser.TemperatureUnit)
-	}
-	if migratedUser.TrackCervicalMucus {
-		t.Fatal("expected track_cervical_mucus default to be false")
-	}
-	if migratedUser.HideSexChip {
-		t.Fatal("expected hide_sex_chip default to be false")
-	}
-	if migratedUser.HideCycleFactors {
-		t.Fatal("expected hide_cycle_factors default to be false")
-	}
-	if migratedUser.HideNotesField {
-		t.Fatal("expected hide_notes_field default to be false")
+}
+
+func assertBoolDefault(t *testing.T, field string, got bool, want bool) {
+	t.Helper()
+
+	if got != want {
+		t.Fatalf("expected %s default to be %t, got %t", field, want, got)
 	}
 }
 

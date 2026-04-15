@@ -250,18 +250,31 @@ func assertRecoveryCodeSurface(t *testing.T, markup string, expectations recover
 	t.Helper()
 
 	document := mustParseHTMLDocument(t, markup)
+	panel := requireRecoveryCodeSurfacePanel(t, document, expectations.inline)
+	assertRenderedRecoveryCodeValue(t, panel)
+	assertRecoveryCodeConfirmFormSurface(t, panel, expectations.expectedAction)
+}
+
+func requireRecoveryCodeSurfacePanel(t *testing.T, document *html.Node, inline bool) *html.Node {
+	t.Helper()
+
 	panel := htmlFindElement(document, func(node *html.Node) bool {
 		return node.Type == html.ElementNode && htmlHasAttr(node, "data-recovery-code-tools")
 	})
 	if panel == nil {
 		t.Fatal("expected recovery-code surface")
 	}
-	if expectations.inline && !htmlHasAttr(panel, "data-auth-inline-recovery") {
+	if inline && !htmlHasAttr(panel, "data-auth-inline-recovery") {
 		t.Fatal("expected inline recovery-code surface")
 	}
-	if !expectations.inline && htmlHasAttr(panel, "data-auth-inline-recovery") {
+	if !inline && htmlHasAttr(panel, "data-auth-inline-recovery") {
 		t.Fatal("did not expect inline recovery-code surface")
 	}
+	return panel
+}
+
+func assertRenderedRecoveryCodeValue(t *testing.T, panel *html.Node) {
+	t.Helper()
 
 	recoveryCode := htmlElementByID(panel, "recovery-code")
 	if recoveryCode == nil {
@@ -270,6 +283,10 @@ func assertRecoveryCodeSurface(t *testing.T, markup string, expectations recover
 	if normalizeHTMLText(htmlNodeText(recoveryCode)) == "" {
 		t.Fatal("expected non-empty recovery code text")
 	}
+}
+
+func assertRecoveryCodeConfirmFormSurface(t *testing.T, panel *html.Node, expectedAction string) {
+	t.Helper()
 
 	confirmForm := htmlFindElement(panel, func(node *html.Node) bool {
 		return node.Type == html.ElementNode && node.Data == "form" && htmlHasAttr(node, "data-recovery-code-confirm")
@@ -277,21 +294,20 @@ func assertRecoveryCodeSurface(t *testing.T, markup string, expectations recover
 	if confirmForm == nil {
 		t.Fatal("expected recovery confirmation form")
 	}
-	if got := htmlAttr(confirmForm, "action"); got != expectations.expectedAction {
-		t.Fatalf("expected recovery confirmation action %q, got %q", expectations.expectedAction, got)
+	if got := htmlAttr(confirmForm, "action"); got != expectedAction {
+		t.Fatalf("expected recovery confirmation action %q, got %q", expectedAction, got)
 	}
+	assertRecoveryCodeConfirmControl(t, confirmForm, "data-recovery-code-checkbox", "expected recovery confirmation checkbox")
+	assertRecoveryCodeConfirmControl(t, confirmForm, "data-recovery-code-submit", "expected recovery confirmation submit button")
+}
 
-	checkbox := htmlFindElement(confirmForm, func(node *html.Node) bool {
-		return node.Type == html.ElementNode && htmlHasAttr(node, "data-recovery-code-checkbox")
-	})
-	if checkbox == nil {
-		t.Fatal("expected recovery confirmation checkbox")
-	}
+func assertRecoveryCodeConfirmControl(t *testing.T, confirmForm *html.Node, attr string, missingMessage string) {
+	t.Helper()
 
-	submit := htmlFindElement(confirmForm, func(node *html.Node) bool {
-		return node.Type == html.ElementNode && htmlHasAttr(node, "data-recovery-code-submit")
+	control := htmlFindElement(confirmForm, func(node *html.Node) bool {
+		return node.Type == html.ElementNode && htmlHasAttr(node, attr)
 	})
-	if submit == nil {
-		t.Fatal("expected recovery confirmation submit button")
+	if control == nil {
+		t.Fatal(missingMessage)
 	}
 }

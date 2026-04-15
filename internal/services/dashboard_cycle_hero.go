@@ -47,15 +47,7 @@ type DashboardCycleHeroMarker struct {
 
 func BuildDashboardCycleHero(user *models.User, stats CycleStats, cycleContext DashboardCycleContext) DashboardCycleHero {
 	cycleLength := DashboardCycleReferenceLength(user, stats)
-	if cycleLength <= 0 ||
-		stats.CurrentCycleDay <= 0 ||
-		stats.CurrentCycleDay > cycleLength ||
-		cycleContext.PredictionDisabled ||
-		cycleContext.CycleDataStale ||
-		cycleContext.DisplayNextPeriodPrompt ||
-		cycleContext.DisplayNextPeriodNeedsData ||
-		cycleContext.DisplayOvulationNeedsData ||
-		cycleContext.DisplayOvulationImpossible {
+	if !canRenderDashboardCycleHero(cycleLength, stats, cycleContext) {
 		return DashboardCycleHero{}
 	}
 
@@ -71,7 +63,42 @@ func BuildDashboardCycleHero(user *models.User, stats CycleStats, cycleContext D
 
 	currentDay := stats.CurrentCycleDay
 	currentPhase := dashboardCycleHeroCurrentPhase(stats.CurrentPhase, currentDay, periodLength, ovulationDay, cycleLength)
-	phaseCards := []DashboardCycleHeroPhaseCard{
+	phaseCards := dashboardCycleHeroPhaseCards(currentPhase, periodLength, ovulationDay, cycleLength)
+	segments := dashboardCycleHeroSegments(phaseCards, cycleLength)
+
+	return DashboardCycleHero{
+		Visible:              true,
+		Approximate:          dashboardCycleHeroApproximate(cycleContext),
+		CurrentDay:           currentDay,
+		CycleLength:          cycleLength,
+		CurrentPhase:         currentPhase,
+		PhaseCards:           phaseCards,
+		Segments:             segments,
+		CurrentDayMarker:     dashboardCycleHeroMarkerAtDay(float64(currentDay)-0.5, cycleLength),
+		ShowCurrentDayMarker: true,
+	}
+}
+
+func canRenderDashboardCycleHero(cycleLength int, stats CycleStats, cycleContext DashboardCycleContext) bool {
+	return cycleLength > 0 &&
+		stats.CurrentCycleDay > 0 &&
+		stats.CurrentCycleDay <= cycleLength &&
+		!cycleContext.PredictionDisabled &&
+		!cycleContext.CycleDataStale &&
+		!cycleContext.DisplayNextPeriodPrompt &&
+		!cycleContext.DisplayNextPeriodNeedsData &&
+		!cycleContext.DisplayOvulationNeedsData &&
+		!cycleContext.DisplayOvulationImpossible
+}
+
+func dashboardCycleHeroApproximate(cycleContext DashboardCycleContext) bool {
+	return cycleContext.DisplayNextPeriodUseRange ||
+		cycleContext.DisplayOvulationUseRange ||
+		!cycleContext.DisplayOvulationExact
+}
+
+func dashboardCycleHeroPhaseCards(currentPhase string, periodLength int, ovulationDay int, cycleLength int) []DashboardCycleHeroPhaseCard {
+	return []DashboardCycleHeroPhaseCard{
 		{
 			Phase:     "menstrual",
 			StartDay:  1,
@@ -97,7 +124,9 @@ func BuildDashboardCycleHero(user *models.User, stats CycleStats, cycleContext D
 			IsCurrent: currentPhase == "luteal",
 		},
 	}
+}
 
+func dashboardCycleHeroSegments(phaseCards []DashboardCycleHeroPhaseCard, cycleLength int) []DashboardCycleHeroSegment {
 	segments := make([]DashboardCycleHeroSegment, 0, len(phaseCards))
 	offset := 0.0
 	for _, card := range phaseCards {
@@ -110,18 +139,7 @@ func BuildDashboardCycleHero(user *models.User, stats CycleStats, cycleContext D
 		})
 		offset += dash
 	}
-
-	return DashboardCycleHero{
-		Visible:              true,
-		Approximate:          cycleContext.DisplayNextPeriodUseRange || cycleContext.DisplayOvulationUseRange || !cycleContext.DisplayOvulationExact,
-		CurrentDay:           currentDay,
-		CycleLength:          cycleLength,
-		CurrentPhase:         currentPhase,
-		PhaseCards:           phaseCards,
-		Segments:             segments,
-		CurrentDayMarker:     dashboardCycleHeroMarkerAtDay(float64(currentDay)-0.5, cycleLength),
-		ShowCurrentDayMarker: true,
-	}
+	return segments
 }
 
 func dashboardCycleHeroCurrentPhase(currentPhase string, currentDay int, periodLength int, ovulationDay int, cycleLength int) string {

@@ -74,6 +74,35 @@ test.describe('Auth: recovery and reset password', () => {
     await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
   });
 
+  test('recovery confirmation sanitizes client-side continue paths to same-origin app routes', async ({
+    page,
+  }) => {
+    const creds = createCredentials('auth-recovery-redirect-sanitize');
+
+    await registerOwnerViaUI(page, creds);
+    await expectInlineRegisterRecoveryStep(page);
+
+    const form = page.locator('form[data-recovery-code-confirm]');
+    const continueButton = page.locator('[data-recovery-code-submit]');
+    const checkbox = page.locator('#recovery-code-saved');
+
+    await checkbox.check();
+    await form.evaluate((element) => {
+      element.setAttribute('data-recovery-continue-path', 'javascript:alert(1)');
+      element.setAttribute('action', 'https://evil.example/phish');
+    });
+
+    const continueButtonBox = await continueButton.boundingBox();
+    expect(continueButtonBox).toBeTruthy();
+    await page.mouse.click(
+      continueButtonBox!.x + continueButtonBox!.width / 2,
+      continueButtonBox!.y + continueButtonBox!.height / 2
+    );
+
+    await expect(page).toHaveURL(/\/onboarding(?:\?.*)?$/);
+    await expect(page).not.toHaveURL(/evil\.example/);
+  });
+
   test('forgot-password flow keeps PII out of URL and validates recovery code format', async ({
     page,
   }) => {

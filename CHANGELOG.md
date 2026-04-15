@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-04-15
+
+### Changed
+- Tightened the browser recovery-code confirmation flow so client-side continue redirects now allow only the expected same-origin app routes instead of trusting arbitrary DOM-provided paths.
+- Reduced helper/test complexity in password-change, recovery transport, migration bootstrap, cycle-hero, and TLS-certificate coverage without changing runtime behavior.
+- Official compose files and quick-start examples now pin `ghcr.io/ovumcy/ovumcy-web:v0.9.1`.
+
+### Security
+- This patch release closes the CodeQL-reported recovery confirmation redirect sink by forcing recovery continue navigation onto the small allowlisted app-route set (`/dashboard`, `/onboarding`, `/settings`).
+
 ## [0.9.0] - 2026-04-15
 
 ### Added
@@ -282,7 +292,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/ovumcy/ovumcy-web/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/ovumcy/ovumcy-web/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/ovumcy/ovumcy-web/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.5...v0.9.0
 [0.8.5]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.3...v0.8.4

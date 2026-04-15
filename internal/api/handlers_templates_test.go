@@ -29,11 +29,11 @@ func TestParsePartialTemplatesIncludesBaseHelpers(t *testing.T) {
 
 	payload := map[string]any{
 		"Messages": map[string]string{
-			"dashboard.period_day":       "Period day",
-			"common.yes":                 "Yes",
-			"common.no":                  "No",
-			"dashboard.flow":             "Flow",
-			"dashboard.flow.none":        "None",
+			"dashboard.period_day": "Period day",
+			"common.yes":           "Yes",
+			"common.no":            "No",
+			"dashboard.flow":       "Flow",
+			"dashboard.flow.none":  "None",
 		},
 		"Log": struct {
 			IsPeriod bool
