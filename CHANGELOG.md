@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-15
+
+### Added
+- Owner visibility controls for dashboard and calendar entry forms, letting owners hide advanced tracking sections from new entries without removing historical values from private history or exports.
+- A segmented dashboard cycle-overview hero with phase cards and browser regressions that keep the hero aligned with calendar predictions and conservative fallback states.
+
+### Changed
+- The supported browser product path is now owner-only; legacy non-owner roles are denied before page or API access.
+- Recovery-code confirmation, settings, and prediction surfaces were polished to keep clean redirects, localized inline validation, and dashboard/calendar prediction consistency.
+- Official compose files and quick-start examples now pin `ghcr.io/ovumcy/ovumcy-web:v0.9.0`, and the README links the public project site at `https://ovumcy.com`.
+
+### Security
+- Tracking, export, auth, and recovery flows keep sensitive state out of user-visible URLs while tightening owner-only visibility boundaries.
+- The shipped runtime image remains shell-free and package-manager-free, and CI security automation now isolates Codecov OIDC into a least-privilege follow-up job while scanning CI-executed npm dependencies with Trivy.
+
 ## [0.8.5] - 2026-03-29
 
 ### Changed
@@ -267,7 +282,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV/JSON export,
   - Russian/English localization.
 
-[Unreleased]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.5...HEAD
+[Unreleased]: https://github.com/ovumcy/ovumcy-web/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.5...v0.9.0
 [0.8.5]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/ovumcy/ovumcy-web/compare/v0.8.2...v0.8.3
