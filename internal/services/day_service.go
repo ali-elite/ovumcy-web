@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ovumcy/ovumcy-web/internal/db"
 	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
@@ -57,21 +56,30 @@ type DayUserRepository interface {
 	UpdateByID(userID uint, updates map[string]any) error
 }
 
+type dayPushNotifier interface {
+	IsConfigured() bool
+	SendNotification(userID uint, payload PushPayload) error
+}
+
+type dayPartnerLinkFinder interface {
+	FindActivePartners(ownerUserID uint) ([]models.PartnerLink, error)
+}
+
 type DayService struct {
 	logs         DayLogRepository
 	users        DayUserRepository
-	pushSvc      *PushService
-	partnerLinks *db.PartnerLinkRepository
+	pushSvc      dayPushNotifier
+	partnerLinks dayPartnerLinkFinder
 }
 
 func NewDayService(logs DayLogRepository, users DayUserRepository, optionalDeps ...any) *DayService {
-	var pushSvc *PushService
-	var partnerLinks *db.PartnerLinkRepository
+	var pushSvc dayPushNotifier
+	var partnerLinks dayPartnerLinkFinder
 	if len(optionalDeps) > 0 {
-		pushSvc, _ = optionalDeps[0].(*PushService)
+		pushSvc, _ = optionalDeps[0].(dayPushNotifier)
 	}
 	if len(optionalDeps) > 1 {
-		partnerLinks, _ = optionalDeps[1].(*db.PartnerLinkRepository)
+		partnerLinks, _ = optionalDeps[1].(dayPartnerLinkFinder)
 	}
 
 	return &DayService{
@@ -253,7 +261,7 @@ func (service *DayService) UpsertDayEntryWithAutoFillAt(userID uint, day time.Ti
 	if err != nil {
 		return models.DailyLog{}, err
 	}
-	partnerVisibleChanged := partnerVisibleDailyLogChanged(existingEntry, existingFound, entry)
+	partnerVisibleChanged := partnerNotificationDailyLogChanged(existingEntry, existingFound, entry)
 
 	if normalized.IsPeriod {
 		shouldAutoFill, err := service.ShouldAutoFillPeriodDays(userID, dayStart, wasPeriod, autoPeriodFillEnabled, periodLength, location)
@@ -276,14 +284,25 @@ func (service *DayService) UpsertDayEntryWithAutoFillAt(userID uint, day time.Ti
 	return entry, nil
 }
 
-func partnerVisibleDailyLogChanged(existing models.DailyLog, found bool, updated models.DailyLog) bool {
+func partnerNotificationDailyLogChanged(existing models.DailyLog, found bool, updated models.DailyLog) bool {
 	if !found {
 		return DayHasData(updated)
 	}
-	if existing.IsPeriod != updated.IsPeriod || existing.Flow != updated.Flow || existing.Mood != updated.Mood {
+	if existing.IsPeriod != updated.IsPeriod ||
+		existing.CycleStart != updated.CycleStart ||
+		existing.IsUncertain != updated.IsUncertain ||
+		existing.Flow != updated.Flow ||
+		existing.Mood != updated.Mood ||
+		existing.SexActivity != updated.SexActivity ||
+		existing.BBT != updated.BBT ||
+		existing.CervicalMucus != updated.CervicalMucus ||
+		existing.Notes != updated.Notes {
 		return true
 	}
 	if !sameUintSet(existing.SymptomIDs, updated.SymptomIDs) {
+		return true
+	}
+	if !sameStringSet(existing.CycleFactorKeys, updated.CycleFactorKeys) {
 		return true
 	}
 	return false
@@ -294,6 +313,23 @@ func sameUintSet(first []uint, second []uint) bool {
 		return false
 	}
 	counts := make(map[uint]int, len(first))
+	for _, value := range first {
+		counts[value]++
+	}
+	for _, value := range second {
+		if counts[value] == 0 {
+			return false
+		}
+		counts[value]--
+	}
+	return true
+}
+
+func sameStringSet(first []string, second []string) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	counts := make(map[string]int, len(first))
 	for _, value := range first {
 		counts[value]++
 	}

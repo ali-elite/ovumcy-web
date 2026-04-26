@@ -46,6 +46,9 @@ func BuiltinSymptomReservedNames(provider BuiltinSymptomMessages) []string {
 	for _, symptom := range models.DefaultBuiltinSymptoms() {
 		add(symptom.Name)
 	}
+	for alias := range builtinSymptomAliasesByName() {
+		add(alias)
+	}
 
 	if provider == nil || isNilBuiltinSymptomMessages(provider) {
 		return names
@@ -80,5 +83,26 @@ func builtinSymptomByName(name string) (models.BuiltinSymptom, bool) {
 			return symptom, true
 		}
 	}
+	for alias, symptom := range builtinSymptomAliasesByName() {
+		if normalizeSymptomNameKey(alias) != target {
+			continue
+		}
+		return symptom, true
+	}
 	return models.BuiltinSymptom{}, false
+}
+
+func builtinSymptomAliasesByName() map[string]models.BuiltinSymptom {
+	abdominalPain := models.BuiltinSymptom{
+		Key:            "abdominal_pain",
+		Name:           "Abdominal pain",
+		TranslationKey: "symptom.abdominal_pain",
+		Group:          "pain",
+		Icon:           "🤕",
+		Color:          "#FF7043",
+	}
+	return map[string]models.BuiltinSymptom{
+		"دل درد": abdominalPain,
+		"دل‌درد": abdominalPain,
+	}
 }

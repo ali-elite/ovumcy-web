@@ -169,6 +169,27 @@ func (stub *dayUserRepositoryStub) UpdateByID(_ uint, updates map[string]any) er
 	return nil
 }
 
+type fakeDayPushNotifier struct {
+	sent []uint
+}
+
+func (notifier *fakeDayPushNotifier) IsConfigured() bool {
+	return true
+}
+
+func (notifier *fakeDayPushNotifier) SendNotification(userID uint, _ PushPayload) error {
+	notifier.sent = append(notifier.sent, userID)
+	return nil
+}
+
+type fakeDayPartnerLinks struct {
+	links []models.PartnerLink
+}
+
+func (finder fakeDayPartnerLinks) FindActivePartners(uint) ([]models.PartnerLink, error) {
+	return finder.links, nil
+}
+
 func TestUpsertDayEntryWithAutoFillNormalizesNonPeriodInput(t *testing.T) {
 	logs := newDayLogRepositoryStub()
 	users := &dayUserRepositoryStub{}
@@ -199,28 +220,66 @@ func TestUpsertDayEntryWithAutoFillNormalizesNonPeriodInput(t *testing.T) {
 	}
 }
 
-func TestPartnerVisibleDailyLogChangedTracksMoodSymptomsAndPeriodFields(t *testing.T) {
+func TestPartnerNotificationDailyLogChangedTracksAllEnteredFields(t *testing.T) {
 	existing := models.DailyLog{
-		IsPeriod:   true,
-		Flow:       models.FlowLight,
-		Mood:       3,
-		SymptomIDs: []uint{2, 1},
+		IsPeriod:        true,
+		Flow:            models.FlowLight,
+		Mood:            3,
+		SexActivity:     models.SexActivityNone,
+		CervicalMucus:   models.CervicalMucusNone,
+		CycleFactorKeys: []string{"stress", "travel"},
+		SymptomIDs:      []uint{2, 1},
+		Notes:           "old note",
 	}
 
-	if partnerVisibleDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 3, SymptomIDs: []uint{1, 2}}) {
+	if partnerNotificationDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 3, SexActivity: models.SexActivityNone, CervicalMucus: models.CervicalMucusNone, CycleFactorKeys: []string{"travel", "stress"}, SymptomIDs: []uint{1, 2}, Notes: "old note"}) {
 		t.Fatal("expected reordered symptom IDs with same values not to count as a visible change")
 	}
-	if !partnerVisibleDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 4, SymptomIDs: []uint{1, 2}}) {
+	if !partnerNotificationDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 4, SymptomIDs: []uint{1, 2}}) {
 		t.Fatal("expected mood change to count as partner-visible")
 	}
-	if !partnerVisibleDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowMedium, Mood: 3, SymptomIDs: []uint{1, 2}}) {
+	if !partnerNotificationDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowMedium, Mood: 3, SymptomIDs: []uint{1, 2}}) {
 		t.Fatal("expected flow change to count as partner-visible")
 	}
-	if !partnerVisibleDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 3, SymptomIDs: []uint{1, 3}}) {
+	if !partnerNotificationDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 3, SymptomIDs: []uint{1, 3}}) {
 		t.Fatal("expected symptom change to count as partner-visible")
 	}
-	if !partnerVisibleDailyLogChanged(models.DailyLog{}, false, models.DailyLog{Mood: 2}) {
+	if !partnerNotificationDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 3, SymptomIDs: []uint{1, 2}, Notes: "new note"}) {
+		t.Fatal("expected notes change to count as partner-visible")
+	}
+	if !partnerNotificationDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 3, SymptomIDs: []uint{1, 2}, BBT: 36.7}) {
+		t.Fatal("expected BBT change to count as partner-visible")
+	}
+	if !partnerNotificationDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 3, SymptomIDs: []uint{1, 2}, CycleFactorKeys: []string{"stress"}}) {
+		t.Fatal("expected cycle factor change to count as partner-visible")
+	}
+	if !partnerNotificationDailyLogChanged(models.DailyLog{}, false, models.DailyLog{Mood: 2}) {
 		t.Fatal("expected new visible data to count as partner-visible")
+	}
+}
+
+func TestUpsertDayEntryWithAutoFillNotifiesPartnersForAnyEntryUpdate(t *testing.T) {
+	logs := newDayLogRepositoryStub()
+	users := &dayUserRepositoryStub{}
+	notifier := &fakeDayPushNotifier{}
+	service := NewDayService(logs, users, notifier, fakeDayPartnerLinks{
+		links: []models.PartnerLink{{PartnerUserID: 22}},
+	})
+	day := time.Date(2026, time.February, 20, 12, 0, 0, 0, time.UTC)
+	logs.entries["2026-02-20"] = models.DailyLog{
+		ID:          1,
+		UserID:      10,
+		Date:        day,
+		Flow:        models.FlowNone,
+		SexActivity: models.SexActivityNone,
+	}
+
+	if _, err := service.UpsertDayEntryWithAutoFill(10, day, DayEntryInput{Flow: models.FlowNone, Notes: "updated note"}, time.UTC); err != nil {
+		t.Fatalf("UpsertDayEntryWithAutoFill() unexpected error: %v", err)
+	}
+
+	if len(notifier.sent) != 1 || notifier.sent[0] != 22 {
+		t.Fatalf("expected partner 22 to be notified once, got %#v", notifier.sent)
 	}
 }
 

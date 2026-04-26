@@ -45,6 +45,9 @@ func TestBuiltinSymptomTranslationKey(t *testing.T) {
 	if got := BuiltinSymptomTranslationKey(" Mood Swings "); got != "symptoms.mood_swings" {
 		t.Fatalf("expected mood swings key, got %q", got)
 	}
+	if got := BuiltinSymptomTranslationKey("دل درد"); got != "symptom.abdominal_pain" {
+		t.Fatalf("expected Persian abdominal pain alias, got %q", got)
+	}
 	if got := BuiltinSymptomTranslationKey("Custom"); got != "" {
 		t.Fatalf("expected empty key for custom symptom, got %q", got)
 	}
