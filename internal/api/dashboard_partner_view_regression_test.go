@@ -17,7 +17,11 @@ func TestPartnerDashboardUsesLinkedOwnerCycleDataWithoutPrivateFields(t *testing
 	now := time.Now()
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
 
-	if err := database.Model(&models.User{}).Where("id = ?", owner.ID).Update("display_name", "Owner Name").Error; err != nil {
+	oldLastPeriodStart := today.AddDate(0, 0, -90)
+	if err := database.Model(&models.User{}).Where("id = ?", owner.ID).Updates(map[string]any{
+		"display_name":      "Owner Name",
+		"last_period_start": oldLastPeriodStart,
+	}).Error; err != nil {
 		t.Fatalf("set owner display name: %v", err)
 	}
 	if err := database.Model(&models.User{}).Where("id = ?", partner.ID).Updates(map[string]any{
@@ -38,13 +42,18 @@ func TestPartnerDashboardUsesLinkedOwnerCycleDataWithoutPrivateFields(t *testing
 	}).Error; err != nil {
 		t.Fatalf("create partner link: %v", err)
 	}
+	symptom := models.SymptomType{UserID: owner.ID, Name: "Partner-visible tenderness", Icon: "T", Color: "#FF7755"}
+	if err := database.Create(&symptom).Error; err != nil {
+		t.Fatalf("create owner symptom: %v", err)
+	}
 	if err := database.Create(&models.DailyLog{
-		UserID:   owner.ID,
-		Date:     today,
-		IsPeriod: true,
-		Flow:     models.FlowMedium,
-		Mood:     5,
-		Notes:    "private owner note",
+		UserID:     owner.ID,
+		Date:       today,
+		IsPeriod:   true,
+		Flow:       models.FlowMedium,
+		Mood:       5,
+		SymptomIDs: []uint{symptom.ID},
+		Notes:      "private owner note",
 	}).Error; err != nil {
 		t.Fatalf("create owner daily log: %v", err)
 	}
@@ -59,6 +68,12 @@ func TestPartnerDashboardUsesLinkedOwnerCycleDataWithoutPrivateFields(t *testing
 	}
 	if !strings.Contains(rendered, "Period day") || !strings.Contains(rendered, "Medium") {
 		t.Fatalf("expected linked owner period summary, got %q", rendered)
+	}
+	if !strings.Contains(rendered, "5/5") || !strings.Contains(rendered, "Partner-visible tenderness") {
+		t.Fatalf("expected partner-visible mood and symptoms in dashboard, got %q", rendered)
+	}
+	if strings.Contains(rendered, "Cycle data may be outdated") {
+		t.Fatalf("did not expect stale cycle warning when owner logged a fresh period day, got %q", rendered)
 	}
 	if strings.Contains(rendered, "private owner note") {
 		t.Fatalf("did not expect private owner notes in partner dashboard, got %q", rendered)

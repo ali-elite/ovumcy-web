@@ -7,7 +7,7 @@ import (
 	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
-func TestApplyUserCycleBaselineUsesSettingsFallbackWhenNoExplicitCycleStartExists(t *testing.T) {
+func TestApplyUserCycleBaselineUsesLatestDetectedPeriodStartOverStaleSettingsFallback(t *testing.T) {
 	userLastPeriod := mustParseBaselineDay(t, "2026-02-07")
 	user := &models.User{
 		Role:            models.RoleOwner,
@@ -34,14 +34,14 @@ func TestApplyUserCycleBaselineUsesSettingsFallbackWhenNoExplicitCycleStartExist
 	if stats.AveragePeriodLength != 1 {
 		t.Fatalf("expected average period length 1, got %.2f", stats.AveragePeriodLength)
 	}
-	if stats.LastPeriodStart.Format("2006-01-02") != "2026-02-07" {
-		t.Fatalf("expected settings fallback last period start 2026-02-07, got %s", stats.LastPeriodStart.Format("2006-01-02"))
+	if stats.LastPeriodStart.Format("2006-01-02") != "2026-02-16" {
+		t.Fatalf("expected latest detected last period start 2026-02-16, got %s", stats.LastPeriodStart.Format("2006-01-02"))
 	}
-	if stats.NextPeriodStart.Format("2006-01-02") != "2026-02-16" {
-		t.Fatalf("expected next period start 2026-02-16, got %s", stats.NextPeriodStart.Format("2006-01-02"))
+	if stats.NextPeriodStart.Format("2006-01-02") != "2026-02-25" {
+		t.Fatalf("expected next period start 2026-02-25, got %s", stats.NextPeriodStart.Format("2006-01-02"))
 	}
-	if stats.CurrentCycleDay != 11 {
-		t.Fatalf("expected current cycle day 11, got %d", stats.CurrentCycleDay)
+	if stats.CurrentCycleDay != 2 {
+		t.Fatalf("expected current cycle day 2, got %d", stats.CurrentCycleDay)
 	}
 	if stats.CurrentPhase != "unknown" {
 		t.Fatalf("expected unknown phase for incompatible projected cycle, got %s", stats.CurrentPhase)

@@ -274,8 +274,8 @@ func TestDayServiceMarkCycleStartManuallyPreservesEntryAndMarksExplicitStart(t *
 	if updatedUser.LastPeriodStart == nil {
 		t.Fatalf("expected settings last_period_start to remain populated")
 	}
-	if got := updatedUser.LastPeriodStart.Format("2006-01-02"); got != "2026-02-01" {
-		t.Fatalf("expected settings last_period_start 2026-02-01 to remain unchanged, got %s", got)
+	if got := updatedUser.LastPeriodStart.Format("2006-01-02"); got != "2026-02-18" {
+		t.Fatalf("expected settings last_period_start to follow explicit cycle start 2026-02-18, got %s", got)
 	}
 }
 

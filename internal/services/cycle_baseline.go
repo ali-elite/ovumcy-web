@@ -16,12 +16,13 @@ func ApplyUserCycleBaseline(user *models.User, logs []models.DailyLog, stats Cyc
 
 	today := DateAtLocation(now.In(location), location)
 	latestExplicitCycleStart := latestExplicitCycleStartBeforeOrOn(logs, today, location)
+	latestDetectedCycleStart := stats.LastPeriodStart
 	cycleLength, periodLength, lutealPhase := resolveUserCycleLengths(user)
 	if inferredLutealPhase, ok := InferUserLutealPhase(logs, location); ok {
 		lutealPhase = inferredLutealPhase
 	}
 	hasObservedCycleLengths := len(CycleLengths(logs)) >= 1
-	applyObservedBaseline(&stats, user, latestExplicitCycleStart, cycleLength, periodLength, hasObservedCycleLengths, today, location)
+	applyObservedBaseline(&stats, user, latestExplicitCycleStart, latestDetectedCycleStart, cycleLength, periodLength, hasObservedCycleLengths, today, location)
 	applyProjectedBaseline(&stats, cycleLength, lutealPhase, location)
 
 	stats.CurrentCycleDay = baselineCurrentCycleDay(stats.LastPeriodStart, today)
@@ -46,7 +47,7 @@ func resolveUserCycleLengths(user *models.User) (int, int, int) {
 	return cycleLength, periodLength, ResolveLutealPhase(user.LutealPhase)
 }
 
-func applyObservedBaseline(stats *CycleStats, user *models.User, latestExplicitCycleStart time.Time, cycleLength int, periodLength int, hasObservedCycleLengths bool, today time.Time, location *time.Location) {
+func applyObservedBaseline(stats *CycleStats, user *models.User, latestExplicitCycleStart time.Time, latestDetectedCycleStart time.Time, cycleLength int, periodLength int, hasObservedCycleLengths bool, today time.Time, location *time.Location) {
 	if !hasObservedCycleLengths {
 		if cycleLength > 0 {
 			stats.AverageCycleLength = float64(cycleLength)
@@ -55,15 +56,16 @@ func applyObservedBaseline(stats *CycleStats, user *models.User, latestExplicitC
 		if periodLength > 0 {
 			stats.AveragePeriodLength = float64(periodLength)
 		}
-		stats.LastPeriodStart = baselineLastPeriodStart(user, latestExplicitCycleStart, today, location)
+		stats.LastPeriodStart = baselineLastPeriodStart(user, latestExplicitCycleStart, latestDetectedCycleStart, today, location)
 		return
 	}
 
-	stats.LastPeriodStart = baselineLastPeriodStart(user, latestExplicitCycleStart, today, location)
+	stats.LastPeriodStart = baselineLastPeriodStart(user, latestExplicitCycleStart, latestDetectedCycleStart, today, location)
 }
 
-func baselineLastPeriodStart(user *models.User, latestExplicitCycleStart time.Time, today time.Time, location *time.Location) time.Time {
-	return latestCycleStartAnchorBeforeOrOn(user, latestExplicitCycleStart, today, location)
+func baselineLastPeriodStart(user *models.User, latestExplicitCycleStart time.Time, latestDetectedCycleStart time.Time, today time.Time, location *time.Location) time.Time {
+	logAnchor := moreRecentCycleStartAnchor(latestExplicitCycleStart, latestDetectedCycleStart)
+	return latestCycleStartAnchorBeforeOrOn(user, logAnchor, today, location)
 }
 
 func applyProjectedBaseline(stats *CycleStats, cycleLength int, lutealPhase int, location *time.Location) {

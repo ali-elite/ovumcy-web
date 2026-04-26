@@ -113,8 +113,11 @@ func TestMarkCycleStartHTMXWithCSRFRefreshesAndPersists(t *testing.T) {
 	if err := database.First(&persisted, user.ID).Error; err != nil {
 		t.Fatalf("load updated user: %v", err)
 	}
-	if persisted.LastPeriodStart != nil {
-		t.Fatalf("expected manual cycle start to leave settings last_period_start unchanged, got %v", persisted.LastPeriodStart)
+	if persisted.LastPeriodStart == nil {
+		t.Fatal("expected manual cycle start to update settings last_period_start")
+	}
+	if got := persisted.LastPeriodStart.Format("2006-01-02"); got != targetDay {
+		t.Fatalf("expected settings last_period_start %s, got %s", targetDay, got)
 	}
 }
 

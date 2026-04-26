@@ -13,9 +13,21 @@ func SanitizeRestrictedViewerLog(entry models.DailyLog) models.DailyLog {
 	return entry
 }
 
+func SanitizePartnerViewerLog(entry models.DailyLog) models.DailyLog {
+	entry.SexActivity = models.SexActivityNone
+	entry.BBT = 0
+	entry.CervicalMucus = models.CervicalMucusNone
+	entry.CycleFactorKeys = []string{}
+	entry.Notes = ""
+	return entry
+}
+
 func SanitizeLogForViewer(user *models.User, entry models.DailyLog) models.DailyLog {
 	if IsOwnerUser(user) {
 		return entry
+	}
+	if IsPartnerUser(user) {
+		return SanitizePartnerViewerLog(entry)
 	}
 	return SanitizeRestrictedViewerLog(entry)
 }
@@ -25,10 +37,10 @@ func SanitizeLogsForViewer(user *models.User, logs []models.DailyLog) {
 		return
 	}
 	for index := range logs {
-		logs[index] = SanitizeRestrictedViewerLog(logs[index])
+		logs[index] = SanitizeLogForViewer(user, logs[index])
 	}
 }
 
 func ShouldExposeSymptomsForViewer(user *models.User) bool {
-	return IsOwnerUser(user)
+	return IsOwnerUser(user) || IsPartnerUser(user)
 }

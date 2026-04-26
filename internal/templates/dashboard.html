@@ -145,7 +145,7 @@
       {{if or .NextPeriodInPast .OvulationInPast}}
       <p class="warning-amber">{{t .Messages "dashboard.prediction_in_past"}}</p>
       {{end}}
-      <a href="/settings#settings-cycle" class="btn-secondary text-sm">{{t .Messages "dashboard.update_cycle_data"}}</a>
+      {{if .IsOwner}}<a href="/settings#settings-cycle" class="btn-secondary text-sm">{{t .Messages "dashboard.update_cycle_data"}}</a>{{end}}
     </div>
       {{else if and (not .DisplayOvulationUseRange) (not .DisplayOvulationImpossible) (not .DisplayOvulationDate.IsZero) (not .DisplayOvulationExact)}}
       <p class="journal-muted text-sm">{{t .Messages "dashboard.ovulation_approximate"}}</p>
@@ -443,7 +443,7 @@
       </div>
       {{end}}
       {{else}}
-      {{template "readonly_log_summary" (dict "Messages" .Messages "Log" .TodayEntry "NoDataLabel" .NoDataLabel "TemperatureUnit" .TemperatureUnit)}}
+      {{template "readonly_log_summary" (dict "Messages" .Messages "Log" .TodayEntry "Symptoms" .Symptoms "SelectedSymptomID" .SelectedSymptomID "NoDataLabel" .NoDataLabel "TemperatureUnit" .TemperatureUnit)}}
       <div class="mt-6" id="partner-advice-container">
         <section class="journal-card p-5 sm:p-6" style="border: 2px dashed var(--border);">
           <div class="flex items-center gap-2 mb-3">

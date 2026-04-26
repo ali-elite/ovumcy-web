@@ -199,6 +199,31 @@ func TestUpsertDayEntryWithAutoFillNormalizesNonPeriodInput(t *testing.T) {
 	}
 }
 
+func TestPartnerVisibleDailyLogChangedTracksMoodSymptomsAndPeriodFields(t *testing.T) {
+	existing := models.DailyLog{
+		IsPeriod:   true,
+		Flow:       models.FlowLight,
+		Mood:       3,
+		SymptomIDs: []uint{2, 1},
+	}
+
+	if partnerVisibleDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 3, SymptomIDs: []uint{1, 2}}) {
+		t.Fatal("expected reordered symptom IDs with same values not to count as a visible change")
+	}
+	if !partnerVisibleDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 4, SymptomIDs: []uint{1, 2}}) {
+		t.Fatal("expected mood change to count as partner-visible")
+	}
+	if !partnerVisibleDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowMedium, Mood: 3, SymptomIDs: []uint{1, 2}}) {
+		t.Fatal("expected flow change to count as partner-visible")
+	}
+	if !partnerVisibleDailyLogChanged(existing, true, models.DailyLog{IsPeriod: true, Flow: models.FlowLight, Mood: 3, SymptomIDs: []uint{1, 3}}) {
+		t.Fatal("expected symptom change to count as partner-visible")
+	}
+	if !partnerVisibleDailyLogChanged(models.DailyLog{}, false, models.DailyLog{Mood: 2}) {
+		t.Fatal("expected new visible data to count as partner-visible")
+	}
+}
+
 func TestUpsertDayEntryWithAutoFillCreatesFollowingPeriodDays(t *testing.T) {
 	logs := newDayLogRepositoryStub()
 	users := &dayUserRepositoryStub{

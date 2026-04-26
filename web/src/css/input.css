@@ -155,6 +155,15 @@
     @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
   }
 
+  .htmx-indicator {
+    display: none;
+  }
+
+  .htmx-request .htmx-indicator,
+  .htmx-request.htmx-indicator {
+    display: inline-flex;
+  }
+
   .paper-header {
     position: sticky;
     top: 0;

@@ -237,6 +237,10 @@ func (service *DayService) UpsertDayEntryWithAutoFillAt(userID uint, day time.Ti
 	dayStart, _ := DayRange(day, location)
 	autoPeriodFillEnabled := false
 	periodLength := models.DefaultPeriodLength
+	existingEntry, existingFound, existingErr := service.logs.FindByUserAndDayRange(userID, dayStart, dayStart.AddDate(0, 0, 1))
+	if existingErr != nil {
+		return models.DailyLog{}, ErrDayEntryLoadFailed
+	}
 
 	if normalized.IsPeriod {
 		periodLength, autoPeriodFillEnabled, err = service.LoadAutoFillSettings(userID)
@@ -249,6 +253,7 @@ func (service *DayService) UpsertDayEntryWithAutoFillAt(userID uint, day time.Ti
 	if err != nil {
 		return models.DailyLog{}, err
 	}
+	partnerVisibleChanged := partnerVisibleDailyLogChanged(existingEntry, existingFound, entry)
 
 	if normalized.IsPeriod {
 		shouldAutoFill, err := service.ShouldAutoFillPeriodDays(userID, dayStart, wasPeriod, autoPeriodFillEnabled, periodLength, location)
@@ -264,23 +269,63 @@ func (service *DayService) UpsertDayEntryWithAutoFillAt(userID uint, day time.Ti
 
 	service.refreshDerivedCycleSettings(userID, location)
 
-	// Trigger partner notification for significant changes (e.g. period started)
-	if !wasPeriod && normalized.IsPeriod {
-		if service.partnerLinks != nil && service.pushSvc != nil && service.pushSvc.IsConfigured() {
-			partners, err := service.partnerLinks.FindActivePartners(userID)
-			if err == nil {
-				for _, p := range partners {
-					_ = service.pushSvc.SendNotification(p.PartnerUserID, PushPayload{
-						Title: "Partner Update 🌸",
-						Body:  "Your partner just logged the start of their period.",
-						URL:   "/app/dashboard",
-					})
-				}
-			}
-		}
+	if partnerVisibleChanged {
+		service.notifyPartnersOfDailyUpdate(userID, !wasPeriod && normalized.IsPeriod)
 	}
 
 	return entry, nil
+}
+
+func partnerVisibleDailyLogChanged(existing models.DailyLog, found bool, updated models.DailyLog) bool {
+	if !found {
+		return DayHasData(updated)
+	}
+	if existing.IsPeriod != updated.IsPeriod || existing.Flow != updated.Flow || existing.Mood != updated.Mood {
+		return true
+	}
+	if !sameUintSet(existing.SymptomIDs, updated.SymptomIDs) {
+		return true
+	}
+	return false
+}
+
+func sameUintSet(first []uint, second []uint) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	counts := make(map[uint]int, len(first))
+	for _, value := range first {
+		counts[value]++
+	}
+	for _, value := range second {
+		if counts[value] == 0 {
+			return false
+		}
+		counts[value]--
+	}
+	return true
+}
+
+func (service *DayService) notifyPartnersOfDailyUpdate(userID uint, periodStarted bool) {
+	if service.partnerLinks == nil || service.pushSvc == nil || !service.pushSvc.IsConfigured() {
+		return
+	}
+	partners, err := service.partnerLinks.FindActivePartners(userID)
+	if err != nil {
+		return
+	}
+
+	body := "Your partner updated today's cycle log."
+	if periodStarted {
+		body = "Your partner just logged the start of their period."
+	}
+	for _, partner := range partners {
+		_ = service.pushSvc.SendNotification(partner.PartnerUserID, PushPayload{
+			Title: "Partner Update 🌸",
+			Body:  body,
+			URL:   "/dashboard",
+		})
+	}
 }
 
 func (service *DayService) DeleteDayEntry(userID uint, day time.Time, location *time.Location) error {
@@ -572,7 +617,12 @@ func (service *DayService) refreshDerivedCycleSettings(userID uint, location *ti
 	if !ok {
 		lutealPhase = defaultLutealPhaseDays
 	}
-	_ = service.users.UpdateByID(userID, map[string]any{
+	updates := map[string]any{
 		"luteal_phase": lutealPhase,
-	})
+	}
+	starts := DetectCycleStarts(logs)
+	if len(starts) > 0 {
+		updates["last_period_start"] = DateAtLocation(starts[len(starts)-1], location)
+	}
+	_ = service.users.UpdateByID(userID, updates)
 }

@@ -78,6 +78,33 @@ func TestSanitizeLogForViewerOwnerKeepsFields(t *testing.T) {
 	}
 }
 
+func TestSanitizeLogForViewerPartnerKeepsMoodAndSymptomsOnly(t *testing.T) {
+	partner := &models.User{Role: models.RolePartner}
+	entry := models.DailyLog{
+		Mood:            4,
+		SexActivity:     models.SexActivityProtected,
+		BBT:             36.55,
+		CervicalMucus:   models.CervicalMucusEggWhite,
+		CycleFactorKeys: []string{models.CycleFactorStress},
+		Notes:           "private",
+		SymptomIDs:      []uint{1, 2},
+	}
+
+	sanitized := SanitizeLogForViewer(partner, entry)
+	if sanitized.Mood != entry.Mood {
+		t.Fatalf("expected partner mood preserved, got %d", sanitized.Mood)
+	}
+	if len(sanitized.SymptomIDs) != 2 {
+		t.Fatalf("expected partner symptom IDs preserved, got %#v", sanitized.SymptomIDs)
+	}
+	if sanitized.SexActivity != models.SexActivityNone || sanitized.BBT != 0 || sanitized.CervicalMucus != models.CervicalMucusNone {
+		t.Fatalf("expected partner-only private biometrics hidden, got %#v", sanitized)
+	}
+	if len(sanitized.CycleFactorKeys) != 0 || sanitized.Notes != "" {
+		t.Fatalf("expected partner cycle factors and notes hidden, got %#v", sanitized)
+	}
+}
+
 func TestSanitizeLogsForViewerUnsupportedRoleHidesPrivateFieldsInAllEntries(t *testing.T) {
 	unsupported := &models.User{Role: "legacy_viewer"}
 	logs := []models.DailyLog{
@@ -115,6 +142,9 @@ func TestSanitizeLogsForViewerUnsupportedRoleHidesPrivateFieldsInAllEntries(t *t
 func TestShouldExposeSymptomsForViewer(t *testing.T) {
 	if !ShouldExposeSymptomsForViewer(&models.User{Role: models.RoleOwner}) {
 		t.Fatal("expected owner to see symptoms")
+	}
+	if !ShouldExposeSymptomsForViewer(&models.User{Role: models.RolePartner}) {
+		t.Fatal("expected partner to see symptoms")
 	}
 	if ShouldExposeSymptomsForViewer(&models.User{Role: "legacy_viewer"}) {
 		t.Fatal("expected unsupported role not to see symptoms")
