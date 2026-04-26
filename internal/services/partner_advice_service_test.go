@@ -28,7 +28,7 @@ func TestPartnerAdviceServiceWithModelAcceptsOptionalModelsPrefix(t *testing.T) 
 	}
 }
 
-func TestPartnerAdviceServiceDisablesThinkingForConciseAdvice(t *testing.T) {
+func TestPartnerAdviceServiceRequestsLongCustomizedAdviceWithoutThinking(t *testing.T) {
 	transport := roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		body, err := io.ReadAll(request.Body)
 		if err != nil {
@@ -43,8 +43,8 @@ func TestPartnerAdviceServiceDisablesThinkingForConciseAdvice(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected generationConfig in payload %#v", payload)
 		}
-		if got := config["maxOutputTokens"]; got != float64(256) {
-			t.Fatalf("expected maxOutputTokens 256, got %#v", got)
+		if got := config["maxOutputTokens"]; got != float64(900) {
+			t.Fatalf("expected maxOutputTokens 900, got %#v", got)
 		}
 		thinkingConfig, ok := config["thinkingConfig"].(map[string]any)
 		if !ok {
@@ -52,6 +52,14 @@ func TestPartnerAdviceServiceDisablesThinkingForConciseAdvice(t *testing.T) {
 		}
 		if got := thinkingConfig["thinkingBudget"]; got != float64(0) {
 			t.Fatalf("expected thinkingBudget 0, got %#v", got)
+		}
+		contents := payload["contents"].([]any)
+		parts := contents[0].(map[string]any)["parts"].([]any)
+		prompt := parts[0].(map[string]any)["text"].(string)
+		for _, expected := range []string{"luteal", "Cramps", "age 20-35", "around 700 tokens"} {
+			if !strings.Contains(prompt, expected) {
+				t.Fatalf("expected prompt to contain %q, got %s", expected, prompt)
+			}
 		}
 
 		return &http.Response{
@@ -67,7 +75,16 @@ func TestPartnerAdviceServiceDisablesThinkingForConciseAdvice(t *testing.T) {
 	service := NewPartnerAdviceService("key")
 	service.client = &http.Client{Transport: transport}
 
-	advice, err := service.GetAdvice(context.Background(), "menstrual", "en", false)
+	advice, err := service.GetAdvice(context.Background(), PartnerAdviceContext{
+		Phase:     "luteal",
+		CycleDay:  22,
+		AgeGroup:  "age 20-35",
+		UsageGoal: "cycle health",
+		TodayMood: "2/5",
+		TodaySymptoms: []string{
+			"Cramps",
+		},
+	}, "en", false)
 	if err != nil {
 		t.Fatalf("GetAdvice returned error: %v", err)
 	}

@@ -33,6 +33,30 @@ type cacheEntry struct {
 
 const defaultPartnerAdviceModel = "gemini-flash-latest"
 
+type PartnerAdviceContext struct {
+	Phase                 string   `json:"phase,omitempty"`
+	CycleDay              int      `json:"cycle_day,omitempty"`
+	MedianCycleLength     int      `json:"median_cycle_length,omitempty"`
+	CompletedCycleCount   int      `json:"completed_cycle_count,omitempty"`
+	AveragePeriodLength   float64  `json:"average_period_length,omitempty"`
+	LastPeriodLength      int      `json:"last_period_length,omitempty"`
+	NextPeriodEstimate    string   `json:"next_period_estimate,omitempty"`
+	FertilityWindow       string   `json:"fertility_window,omitempty"`
+	OvulationEstimate     string   `json:"ovulation_estimate,omitempty"`
+	AgeGroup              string   `json:"age_group,omitempty"`
+	UsageGoal             string   `json:"usage_goal,omitempty"`
+	IrregularCycle        bool     `json:"irregular_cycle,omitempty"`
+	UnpredictableCycle    bool     `json:"unpredictable_cycle,omitempty"`
+	TodayPeriodLogged     bool     `json:"today_period_logged,omitempty"`
+	TodayFlow             string   `json:"today_flow,omitempty"`
+	TodayMood             string   `json:"today_mood,omitempty"`
+	TodaySymptoms         []string `json:"today_symptoms,omitempty"`
+	TodayCervicalMucus    string   `json:"today_cervical_mucus,omitempty"`
+	TodayBBT              string   `json:"today_bbt,omitempty"`
+	TodayCycleFactors     []string `json:"today_cycle_factors,omitempty"`
+	PartnerSupportContext string   `json:"partner_support_context,omitempty"`
+}
+
 func NewPartnerAdviceService(apiKey string) *PartnerAdviceService {
 	return &PartnerAdviceService{
 		apiKey: strings.TrimSpace(apiKey),
@@ -51,16 +75,16 @@ func (s *PartnerAdviceService) WithModel(model string) *PartnerAdviceService {
 	return s
 }
 
-func (s *PartnerAdviceService) GetAdvice(ctx context.Context, phase string, language string, skipCache bool) (string, error) {
+func (s *PartnerAdviceService) GetAdvice(ctx context.Context, adviceContext PartnerAdviceContext, language string, skipCache bool) (string, error) {
 	if s.apiKey == "" {
 		return "", ErrPartnerAdviceNoAPIKey
 	}
 
-	if phase == "" {
-		phase = "unknown"
+	if adviceContext.Phase == "" {
+		adviceContext.Phase = "unknown"
 	}
 
-	cacheKey := fmt.Sprintf("%s:%s", phase, language)
+	cacheKey := fmt.Sprintf("%s:%s:%s", adviceContext.Phase, language, adviceContext.cacheFingerprint())
 
 	if skipCache {
 		s.cache.Delete(cacheKey)
@@ -77,7 +101,7 @@ func (s *PartnerAdviceService) GetAdvice(ctx context.Context, phase string, lang
 	}
 
 	// Generate prompt
-	prompt := fmt.Sprintf("You are an empathetic AI assistant for a menstrual cycle tracking app. The user's partner is currently in the '%s' phase of their cycle. Give 1 to 2 short, practical, and empathetic tips on how the partner can support them right now. Keep it very concise (max 3 sentences total). Respond in the following language code: %s.", phase, language)
+	prompt := adviceContext.prompt(language)
 
 	// Build request payload for the Gemini generateContent API.
 	reqPayload := map[string]interface{}{
@@ -91,8 +115,8 @@ func (s *PartnerAdviceService) GetAdvice(ctx context.Context, phase string, lang
 			},
 		},
 		"generationConfig": map[string]interface{}{
-			"maxOutputTokens": 256,
-			"temperature":     0.7,
+			"maxOutputTokens": 900,
+			"temperature":     0.85,
 			"thinkingConfig": map[string]interface{}{
 				"thinkingBudget": 0,
 			},
@@ -156,4 +180,31 @@ func normalizePartnerAdviceModel(model string) string {
 	model = strings.TrimSpace(model)
 	model = strings.TrimPrefix(model, "models/")
 	return model
+}
+
+func (context PartnerAdviceContext) cacheFingerprint() string {
+	payload, err := json.Marshal(context)
+	if err != nil {
+		return ""
+	}
+	return string(payload)
+}
+
+func (context PartnerAdviceContext) prompt(language string) string {
+	payload, _ := json.MarshalIndent(context, "", "  ")
+	return fmt.Sprintf(`You are an empathetic AI assistant inside a menstrual cycle tracking app.
+
+Write advice for the partner, not for the cycle owner. Use the private health context below, but do not mention names, emails, account identifiers, exact notes, or any identity details. The context has already been sanitized.
+
+Health and cycle context:
+%s
+
+Instructions:
+- Respond in language code: %s.
+- Make the answer more customized to the current cycle phase, symptoms, mood, cycle day, fertility context, usage goal, age group, and any logged signals.
+- Output around 700 tokens. A practical range is 500-650 words depending on the language.
+- Give warm, specific partner actions: emotional support, practical help, communication prompts, comfort ideas, and what to avoid.
+- If fertility or trying/avoiding pregnancy context appears, keep advice supportive and non-alarming.
+- Do not diagnose, predict pregnancy, or present medical certainty. Include a gentle safety note only if symptoms sound intense or unusual.
+- Keep the tone calm, modern, and personal. Avoid generic filler and avoid saying you know the person's private identity.`, string(payload), language)
 }
