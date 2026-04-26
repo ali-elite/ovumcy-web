@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ovumcy/ovumcy-web/internal/db"
 	"github.com/ovumcy/ovumcy-web/internal/models"
 )
 
@@ -57,14 +58,27 @@ type DayUserRepository interface {
 }
 
 type DayService struct {
-	logs  DayLogRepository
-	users DayUserRepository
+	logs         DayLogRepository
+	users        DayUserRepository
+	pushSvc      *PushService
+	partnerLinks *db.PartnerLinkRepository
 }
 
-func NewDayService(logs DayLogRepository, users DayUserRepository) *DayService {
+func NewDayService(logs DayLogRepository, users DayUserRepository, optionalDeps ...any) *DayService {
+	var pushSvc *PushService
+	var partnerLinks *db.PartnerLinkRepository
+	if len(optionalDeps) > 0 {
+		pushSvc, _ = optionalDeps[0].(*PushService)
+	}
+	if len(optionalDeps) > 1 {
+		partnerLinks, _ = optionalDeps[1].(*db.PartnerLinkRepository)
+	}
+
 	return &DayService{
-		logs:  logs,
-		users: users,
+		logs:         logs,
+		users:        users,
+		pushSvc:      pushSvc,
+		partnerLinks: partnerLinks,
 	}
 }
 
@@ -249,6 +263,22 @@ func (service *DayService) UpsertDayEntryWithAutoFillAt(userID uint, day time.Ti
 	}
 
 	service.refreshDerivedCycleSettings(userID, location)
+
+	// Trigger partner notification for significant changes (e.g. period started)
+	if !wasPeriod && normalized.IsPeriod {
+		if service.partnerLinks != nil && service.pushSvc != nil && service.pushSvc.IsConfigured() {
+			partners, err := service.partnerLinks.FindActivePartners(userID)
+			if err == nil {
+				for _, p := range partners {
+					_ = service.pushSvc.SendNotification(p.PartnerUserID, PushPayload{
+						Title: "Partner Update 🌸",
+						Body:  "Your partner just logged the start of their period.",
+						URL:   "/app/dashboard",
+					})
+				}
+			}
+		}
+	}
 
 	return entry, nil
 }

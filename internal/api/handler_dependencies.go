@@ -4,6 +4,7 @@ import (
 	"errors"
 	"reflect"
 
+	"github.com/ovumcy/ovumcy-web/internal/db"
 	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
@@ -14,6 +15,7 @@ type Dependencies struct {
 	LoginService         LoginWorkflowService
 	OIDCService          OIDCWorkflowService
 	OIDCLogoutStateSvc   *services.OIDCLogoutStateService
+	PartnerInvitationSvc *services.PartnerInvitationService
 	DayService           *services.DayService
 	SymptomService       *services.SymptomService
 	ViewerService        *services.ViewerService
@@ -25,6 +27,11 @@ type Dependencies struct {
 	SettingsViewService  *services.SettingsViewService
 	OnboardingService    *services.OnboardingService
 	SetupService         *services.SetupService
+	PartnerAdviceService *services.PartnerAdviceService
+	PushSubscriptions    *db.PushSubscriptionRepository
+	PartnerLinks         *db.PartnerLinkRepository
+	ReminderService      *services.ReminderService
+	VapidPublicKey       string
 }
 
 func (dependencies Dependencies) validate() error {
@@ -49,6 +56,7 @@ func (dependencies Dependencies) requirements() []dependencyRequirement {
 		{value: dependencies.LoginService, message: "login service is required"},
 		{value: dependencies.OIDCService, message: "oidc service is required"},
 		{value: dependencies.OIDCLogoutStateSvc, message: "oidc logout state service is required"},
+		{value: dependencies.PartnerInvitationSvc, message: "partner invitation service is required"},
 		{value: dependencies.DayService, message: "day service is required"},
 		{value: dependencies.SymptomService, message: "symptom service is required"},
 		{value: dependencies.ViewerService, message: "viewer service is required"},
@@ -60,6 +68,10 @@ func (dependencies Dependencies) requirements() []dependencyRequirement {
 		{value: dependencies.SettingsViewService, message: "settings view service is required"},
 		{value: dependencies.OnboardingService, message: "onboarding service is required"},
 		{value: dependencies.SetupService, message: "setup service is required"},
+		{value: dependencies.PartnerAdviceService, message: "partner advice service is required"},
+		{value: dependencies.PushSubscriptions, message: "push subscriptions repository is required"},
+		{value: dependencies.PartnerLinks, message: "partner links repository is required"},
+		{value: dependencies.ReminderService, message: "reminder service is required"},
 	}
 }
 
@@ -84,6 +96,7 @@ func (handler *Handler) withDependencies(dependencies Dependencies) *Handler {
 	handler.loginService = dependencies.LoginService
 	handler.oidcService = dependencies.OIDCService
 	handler.oidcLogoutStateSvc = dependencies.OIDCLogoutStateSvc
+	handler.partnerInviteSvc = dependencies.PartnerInvitationSvc
 	handler.dayService = dependencies.DayService
 	handler.symptomService = dependencies.SymptomService
 	handler.viewerService = dependencies.ViewerService
@@ -95,5 +108,10 @@ func (handler *Handler) withDependencies(dependencies Dependencies) *Handler {
 	handler.settingsViewService = dependencies.SettingsViewService
 	handler.onboardingSvc = dependencies.OnboardingService
 	handler.setupService = dependencies.SetupService
+	handler.partnerAdviceSvc = dependencies.PartnerAdviceService
+	handler.pushSubscriptions = dependencies.PushSubscriptions
+	handler.partnerLinks = dependencies.PartnerLinks
+	handler.reminderService = dependencies.ReminderService
+	handler.vapidPublicKey = dependencies.VapidPublicKey
 	return handler
 }

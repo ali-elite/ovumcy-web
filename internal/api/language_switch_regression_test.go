@@ -58,6 +58,14 @@ func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 			expectedTitle:      "Rester connecté(e) pendant 30 jours",
 			expectedHelperText: "fermeture du navigateur",
 		},
+		{
+			name:               "persian",
+			switchLanguage:     "fa",
+			expectedCookie:     "fa",
+			expectedHTMLLang:   "fa",
+			expectedTitle:      "مرا تا ۳۰ روز در وضعیت ورود نگه دار",
+			expectedHelperText: "زمان بستن مرورگر",
+		},
 	}
 
 	for _, testCase := range tests {
@@ -104,6 +112,9 @@ func TestLanguageSwitchSetsCookieAndRendersLocalizedLogin(t *testing.T) {
 			rendered := string(loginBody)
 			if !strings.Contains(rendered, `<html lang="`+testCase.expectedHTMLLang+`"`) {
 				t.Fatalf("expected login page html lang to be %q", testCase.expectedHTMLLang)
+			}
+			if testCase.expectedHTMLLang == "fa" && !strings.Contains(rendered, `dir="rtl"`) {
+				t.Fatalf("expected persian login page to render with rtl direction")
 			}
 			if !strings.Contains(rendered, testCase.expectedTitle) {
 				t.Fatalf("expected localized remember-me control on login form, got %q", rendered)

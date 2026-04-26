@@ -32,6 +32,11 @@ services:
       - TRUST_PROXY_ENABLED=${TRUST_PROXY_ENABLED:-false}
       - PROXY_HEADER=${PROXY_HEADER:-X-Forwarded-For}
       - TRUSTED_PROXIES=${TRUSTED_PROXIES:-127.0.0.1,::1}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - CRON_SECRET=${CRON_SECRET:-}
     init: true
     security_opt:
       - no-new-privileges:true

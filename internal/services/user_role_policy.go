@@ -17,9 +17,20 @@ func IsOwnerUser(user *models.User) bool {
 	return user != nil && NormalizeUserRole(user.Role) == models.RoleOwner
 }
 
+func IsPartnerUser(user *models.User) bool {
+	return user != nil && NormalizeUserRole(user.Role) == models.RolePartner
+}
+
 func ValidateSupportedWebUser(user *models.User) error {
-	if IsOwnerUser(user) {
+	if IsOwnerUser(user) || IsPartnerUser(user) {
 		return nil
 	}
 	return ErrAuthUnsupportedRole
+}
+
+func EmailLocalPart(email string) string {
+	if idx := strings.Index(email, "@"); idx > 0 {
+		return email[:idx]
+	}
+	return email
 }

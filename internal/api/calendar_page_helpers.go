@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/ovumcy/ovumcy-web/internal/models"
+	"github.com/ovumcy/ovumcy-web/internal/services"
 )
 
 func (handler *Handler) buildCalendarViewData(user *models.User, language string, messages map[string]string, now time.Time, monthStart time.Time, selectedDate string, location *time.Location) (fiber.Map, error) {
@@ -18,6 +19,7 @@ func (handler *Handler) buildCalendarViewData(user *models.User, language string
 	data := fiber.Map{
 		"Title":                             localizedPageTitle(messages, "meta.title.calendar", "Ovumcy | Calendar"),
 		"CurrentUser":                       user,
+		"SubjectUser":                       user,
 		"MonthLabel":                        viewData.MonthLabel,
 		"MonthValue":                        viewData.MonthValue,
 		"PrevMonth":                         viewData.PrevMonth,
@@ -33,4 +35,19 @@ func (handler *Handler) buildCalendarViewData(user *models.User, language string
 		"IsOwner":                           viewData.IsOwner,
 	}
 	return data, nil
+}
+
+func (handler *Handler) applyPartnerCalendarViewState(viewer *models.User, subject *models.User, hasPartnerSubject bool, data fiber.Map) {
+	if !services.IsPartnerUser(viewer) {
+		data["SubjectUser"] = subject
+		data["IsPartnerView"] = false
+		data["HasPartnerSubject"] = false
+		return
+	}
+
+	data["CurrentUser"] = viewer
+	data["SubjectUser"] = subject
+	data["IsOwner"] = false
+	data["IsPartnerView"] = true
+	data["HasPartnerSubject"] = hasPartnerSubject
 }

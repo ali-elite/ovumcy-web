@@ -25,6 +25,14 @@ func (stub *stubRegistrationAuthService) RegisterOwner(string, string, string, t
 	return stub.user, stub.recoveryCode, nil
 }
 
+func (stub *stubRegistrationAuthService) RegisterPartner(string, string, string, time.Time) (models.User, string, error) {
+	stub.called = true
+	if stub.err != nil {
+		return models.User{}, "", stub.err
+	}
+	return stub.user, stub.recoveryCode, nil
+}
+
 func (stub *stubRegistrationAuthService) BuildOIDCOwnerUser(string, time.Time) (models.User, error) {
 	stub.oidcCalled = true
 	if stub.err != nil {

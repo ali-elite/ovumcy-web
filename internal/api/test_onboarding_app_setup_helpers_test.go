@@ -61,6 +61,9 @@ func newOnboardingTestAppWithOptions(t *testing.T, options onboardingTestAppOpti
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
+	if err := database.Exec("PRAGMA ignore_check_constraints = ON").Error; err != nil {
+		t.Fatalf("enable sqlite ignore_check_constraints: %v", err)
+	}
 	sqlDB, err := database.DB()
 	if err != nil {
 		t.Fatalf("open sql db: %v", err)
@@ -99,10 +102,10 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, op
 	authService := services.NewAuthService(repositories.Users)
 	attemptLimiter := services.NewAttemptLimiter()
 	passwordResetService := services.NewPasswordResetService(authService, attemptLimiter)
-	passwordResetService.ConfigureRecoveryAttemptLimits(services.DefaultRecoveryAttemptsLimit, time.Hour)
 	loginService := services.NewLoginService(authService, passwordResetService, attemptLimiter)
 	loginService.ConfigureAttemptLimits(services.DefaultLoginAttemptsLimit, services.DefaultLoginAttemptsWindow)
-	dayService := services.NewDayService(repositories.DailyLogs, repositories.Users)
+	pushService := services.NewPushService(repositories.PushSubscriptions, "dummy", "dummy")
+	dayService := services.NewDayService(repositories.DailyLogs, repositories.Users, pushService, repositories.PartnerLinks)
 	reservedBuiltinNames := make([]string, 0)
 	if i18nManager != nil {
 		reservedBuiltinNames = services.BuiltinSymptomReservedNames(i18nManager)
@@ -123,11 +126,14 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, op
 	dashboardViewService := services.NewDashboardViewService(statsService, viewerService, dayService)
 	exportService := services.NewExportService(dayService, symptomService)
 	settingsService := services.NewSettingsService(repositories.Users)
+	partnerInvitationService := services.NewPartnerInvitationService(repositories.PartnerInvitations, []byte("test-secret-key")).
+		WithPartnerLinks(repositories.PartnerLinks)
 	notificationService := services.NewNotificationService()
 	oidcLogoutStateService := services.NewOIDCLogoutStateService(repositories.OIDCLogout)
 	settingsViewService := services.NewSettingsViewService(settingsService, notificationService, exportService, symptomService)
 	onboardingService := services.NewOnboardingService(repositories.Users)
 	setupService := services.NewSetupService(repositories.Users)
+	reminderService := services.NewReminderService(repositories.Users, repositories.DailyLogs, pushService, testI18nManager(), time.UTC)
 
 	return Dependencies{
 		AuthService:          authService,
@@ -136,6 +142,7 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, op
 		LoginService:         loginService,
 		OIDCService:          oidcService,
 		OIDCLogoutStateSvc:   oidcLogoutStateService,
+		PartnerInvitationSvc: partnerInvitationService,
 		DayService:           dayService,
 		SymptomService:       symptomService,
 		ViewerService:        viewerService,
@@ -147,6 +154,10 @@ func newTestHandlerDependencies(database *gorm.DB, i18nManager *i18n.Manager, op
 		SettingsViewService:  settingsViewService,
 		OnboardingService:    onboardingService,
 		SetupService:         setupService,
+		PartnerAdviceService: services.NewPartnerAdviceService("test"),
+		PushSubscriptions:    repositories.PushSubscriptions,
+		PartnerLinks:         repositories.PartnerLinks,
+		ReminderService:      reminderService,
 	}
 }
 
@@ -182,4 +193,18 @@ func testCSRFFailureReason(err error) string {
 	default:
 		return "csrf rejected"
 	}
+}
+
+// testI18nManager returns a best-effort i18n manager for tests.
+// Falls back to nil if the locales cannot be loaded.
+func testI18nManager() *i18n.Manager {
+	_, testFile, _, ok := runtime.Caller(0)
+	if !ok {
+		return nil
+	}
+	apiDir := filepath.Dir(testFile)
+	internalDir := filepath.Dir(apiDir)
+	localesDir := filepath.Join(internalDir, "i18n", "locales")
+	m, _ := i18n.NewManager("en", localesDir)
+	return m
 }

@@ -1,0 +1,26 @@
+{{define "partner_advice_partial"}}
+<section class="journal-card p-5 sm:p-6 dashboard-partner-advice" style="border: 2px solid var(--accent); background: linear-gradient(135deg, var(--accent-alpha-10), transparent);">
+    <div class="flex items-center gap-2 mb-3">
+        <span class="text-xl">✨</span>
+        <h2 class="journal-subtitle" style="color: var(--accent);">{{t .Messages "dashboard.partner_advice_title"}}</h2>
+    </div>
+    {{if .Advice}}
+    <div class="journal-muted text-sm leading-relaxed whitespace-pre-wrap">{{.Advice}}</div>
+    {{else}}
+    <div class="journal-muted text-sm leading-relaxed">{{t .Messages "dashboard.partner_advice_unavailable"}}</div>
+    {{end}}
+    <div class="mt-4">
+        <button
+            type="button"
+            class="btn-secondary text-sm"
+            hx-get="/api/partner/advice?phase={{.Phase}}&fresh=true"
+            hx-target="#partner-advice-container"
+            hx-swap="innerHTML"
+            hx-disabled-elt="this"
+            hx-indicator="#partner-advice-refresh-spinner">
+            {{t .Messages "dashboard.partner_advice_refresh"}}
+        </button>
+        <span id="partner-advice-refresh-spinner" class="htmx-indicator journal-muted text-sm ml-2">{{t .Messages "dashboard.partner_advice_loading"}}</span>
+    </div>
+</section>
+{{end}}

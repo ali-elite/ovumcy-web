@@ -29,10 +29,10 @@ func TestSettingsCycleUpdateRedirectsUnauthenticatedUsersToLogin(t *testing.T) {
 func TestSettingsCycleUpdateRejectsUnsupportedLegacyRoleJSON(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "settings-cycle-legacy@example.com", "StrongPass1", true)
-	if err := database.Model(&models.User{}).Where("id = ?", user.ID).Update("role", "partner").Error; err != nil {
+	if err := database.Model(&models.User{}).Where("id = ?", user.ID).Update("role", "legacy_viewer").Error; err != nil {
 		t.Fatalf("set unsupported legacy role: %v", err)
 	}
-	user.Role = "partner"
+	user.Role = "legacy_viewer"
 	authCookie := issueAuthCookieForUser(t, user)
 
 	request := httptest.NewRequest(http.MethodPost, "/settings/cycle", strings.NewReader(url.Values{

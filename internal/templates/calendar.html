@@ -20,7 +20,7 @@
   <div
     class="grid gap-6 lg:grid-cols-[2fr_1fr]"
     data-calendar-view
-    data-usage-goal="{{.CurrentUser.UsageGoal}}"
+    data-usage-goal="{{.SubjectUser.UsageGoal}}"
     data-selected-date="{{.SelectedDate}}">
     <div
       id="calendar-grid-refresh"
@@ -101,7 +101,7 @@
 
       <div class="calendar-legend mobile-safe-target mt-4 flex flex-wrap items-center gap-3 text-xs journal-muted">
         <span class="legend-item"><span class="legend-dot legend-dot-period"></span>{{t .Messages "calendar.legend.actual_period"}}</span>
-        {{if not .CurrentUser.UnpredictableCycle}}
+        {{if not .SubjectUser.UnpredictableCycle}}
         <span class="legend-item"><span class="legend-dot legend-dot-predicted"></span>{{t .Messages "calendar.legend.predicted_period"}}</span>
         <span class="legend-item"><span class="legend-outline"></span>{{t .Messages "calendar.legend.low_probability"}}</span>
         <span class="legend-item"><span class="legend-dot legend-dot-fertile-edge"></span>{{t .Messages "calendar.legend.fertility_edge"}}</span>

@@ -17,6 +17,7 @@ func registerPageRoutes(app *fiber.App, handler *Handler) {
 	app.Get(oidcLogoutBridgePath, handler.ShowOIDCLogoutBridge)
 	app.Get(oidcLogoutBridgeRedirectPath, handler.RedirectOIDCLogout)
 	app.Get("/register", handler.ShowRegisterPage)
+	app.Get("/join", handler.ShowJoinPage)
 	app.Get("/recovery-code", handler.ShowRecoveryCodePage)
 	app.Get("/forgot-password", handler.ShowForgotPasswordPage)
 	app.Get("/reset-password", handler.ShowResetPasswordPage)
@@ -46,6 +47,8 @@ func registerAPIRoutes(app *fiber.App, handler *Handler) {
 	auth.Post("/forgot-password", handler.ForgotPassword)
 	auth.Post("/reset-password", handler.ResetPassword)
 
+	api.Post("/partner/join", handler.HandleJoin)
+
 	days := api.Group("/days", handler.AuthRequired)
 	days.Get("", handler.GetDays)
 	days.Get("/:date/exists", handler.OwnerOnly, handler.CheckDayExists)
@@ -68,6 +71,14 @@ func registerAPIRoutes(app *fiber.App, handler *Handler) {
 	stats := api.Group("/stats", handler.AuthRequired)
 	stats.Get("/overview", handler.GetStatsOverview)
 
+	partner := api.Group("/partner", handler.AuthRequired)
+	partner.Post("/invitations", handler.OwnerOnly, handler.CreatePartnerInvitation)
+	partner.Get("/advice", handler.HandlePartnerAdvice)
+
+	// Internal Cron Routes
+	internal := app.Group("/api/internal")
+	internal.Post("/cron/daily", handler.HandleInternalCronDaily)
+
 	export := api.Group("/export", handler.AuthRequired, handler.OwnerOnly)
 	export.Post("/summary", handler.ExportSummary)
 	export.Post("/csv", handler.ExportCSV)
@@ -75,6 +86,8 @@ func registerAPIRoutes(app *fiber.App, handler *Handler) {
 
 	settings := api.Group("/settings", handler.AuthRequired)
 	settings.Post("/interface", handler.UpdateInterfaceSettings)
+	settings.Post("/cycle", handler.UpdateCycleSettings)
+	settings.Post("/push/subscribe", handler.HandlePushSubscribe)
 	settings.Post("/profile", handler.UpdateProfile)
 	settings.Post("/tracking", handler.OwnerOnly, handler.UpdateTrackingSettings)
 	settings.Post("/change-password", handler.ChangePassword)

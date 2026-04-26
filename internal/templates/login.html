@@ -63,6 +63,10 @@
       </p>
       {{end}}
       <p class="journal-muted">
+        {{t .Messages "auth.have_invite_code"}}
+        <a href="/join" class="inline-link">{{t .Messages "auth.join_as_partner"}}</a>
+      </p>
+      <p class="journal-muted">
         <a href="/forgot-password" class="inline-link">{{t .Messages "auth.forgot_password"}}</a>
       </p>
     </div>

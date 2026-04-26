@@ -1,11 +1,12 @@
 {{define "base"}}
 <!doctype html>
-<html lang="{{.Lang}}" data-supported-languages='{{toJSON .SupportedLanguageCodes}}' class="h-full">
+<html lang="{{.Lang}}"{{if eq .Lang "fa"}} dir="rtl"{{end}} data-supported-languages='{{toJSON .SupportedLanguageCodes}}' class="h-full">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   {{if .MetaDescription}}<meta name="description" content="{{.MetaDescription}}">{{end}}
   <meta name="csrf-token" content="{{.CSRFToken}}">
+  <meta name="vapid-public-key" content="{{.VapidPublicKey}}">
   <title>{{.Title}}</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="manifest" href="/static/manifest.webmanifest">

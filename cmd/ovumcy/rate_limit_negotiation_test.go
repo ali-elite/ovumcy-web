@@ -81,7 +81,7 @@ func newRateLimitTestHandler(t *testing.T) *api.Handler {
 		time.UTC,
 		i18nManager,
 		false,
-		buildDependencies(db.NewRepositories(database), i18nManager, rateLimitSettings{
+		buildDependencies(db.NewRepositories(database), "0123456789abcdef0123456789abcdef", i18nManager, rateLimitSettings{
 			LoginMax:             8,
 			LoginWindow:          15 * time.Minute,
 			ForgotPasswordMax:    8,

@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"time"
 
+	"github.com/ovumcy/ovumcy-web/internal/db"
 	"github.com/ovumcy/ovumcy-web/internal/i18n"
 	"github.com/ovumcy/ovumcy-web/internal/models"
 	"github.com/ovumcy/ovumcy-web/internal/services"
@@ -12,6 +13,7 @@ import (
 
 type RegistrationWorkflowService interface {
 	RegisterOwnerAccount(email string, rawPassword string, confirmPassword string, createdAt time.Time) (models.User, string, error)
+	RegisterPartnerAccount(email string, rawPassword string, confirmPassword string, createdAt time.Time) (models.User, string, error)
 	RegistrationOpen() bool
 }
 
@@ -39,6 +41,7 @@ type Handler struct {
 	loginService         LoginWorkflowService
 	oidcService          OIDCWorkflowService
 	oidcLogoutStateSvc   *services.OIDCLogoutStateService
+	partnerInviteSvc     *services.PartnerInvitationService
 	dayService           *services.DayService
 	symptomService       *services.SymptomService
 	viewerService        *services.ViewerService
@@ -50,6 +53,11 @@ type Handler struct {
 	settingsViewService  *services.SettingsViewService
 	onboardingSvc        *services.OnboardingService
 	setupService         *services.SetupService
+	partnerAdviceSvc     *services.PartnerAdviceService
+	pushSubscriptions    *db.PushSubscriptionRepository
+	partnerLinks         *db.PartnerLinkRepository
+	reminderService      *services.ReminderService
+	vapidPublicKey       string
 }
 
 type CalendarDay struct {
@@ -84,6 +92,7 @@ type FlashPayload struct {
 	LoginEmail      string `json:"login_email,omitempty"`
 	RegisterEmail   string `json:"register_email,omitempty"`
 	ForgotEmail     string `json:"forgot_password_email,omitempty"`
+	InviteCode      string `json:"invite_code,omitempty"`
 }
 
 const (

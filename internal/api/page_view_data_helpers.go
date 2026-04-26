@@ -19,6 +19,7 @@ func (handler *Handler) buildDashboardViewData(user *models.User, language strin
 	data := fiber.Map{
 		"Title":                                 localizedPageTitle(messages, "meta.title.dashboard", "Ovumcy | Dashboard"),
 		"CurrentUser":                           user,
+		"SubjectUser":                           user,
 		"Stats":                                 viewData.Stats,
 		"CycleHero":                             viewData.CycleHero,
 		"CycleDayReference":                     viewData.CycleContext.CycleDayReference,

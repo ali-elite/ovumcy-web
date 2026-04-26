@@ -54,6 +54,26 @@ type SettingsSymptomsViewData struct {
 	HasArchivedSymptoms    bool
 }
 
+type SettingsPartnerViewData struct {
+	HasPartner    bool
+	PartnerName   string
+	HasInvitation bool
+	CodeHint      string
+	ExpiresAt     time.Time
+}
+
+type SettingsPartnerProvider interface {
+	FindActiveByOwner(ownerUserID uint) ([]models.PartnerInvitation, error)
+}
+
+type SettingsPartnerLinkProvider interface {
+	FindActivePartners(ownerUserID uint) ([]models.PartnerLink, error)
+}
+
+type SettingsUserFinder interface {
+	FindByID(userID uint) (models.User, error)
+}
+
 type SettingsPageViewData struct {
 	CurrentUser             models.User
 	ErrorKey                string
@@ -78,15 +98,20 @@ type SettingsPageViewData struct {
 	CycleStartMinISO        string
 	Export                  SettingsExportViewData
 	Symptoms                SettingsSymptomsViewData
+	Partner                 SettingsPartnerViewData
 	HasOwnerExportViewState bool
 	HasOwnerSymptomsView    bool
+	HasOwnerPartnerView     bool
 }
 
 type SettingsViewService struct {
-	settings      SettingsViewLoader
-	notifications *NotificationService
-	export        SettingsViewExportBuilder
-	symptoms      SettingsViewSymptomProvider
+	settings           SettingsViewLoader
+	notifications      *NotificationService
+	export             SettingsViewExportBuilder
+	symptoms           SettingsViewSymptomProvider
+	partnerInvitations SettingsPartnerProvider
+	partnerLinks       SettingsPartnerLinkProvider
+	userFinder         SettingsUserFinder
 }
 
 type settingsStatusKeys struct {
@@ -105,6 +130,17 @@ func NewSettingsViewService(settings SettingsViewLoader, notifications *Notifica
 		export:        export,
 		symptoms:      symptoms,
 	}
+}
+
+func (service *SettingsViewService) WithPartnerProviders(invitations SettingsPartnerProvider, links SettingsPartnerLinkProvider) *SettingsViewService {
+	service.partnerInvitations = invitations
+	service.partnerLinks = links
+	return service
+}
+
+func (service *SettingsViewService) WithUserFinder(finder SettingsUserFinder) *SettingsViewService {
+	service.userFinder = finder
+	return service
 }
 
 func (service *SettingsViewService) BuildSettingsPageViewData(user *models.User, language string, input SettingsViewInput, now time.Time, location *time.Location) (SettingsPageViewData, error) {
@@ -218,17 +254,65 @@ func (service *SettingsViewService) populateOwnerSettingsViewData(viewData *Sett
 		viewData.HasOwnerSymptomsView = true
 	}
 
-	if service.export == nil {
-		return nil
+	if service.export != nil {
+		exportViewData, err := service.buildOwnerExportViewData(viewData.CurrentUser.ID, language, today, location)
+		if err != nil {
+			return err
+		}
+		viewData.Export = exportViewData
+		viewData.HasOwnerExportViewState = true
 	}
 
-	exportViewData, err := service.buildOwnerExportViewData(viewData.CurrentUser.ID, language, today, location)
-	if err != nil {
-		return err
+	if service.partnerInvitations != nil && service.partnerLinks != nil {
+		partnerViewData, err := service.buildOwnerPartnerViewData(viewData.CurrentUser.ID)
+		if err != nil {
+			return err
+		}
+		viewData.Partner = partnerViewData
+		viewData.HasOwnerPartnerView = true
 	}
-	viewData.Export = exportViewData
-	viewData.HasOwnerExportViewState = true
+
 	return nil
+}
+
+func (service *SettingsViewService) buildOwnerPartnerViewData(ownerUserID uint) (SettingsPartnerViewData, error) {
+	links, err := service.partnerLinks.FindActivePartners(ownerUserID)
+	if err != nil {
+		return SettingsPartnerViewData{}, err
+	}
+
+	viewData := SettingsPartnerViewData{}
+	if len(links) > 0 {
+		viewData.HasPartner = true
+		viewData.PartnerName = service.resolvePartnerName(links[0].PartnerUserID)
+	}
+
+	invitations, err := service.partnerInvitations.FindActiveByOwner(ownerUserID)
+	if err != nil {
+		return viewData, err
+	}
+
+	if len(invitations) > 0 {
+		viewData.HasInvitation = true
+		viewData.CodeHint = invitations[0].CodeHint
+		viewData.ExpiresAt = invitations[0].ExpiresAt
+	}
+
+	return viewData, nil
+}
+
+func (service *SettingsViewService) resolvePartnerName(partnerUserID uint) string {
+	if service.userFinder == nil {
+		return "Partner"
+	}
+	partner, err := service.userFinder.FindByID(partnerUserID)
+	if err != nil {
+		return "Partner"
+	}
+	if partner.DisplayName != "" {
+		return partner.DisplayName
+	}
+	return EmailLocalPart(partner.Email)
 }
 
 func (service *SettingsViewService) buildOwnerExportViewData(userID uint, language string, today time.Time, location *time.Location) (SettingsExportViewData, error) {

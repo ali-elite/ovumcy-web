@@ -121,6 +121,87 @@ func TestResolveSecretKey(t *testing.T) {
 	})
 }
 
+func TestLoadDotEnvFileSetsMissingEnvironmentValues(t *testing.T) {
+	envPath := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(envPath, []byte(strings.Join([]string{
+		"# local development",
+		"GEMINI_API_KEY=gemini-from-file",
+		`QUOTED_VALUE="hello # still value"`,
+		"export SIMPLE_VALUE=plain",
+	}, "\n")), 0o600); err != nil {
+		t.Fatalf("write .env: %v", err)
+	}
+
+	withUnsetEnv(t, "GEMINI_API_KEY")
+	withUnsetEnv(t, "QUOTED_VALUE")
+	withUnsetEnv(t, "SIMPLE_VALUE")
+
+	if err := loadDotEnvFile(envPath); err != nil {
+		t.Fatalf("load .env: %v", err)
+	}
+	if got := os.Getenv("GEMINI_API_KEY"); got != "gemini-from-file" {
+		t.Fatalf("expected GEMINI_API_KEY from .env, got %q", got)
+	}
+	if got := os.Getenv("QUOTED_VALUE"); got != "hello # still value" {
+		t.Fatalf("expected quoted value to preserve #, got %q", got)
+	}
+	if got := os.Getenv("SIMPLE_VALUE"); got != "plain" {
+		t.Fatalf("expected export value to load, got %q", got)
+	}
+}
+
+func TestLoadDotEnvFileDoesNotOverrideExistingEnvironment(t *testing.T) {
+	envPath := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(envPath, []byte("SECRET_KEY=from-file\n"), 0o600); err != nil {
+		t.Fatalf("write .env: %v", err)
+	}
+	t.Setenv("SECRET_KEY", "from-shell")
+
+	if err := loadDotEnvFile(envPath); err != nil {
+		t.Fatalf("load .env: %v", err)
+	}
+	if got := os.Getenv("SECRET_KEY"); got != "from-shell" {
+		t.Fatalf("expected existing environment to win, got %q", got)
+	}
+}
+
+func TestLoadDotEnvFileOverridesExistingGeminiEnvironment(t *testing.T) {
+	envPath := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(envPath, []byte("GEMINI_API_KEY=from-file\n"), 0o600); err != nil {
+		t.Fatalf("write .env: %v", err)
+	}
+	t.Setenv("GEMINI_API_KEY", "from-shell")
+
+	if err := loadDotEnvFile(envPath); err != nil {
+		t.Fatalf("load .env: %v", err)
+	}
+	if got := os.Getenv("GEMINI_API_KEY"); got != "from-file" {
+		t.Fatalf("expected GEMINI_API_KEY from .env to win, got %q", got)
+	}
+}
+
+func TestLoadDotEnvFileAllowsMissingFile(t *testing.T) {
+	if err := loadDotEnvFile(filepath.Join(t.TempDir(), ".env")); err != nil {
+		t.Fatalf("expected missing .env to be ignored, got %v", err)
+	}
+}
+
+func withUnsetEnv(t *testing.T, key string) {
+	t.Helper()
+
+	previous, existed := os.LookupEnv(key)
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatalf("unset %s: %v", key, err)
+	}
+	t.Cleanup(func() {
+		if existed {
+			_ = os.Setenv(key, previous)
+			return
+		}
+		_ = os.Unsetenv(key)
+	})
+}
+
 func assertResolveSecretKeyError(t *testing.T, expectedSubstring string) {
 	t.Helper()
 

@@ -24,6 +24,7 @@
     initConfirmModal();
     initClearDataPasswordConfirmation();
     bindCycleStartConfirmForms();
+    initPushSubscription();
     initToastAPI();
     initHTMXHooks();
     initCSPFriendlyComponents();

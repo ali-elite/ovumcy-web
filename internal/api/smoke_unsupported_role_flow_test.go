@@ -13,9 +13,10 @@ func TestUnsupportedLegacyRoleLoginIsRejected(t *testing.T) {
 
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "smoke-legacy@example.com", "StrongPass1", true)
-	if err := database.Model(&user).Update("role", "partner").Error; err != nil {
+	if err := database.Model(&user).Update("role", "legacy_viewer").Error; err != nil {
 		t.Fatalf("set unsupported legacy role: %v", err)
 	}
+	user.Role = "legacy_viewer"
 
 	form := url.Values{
 		"email":    {user.Email},
@@ -40,10 +41,10 @@ func TestUnsupportedLegacyRoleSessionIsDeniedAndCleared(t *testing.T) {
 
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "smoke-legacy-session@example.com", "StrongPass1", true)
-	if err := database.Model(&user).Update("role", "partner").Error; err != nil {
+	if err := database.Model(&user).Update("role", "legacy_viewer").Error; err != nil {
 		t.Fatalf("set unsupported legacy role: %v", err)
 	}
-	user.Role = "partner"
+	user.Role = "legacy_viewer"
 	authCookie := issueAuthCookieForUser(t, user)
 
 	request := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
@@ -65,10 +66,10 @@ func TestUnsupportedLegacyRoleAPIAccessIsRejected(t *testing.T) {
 
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "smoke-legacy-api@example.com", "StrongPass1", true)
-	if err := database.Model(&user).Update("role", "partner").Error; err != nil {
+	if err := database.Model(&user).Update("role", "legacy_viewer").Error; err != nil {
 		t.Fatalf("set unsupported legacy role: %v", err)
 	}
-	user.Role = "partner"
+	user.Role = "legacy_viewer"
 	authCookie := issueAuthCookieForUser(t, user)
 
 	request := newExportRequestForTest(t, "/api/export/csv?from=2026-02-01&to=2026-02-28", authCookie)

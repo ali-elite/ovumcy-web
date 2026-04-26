@@ -104,3 +104,20 @@ func (handler *Handler) ShowResetPasswordPage(c *fiber.Ctx) error {
 	data := handler.buildResetPasswordPageData(c, currentMessages(c), flash)
 	return handler.render(c, "reset_password", data)
 }
+func (handler *Handler) ShowJoinPage(c *fiber.Ctx) error {
+	redirected, err := handler.redirectAuthenticatedUserIfPresent(c)
+	if err != nil {
+		return err
+	}
+	if redirected {
+		return nil
+	}
+
+	flash := handler.popFlashCookie(c)
+	data := buildJoinPageData(currentMessages(c), flash)
+	// If invite code is provided in query param, pre-fill it
+	if inviteCode := c.Query("code"); inviteCode != "" {
+		data["InviteCode"] = inviteCode
+	}
+	return handler.render(c, "join", data)
+}

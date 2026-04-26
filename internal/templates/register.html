@@ -60,10 +60,16 @@
     </form>
     {{end}}
 
-    <p class="journal-muted mt-5 text-sm">
-      {{if .RegistrationOpen}}{{t .Messages "auth.have_account"}}{{end}}
-      <a href="/login" class="inline-link" data-auth-switch>{{t .Messages "auth.login"}}</a>
-    </p>
+    <div class="mt-5 space-y-2 text-sm">
+      <p class="journal-muted">
+        {{if .RegistrationOpen}}{{t .Messages "auth.have_account"}}{{end}}
+        <a href="/login" class="inline-link" data-auth-switch>{{t .Messages "auth.login"}}</a>
+      </p>
+      <p class="journal-muted">
+        {{t .Messages "auth.have_invite_code"}}
+        <a href="/join" class="inline-link">{{t .Messages "auth.join_as_partner"}}</a>
+      </p>
+    </div>
   </div>
   {{end}}
 </section>

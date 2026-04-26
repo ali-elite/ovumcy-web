@@ -23,7 +23,7 @@ func TestMarkCycleStartRequiresAuthJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unauthenticated cycle-start request failed: %v", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", response.StatusCode)
@@ -36,10 +36,10 @@ func TestMarkCycleStartRequiresAuthJSON(t *testing.T) {
 func TestMarkCycleStartRejectsUnsupportedLegacyRoleJSON(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "manual-cycle-start-legacy@example.com", "StrongPass1", true)
-	if err := database.Model(&models.User{}).Where("id = ?", user.ID).Update("role", "partner").Error; err != nil {
+	if err := database.Model(&models.User{}).Where("id = ?", user.ID).Update("role", "legacy_viewer").Error; err != nil {
 		t.Fatalf("set unsupported legacy role: %v", err)
 	}
-	user.Role = "partner"
+	user.Role = "legacy_viewer"
 	authCookie := issueAuthCookieForUser(t, user)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/days/2026-02-19/cycle-start", nil)
@@ -50,7 +50,7 @@ func TestMarkCycleStartRejectsUnsupportedLegacyRoleJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unsupported legacy role cycle-start request failed: %v", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusForbidden {
 		t.Fatalf("expected status 403, got %d", response.StatusCode)

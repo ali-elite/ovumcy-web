@@ -1,0 +1,34 @@
+{{define "settings_partner_invitation_partial"}}
+{{if .ErrorMessage}}
+<div class="space-y-4">
+    <div class="status-error flex items-center gap-2">
+        <span aria-hidden="true">⚠️</span>
+        <span>{{.ErrorMessage}}</span>
+    </div>
+    <form hx-post="/api/partner/invitations" hx-target="#partner-invitation-container" hx-swap="innerHTML" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button type="submit" class="btn-primary" hx-disabled-elt="this">{{t .Messages "settings.partner.generate_invite"}}</button>
+    </form>
+</div>
+{{else if .HasInvitation}}
+<div class="journal-panel space-y-3">
+    <p class="field-label">{{t .Messages "settings.partner.invitation_active"}}</p>
+    <div class="flex items-center gap-3">
+        <code class="bg-card-muted p-2 rounded text-lg font-mono tracking-widest border border-accent" style="color: var(--accent);">{{.InvitationCode}}</code>
+        <button type="button" class="btn-soft text-sm" onclick="navigator.clipboard.writeText('{{.InvitationCode}}')">{{t .Messages "common.copy"}}</button>
+    </div>
+    <p class="journal-muted text-xs">{{printf (t .Messages "settings.partner.invitation_expires") (formatLocalizedDate .Lang .InvitationExpiresAt "datetime")}}</p>
+    <p class="journal-muted text-sm">{{t .Messages "settings.partner.invitation_hint"}}</p>
+    <form hx-post="/api/partner/invitations" hx-target="#partner-invitation-container" hx-swap="innerHTML" class="mt-2">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button type="submit" class="btn-secondary text-sm" hx-disabled-elt="this">{{t .Messages "settings.partner.regenerate_invite"}}</button>
+    </form>
+</div>
+{{else}}
+<form hx-post="/api/partner/invitations" hx-target="#partner-invitation-container" hx-swap="innerHTML" class="space-y-4">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="btn-primary" hx-disabled-elt="this">{{t .Messages "settings.partner.generate_invite"}}</button>
+    <p class="journal-muted text-sm">{{t .Messages "settings.partner.generate_hint"}}</p>
+</form>
+{{end}}
+{{end}}

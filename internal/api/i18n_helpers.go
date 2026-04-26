@@ -83,6 +83,10 @@ func (handler *Handler) withTemplateDefaults(c *fiber.Ctx, data fiber.Map) fiber
 		data["NoDataLabel"] = noData
 	}
 
+	if _, ok := data["VapidPublicKey"]; !ok {
+		data["VapidPublicKey"] = handler.vapidPublicKey
+	}
+
 	return data
 }
 

@@ -88,5 +88,13 @@ func (handler *Handler) buildSettingsViewData(c *fiber.Ctx, user *models.User, f
 		data["SymptomIconOptions"] = buildSettingsSymptomIconOptions("")
 	}
 
+	if viewData.HasOwnerPartnerView {
+		data["HasPartner"] = viewData.Partner.HasPartner
+		data["PartnerName"] = viewData.Partner.PartnerName
+		data["HasInvitation"] = viewData.Partner.HasInvitation
+		data["InvitationCodeHint"] = viewData.Partner.CodeHint
+		data["InvitationExpiresAt"] = viewData.Partner.ExpiresAt
+	}
+
 	return data, nil
 }

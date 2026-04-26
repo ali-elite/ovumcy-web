@@ -10,6 +10,7 @@ var monthNames = map[string][]string{
 	"de": {"Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"},
 	"en": {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"},
 	"es": {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"},
+	"fa": {"ژانویه", "فوریه", "مارس", "آوریل", "مه", "ژوئن", "ژوئیه", "اوت", "سپتامبر", "اکتبر", "نوامبر", "دسامبر"},
 	"fr": {"Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"},
 	"ru": {"Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"},
 }
@@ -18,6 +19,7 @@ var monthLongNames = map[string][]string{
 	"de": {"Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"},
 	"en": {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"},
 	"es": {"enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"},
+	"fa": {"ژانویه", "فوریه", "مارس", "آوریل", "مه", "ژوئن", "ژوئیه", "اوت", "سپتامبر", "اکتبر", "نوامبر", "دسامبر"},
 	"fr": {"janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"},
 	"ru": {"января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"},
 }
@@ -26,6 +28,7 @@ var weekdayShortNames = map[string][]string{
 	"de": {"So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."},
 	"en": {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"},
 	"es": {"dom", "lun", "mar", "mié", "jue", "vie", "sáb"},
+	"fa": {"یکش", "دوش", "سه‌", "چهار", "پنج", "جمعه", "شنبه"},
 	"fr": {"dim", "lun", "mar", "mer", "jeu", "ven", "sam"},
 	"ru": {"Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"},
 }
@@ -34,6 +37,7 @@ var weekdayLongNames = map[string][]string{
 	"de": {"Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"},
 	"en": {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"},
 	"es": {"domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"},
+	"fa": {"یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"},
 	"fr": {"dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"},
 	"ru": {"воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"},
 }
@@ -42,6 +46,7 @@ var monthShortNames = map[string][]string{
 	"de": {"Jan.", "Feb.", "Mär.", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."},
 	"en": {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"},
 	"es": {"ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"},
+	"fa": {"ژانویه", "فوریه", "مارس", "آوریل", "مه", "ژوئن", "ژوئیه", "اوت", "سپتامبر", "اکتبر", "نوامبر", "دسامبر"},
 	"fr": {"jan", "fév", "mar", "avr", "mai", "jun", "jul", "aoû", "sep", "oct", "nov", "déc"},
 	"ru": {"Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"},
 }
@@ -88,6 +93,9 @@ func LocalizedDateLabel(language string, value time.Time) string {
 	if lang == "fr" {
 		return fmt.Sprintf("%s %d %s", weekday, value.Day(), month)
 	}
+	if lang == "fa" {
+		return fmt.Sprintf("%s، %d %s", weekday, value.Day(), month)
+	}
 	return fmt.Sprintf("%s, %s %d", weekday, month, value.Day())
 }
 
@@ -117,6 +125,9 @@ func LocalizedDashboardDate(language string, value time.Time) string {
 	if lang == "fr" {
 		// French: "lundi 21 mars 2026"
 		return fmt.Sprintf("%s %d %s %d", weekday, value.Day(), month, value.Year())
+	}
+	if lang == "fa" {
+		return fmt.Sprintf("%s، %d %s %d", weekday, value.Day(), month, value.Year())
 	}
 	return fmt.Sprintf("%s %d, %d, %s", month, value.Day(), value.Year(), weekday)
 }
@@ -155,6 +166,14 @@ func LocalizedDateDisplay(language string, value time.Time) string {
 		// French: "21 mar 2026"
 		return fmt.Sprintf("%d %s %d", value.Day(), months[monthIndex], value.Year())
 	}
+	if lang == "fa" {
+		months := monthShortNames[lang]
+		monthIndex := int(value.Month()) - 1
+		if monthIndex < 0 || monthIndex >= len(months) {
+			return value.Format("2 Jan 2006")
+		}
+		return fmt.Sprintf("%d %s %d", value.Day(), months[monthIndex], value.Year())
+	}
 
 	months := monthShortNames["en"]
 	monthIndex := int(value.Month()) - 1
@@ -162,6 +181,37 @@ func LocalizedDateDisplay(language string, value time.Time) string {
 		return value.Format("Jan 2, 2006")
 	}
 	return fmt.Sprintf("%s %d, %d", months[monthIndex], value.Day(), value.Year())
+}
+
+func LocalizedDateTimeDisplay(language string, value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+
+	datePart := LocalizedDateDisplay(language, value)
+	lang := dateLanguageOrDefault(language)
+
+	hour := value.Hour()
+	minute := value.Minute()
+
+	switch lang {
+	case "ru":
+		return fmt.Sprintf("%s, %02d:%02d", datePart, hour, minute)
+	case "de", "fr", "fa":
+		return fmt.Sprintf("%s, %02d:%02d", datePart, hour, minute)
+	default:
+		suffix := "AM"
+		h := hour
+		if h == 0 {
+			h = 12
+		} else if h == 12 {
+			suffix = "PM"
+		} else if h > 12 {
+			h -= 12
+			suffix = "PM"
+		}
+		return fmt.Sprintf("%s, %d:%02d %s", datePart, h, minute, suffix)
+	}
 }
 
 func LocalizedDateShort(language string, value time.Time) string {
@@ -196,6 +246,14 @@ func LocalizedDateShort(language string, value time.Time) string {
 			return value.Format("2 Jan")
 		}
 		// French: "21 mar"
+		return fmt.Sprintf("%d %s", value.Day(), months[monthIndex])
+	}
+	if lang == "fa" {
+		months := monthShortNames[lang]
+		monthIndex := int(value.Month()) - 1
+		if monthIndex < 0 || monthIndex >= len(months) {
+			return value.Format("2 Jan")
+		}
 		return fmt.Sprintf("%d %s", value.Day(), months[monthIndex])
 	}
 

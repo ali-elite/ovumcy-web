@@ -16,9 +16,15 @@ func (handler *Handler) ShowCalendar(c *fiber.Ctx) error {
 		return nil
 	}
 
+	viewer := user
+	subject, hasPartnerSubject, err := handler.dashboardSubjectUser(viewer)
+	if err != nil {
+		return handler.respondMappedError(c, mapCalendarViewError(err))
+	}
+
 	language, messages, now := handler.currentPageViewContext(c)
 	location := handler.requestLocation(c)
-	minMonth := services.CalendarMinimumNavigableMonth(user, location)
+	minMonth := services.CalendarMinimumNavigableMonth(&subject, location)
 	selectedDateQuery := strings.TrimSpace(c.Query("day"))
 	if selectedDateQuery == "" {
 		selectedDateQuery = strings.TrimSpace(c.Query("selected"))
@@ -31,10 +37,11 @@ func (handler *Handler) ShowCalendar(c *fiber.Ctx) error {
 		return redirectOrJSON(c, "/calendar")
 	}
 
-	data, err := handler.buildCalendarViewData(user, language, messages, now, activeMonth, selectedDate, location)
+	data, err := handler.buildCalendarViewData(&subject, language, messages, now, activeMonth, selectedDate, location)
 	if err != nil {
 		return handler.respondMappedError(c, mapCalendarViewError(err))
 	}
+	handler.applyPartnerCalendarViewState(viewer, &subject, hasPartnerSubject, data)
 	data["SelectedDateEditMode"] = services.ParseBoolLike(c.Query("edit"))
 
 	return handler.render(c, "calendar", data)

@@ -51,6 +51,10 @@ func classifyOIDCIdentityCreateError(err error) error {
 	return classifyUniqueConstraintError(err, "oidc_identities.issuer_subject")
 }
 
+func classifyPartnerInvitationCreateError(err error) error {
+	return classifyUniqueConstraintError(err, "partner_invitations.code_hash")
+}
+
 func classifyUniqueConstraintError(err error, defaultConstraint string) error {
 	if err == nil {
 		return nil

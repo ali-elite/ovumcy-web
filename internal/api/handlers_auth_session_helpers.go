@@ -103,3 +103,24 @@ func recoveryCodeSurfacePath(surface string) string {
 	}
 	return "/recovery-code"
 }
+type joinInput struct {
+	Email           string `form:"email"`
+	Password        string `form:"password"`
+	ConfirmPassword string `form:"confirm_password"`
+	InviteCode      string `form:"invite_code"`
+}
+
+func parseJoinInput(c *fiber.Ctx) (joinInput, string) {
+	input := joinInput{}
+	if err := c.BodyParser(&input); err != nil {
+		return joinInput{}, "invalid input"
+	}
+	input.Email = services.NormalizeAuthEmail(input.Email)
+	input.InviteCode = strings.TrimSpace(input.InviteCode)
+
+	if input.Email == "" || input.InviteCode == "" {
+		return joinInput{}, "invalid input"
+	}
+
+	return input, ""
+}

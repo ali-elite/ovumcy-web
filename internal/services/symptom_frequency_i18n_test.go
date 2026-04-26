@@ -109,3 +109,10 @@ func TestLocalizedSymptomFrequencySummary_FrenchPluralization(t *testing.T) {
 		})
 	}
 }
+
+func TestLocalizedSymptomFrequencySummary_Persian(t *testing.T) {
+	got := LocalizedSymptomFrequencySummary("fa", 2, 4)
+	if got != "2 بار (در 4 روز)" {
+		t.Fatalf("expected persian summary, got %q", got)
+	}
+}

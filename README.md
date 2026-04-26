@@ -1,17 +1,15 @@
-[![CI](https://github.com/ovumcy/ovumcy-web/actions/workflows/ci.yml/badge.svg)](https://github.com/ovumcy/ovumcy-web/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/ovumcy/ovumcy-web/actions/workflows/codeql.yml/badge.svg)](https://github.com/ovumcy/ovumcy-web/actions/workflows/codeql.yml)
-[![Coverage](https://codecov.io/gh/ovumcy/ovumcy-web/graph/badge.svg)](https://app.codecov.io/gh/ovumcy/ovumcy-web)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ovumcy/ovumcy-web)](https://goreportcard.com/report/github.com/ovumcy/ovumcy-web)
-[![Release](https://img.shields.io/github/v/release/ovumcy/ovumcy-web?display_name=tag)](https://github.com/ovumcy/ovumcy-web/releases)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker)](https://github.com/ovumcy/ovumcy-web/actions/workflows/docker-image.yml)
-[![Self-hosted](https://img.shields.io/badge/Self--hosted-yes-2ea44f)](https://github.com/ovumcy/ovumcy-web/blob/main/docs/self-hosted.md)
-[![No telemetry](https://img.shields.io/badge/Telemetry-none-2ea44f)](https://github.com/ovumcy/ovumcy-web#privacy-and-security)
+[CI](https://github.com/ovumcy/ovumcy-web/actions/workflows/ci.yml)
+[CodeQL](https://github.com/ovumcy/ovumcy-web/actions/workflows/codeql.yml)
+[Coverage](https://app.codecov.io/gh/ovumcy/ovumcy-web)
+[Go Report Card](https://goreportcard.com/report/github.com/ovumcy/ovumcy-web)
+[Release](https://github.com/ovumcy/ovumcy-web/releases)
+[License: AGPL v3](https://www.gnu.org/licenses/agpl-3.0)
+[Go Version](https://go.dev/)
+[Docker](https://github.com/ovumcy/ovumcy-web/actions/workflows/docker-image.yml)
+[Self-hosted](https://github.com/ovumcy/ovumcy-web/blob/main/docs/self-hosted.md)
+[No telemetry](https://github.com/ovumcy/ovumcy-web#privacy-and-security)
 
-<p align="center">
-  <img src="docs/screenshots/ovumcy-logo-horizontal.svg" alt="Ovumcy" width="640">
-</p>
+
 
 Ovumcy is a privacy-first, self-hosted menstrual cycle tracker.
 It is built for people who want fast daily tracking, useful cycle insights, and data that stays under their control.
@@ -25,10 +23,10 @@ The public project site is [ovumcy.com](https://ovumcy.com).
 
 Ovumcy now has two public product shapes:
 
-- [`ovumcy-web`](https://github.com/ovumcy/ovumcy-web) is the self-hosted all-in-one web application and server in this repository.
-- [`ovumcy-app`](https://github.com/ovumcy/ovumcy-app) is the local-first mobile client for iOS and Android.
+- `[ovumcy-web](https://github.com/ovumcy/ovumcy-web)` is the self-hosted all-in-one web application and server in this repository.
+- `[ovumcy-app](https://github.com/ovumcy/ovumcy-app)` is the local-first mobile client for iOS and Android.
 
-For the mobile client, optional self-hosted encrypted sync is provided by [`ovumcy-sync-community`](https://github.com/ovumcy/ovumcy-sync-community).
+For the mobile client, optional self-hosted encrypted sync is provided by `[ovumcy-sync-community](https://github.com/ovumcy/ovumcy-sync-community)`.
 
 In other words:
 
@@ -48,14 +46,16 @@ Different cycle trackers optimize for different things. Here is how the product 
 
 This comparison focuses on product models rather than specific brands, because privacy, export, and telemetry policies vary between apps.
 
-| Capability | Ovumcy | Local-first app | Cloud-first tracker |
-| --- | --- | --- | --- |
-| Self-hosted by the user or operator | :white_check_mark: | Device-local | :x: |
-| No vendor account required | :white_check_mark: | :white_check_mark: | :x: |
-| Multi-device browser access | :white_check_mark: | :x: | :white_check_mark: |
-| No telemetry or ad trackers by product default | :white_check_mark: | Varies | Varies |
-| Open data export | :white_check_mark: | Varies | Varies |
-| Operator-controlled storage | :white_check_mark: | Device-only | :x: |
+
+| Capability                                     | Ovumcy             | Local-first app    | Cloud-first tracker |
+| ---------------------------------------------- | ------------------ | ------------------ | ------------------- |
+| Self-hosted by the user or operator            | :white_check_mark: | Device-local       | :x:                 |
+| No vendor account required                     | :white_check_mark: | :white_check_mark: | :x:                 |
+| Multi-device browser access                    | :white_check_mark: | :x:                | :white_check_mark:  |
+| No telemetry or ad trackers by product default | :white_check_mark: | Varies             | Varies              |
+| Open data export                               | :white_check_mark: | Varies             | Varies              |
+| Operator-controlled storage                    | :white_check_mark: | Device-only        | :x:                 |
+
 
 Ovumcy trades single-device simplicity for self-hosted control, operator-managed storage, and browser access from any device.
 
@@ -89,27 +89,27 @@ No. Ovumcy provides estimates and logs based on recorded data. It is not a medic
 
 ### Get Started Quickly
 
-![Ovumcy registration screen](docs/screenshots/register.jpg)
+Ovumcy registration screen
 
 ### Check Today at a Glance
 
-![Ovumcy dashboard screen](docs/screenshots/dashboard.jpg)
+Ovumcy dashboard screen
 
 ### Review the Month
 
-![Ovumcy calendar screen](docs/screenshots/calendar.jpg)
+Ovumcy calendar screen
 
 ### Export What You Need
 
-![Ovumcy export settings screen](docs/screenshots/settings-export.jpg)
+Ovumcy export settings screen
 
 ### Install It on a Phone
 
-![Ovumcy mobile install prompt](docs/screenshots/install-prompt.png)
+Ovumcy mobile install prompt
 
 ### Use a Comfortable Dark Theme
 
-![Ovumcy dark theme screen](docs/screenshots/dark-theme.jpg)
+Ovumcy dark theme screen
 
 The privacy-safe hero demo asset pack, including the mobile install prompt capture contract, lives in [docs/hero-demo.md](docs/hero-demo.md).
 
@@ -127,13 +127,16 @@ The privacy-safe hero demo asset pack, including the mobile install prompt captu
 
 ## Supported Languages
 
-| Language | Code | UI support | `DEFAULT_LANGUAGE` |
-| --- | --- | --- | --- |
-| English | `en` | Full first-party UI localization | Supported |
-| Russian | `ru` | Full first-party UI localization | Supported |
-| Spanish | `es` | Full first-party UI localization | Supported |
-| French | `fr` | Full first-party UI localization | Supported |
-| German | `de` | Full first-party UI localization | Supported |
+
+| Language | Code | UI support                       | `DEFAULT_LANGUAGE` |
+| -------- | ---- | -------------------------------- | ------------------ |
+| English  | `en` | Full first-party UI localization | Supported          |
+| Russian  | `ru` | Full first-party UI localization | Supported          |
+| Spanish  | `es` | Full first-party UI localization | Supported          |
+| French   | `fr` | Full first-party UI localization | Supported          |
+| German   | `de` | Full first-party UI localization | Supported          |
+| Persian  | `fa` | First-party UI localization      | Supported          |
+
 
 These are the currently supported first-party UI languages. Operators can set `DEFAULT_LANGUAGE` to any of the codes above, and users can switch language from the UI without changing deployment defaults.
 
@@ -259,6 +262,9 @@ PORT=8080
 HOST_BIND_ADDRESS=127.0.0.1
 COOKIE_SECURE=false
 
+# Required for Partner AI Advice feature
+GEMINI_API_KEY=
+
 DB_DRIVER=sqlite
 DB_PATH=data/ovumcy.db
 # DATABASE_URL=postgres://ovumcy:change-me@127.0.0.1:5432/ovumcy?sslmode=disable
@@ -286,7 +292,7 @@ Important notes:
 - Always set a strong secret through `SECRET_KEY` or `SECRET_KEY_FILE`.
 - `SECRET_KEY_FILE` must point to a readable file path for the running process. In Docker-based deployments, that means a path inside the container after you mount the file.
 - `SECRET_KEY` takes precedence if both `SECRET_KEY` and `SECRET_KEY_FILE` are set.
-- `DEFAULT_LANGUAGE` supports `en`, `ru`, `es`, `fr`, and `de`.
+- `DEFAULT_LANGUAGE` supports `en`, `ru`, `es`, `fr`, `de`, and `fa`.
 - `REGISTRATION_MODE` supports `open` and `closed`; use `closed` for pre-provisioned or otherwise operator-restricted internet-facing instances where self-service sign-up must stay disabled.
 - `HOST_BIND_ADDRESS=127.0.0.1` keeps the base compose path local/private by default. Only change it deliberately for a specific private-network bind.
 - Set `COOKIE_SECURE=true` when serving over HTTPS.
@@ -346,7 +352,8 @@ Dedicated security workflows run CodeQL plus `gosec`, Trivy filesystem/container
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 For bugs and feature requests, open a GitHub issue:
-- https://github.com/ovumcy/ovumcy-web/issues
+
+- [https://github.com/ovumcy/ovumcy-web/issues](https://github.com/ovumcy/ovumcy-web/issues)
 
 ## Releases
 

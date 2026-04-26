@@ -291,3 +291,12 @@ func (repo *UserRepository) CompleteOnboarding(userID uint, startDay time.Time, 
 		}).Error
 	})
 }
+
+// ListAllWithRole returns all users with the specified role.
+func (repo *UserRepository) ListAllWithRole(role string) ([]models.User, error) {
+	var users []models.User
+	if err := repo.database.Where("role = ?", role).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}

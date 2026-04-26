@@ -1,0 +1,61 @@
+{{define "content"}}
+<section class="mx-auto flex min-h-[72vh] max-w-3xl items-center justify-center">
+  <div class="journal-card journal-hero w-full p-7 sm:p-10" data-auth-panel>
+    <p class="journal-kicker">{{t .Messages "app.name"}}</p>
+
+    <div>
+      <h1 class="journal-title">{{t .Messages "auth.partner_join_title"}}</h1>
+      <p class="journal-muted mt-2">{{t .Messages "auth.partner_join_subtitle"}}</p>
+    </div>
+
+    {{if .ErrorKey}}
+    <div class="status-error mt-5" data-auth-server-error>{{t .Messages .ErrorKey}}</div>
+    {{end}}
+
+    <form
+      id="join-form"
+      action="/api/partner/join"
+      method="post"
+      novalidate
+      class="mt-5 space-y-4"
+      data-required-message="{{t .Messages "validation.required"}}"
+      data-email-message="{{t .Messages "validation.email"}}"
+      data-password-mismatch-message="{{t .Messages "auth.error.password_mismatch"}}"
+      data-weak-password-message="{{t .Messages "auth.password_requirements"}}">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      <label class="field-label" for="join-code">{{t .Messages "auth.invite_code"}}</label>
+      <input id="join-code" type="text" name="invite_code" value="{{.InviteCode}}" required autocomplete="off" class="input-field font-mono uppercase" placeholder="XXXX-XXXX-XXXX-XXXX" />
+
+      <label class="field-label" for="join-email">{{t .Messages "auth.email"}}</label>
+      <input id="join-email" type="email" name="email" value="{{.Email}}" required autocomplete="email" class="input-field" />
+
+      {{template "password_toggle_field" (dict
+        "Messages" .Messages
+        "LabelKey" "auth.password"
+        "FieldID" "join-password"
+        "FieldName" "password"
+        "Autocomplete" "new-password"
+        "Required" true)}}
+
+      {{template "password_toggle_field" (dict
+        "Messages" .Messages
+        "LabelKey" "auth.confirm_password"
+        "FieldID" "join-confirm-password"
+        "FieldName" "confirm_password"
+        "Autocomplete" "new-password"
+        "Required" true)}}
+      {{template "password_requirements_checklist" (dict "Messages" .Messages)}}
+      
+      <div id="join-client-status" class="save-status text-sm" aria-live="polite"></div>
+
+      <button type="submit" class="btn-primary w-full">{{t .Messages "auth.join"}}</button>
+    </form>
+
+    <p class="journal-muted mt-5 text-sm">
+      {{t .Messages "auth.have_account"}}
+      <a href="/login" class="inline-link" data-auth-switch>{{t .Messages "auth.login"}}</a>
+    </p>
+  </div>
+</section>
+{{end}}

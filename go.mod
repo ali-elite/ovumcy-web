@@ -3,6 +3,7 @@ module github.com/ovumcy/ovumcy-web
 go 1.25.8
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/gofiber/fiber/v2 v2.52.12

@@ -21,6 +21,8 @@ func formatTemplateLocalizedDate(language string, value time.Time, style string)
 	switch style {
 	case "short":
 		return services.LocalizedDateShort(language, value)
+	case "datetime":
+		return services.LocalizedDateTimeDisplay(language, value)
 	default:
 		return services.LocalizedDateDisplay(language, value)
 	}

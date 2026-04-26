@@ -63,3 +63,12 @@ func (handler *Handler) buildResetPasswordPageData(c *fiber.Ctx, messages map[st
 		"ErrorKey":     services.AuthErrorTranslationKey(errorSource),
 	}
 }
+func buildJoinPageData(messages map[string]string, flash FlashPayload) fiber.Map {
+	errorSource := services.ResolveAuthErrorSource(flash.AuthError)
+	return fiber.Map{
+		"Title":      localizedPageTitle(messages, "meta.title.join", "Ovumcy | Join as Partner"),
+		"ErrorKey":   services.AuthErrorTranslationKey(errorSource),
+		"Email":      services.ResolveAuthPageEmail(flash.RegisterEmail),
+		"InviteCode": flash.InviteCode,
+	}
+}

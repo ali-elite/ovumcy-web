@@ -48,7 +48,7 @@ func TestSymptomRoutesRequireAuthJSON(t *testing.T) {
 			if err != nil {
 				t.Fatalf("symptom auth-required request failed: %v", err)
 			}
-			defer response.Body.Close()
+			defer func() { _ = response.Body.Close() }()
 
 			if response.StatusCode != http.StatusUnauthorized {
 				t.Fatalf("expected status 401, got %d", response.StatusCode)
@@ -63,10 +63,10 @@ func TestSymptomRoutesRequireAuthJSON(t *testing.T) {
 func TestSymptomRoutesRejectUnsupportedLegacyRoleJSON(t *testing.T) {
 	app, database := newOnboardingTestApp(t)
 	user := createOnboardingTestUser(t, database, "symptom-routes-legacy@example.com", "StrongPass1", true)
-	if err := database.Model(&models.User{}).Where("id = ?", user.ID).Update("role", "partner").Error; err != nil {
+	if err := database.Model(&models.User{}).Where("id = ?", user.ID).Update("role", "legacy_viewer").Error; err != nil {
 		t.Fatalf("set unsupported legacy role: %v", err)
 	}
-	user.Role = "partner"
+	user.Role = "legacy_viewer"
 	authCookie := issueAuthCookieForUser(t, user)
 
 	testCases := []struct {
@@ -106,7 +106,7 @@ func TestSymptomRoutesRejectUnsupportedLegacyRoleJSON(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unsupported legacy role symptom request failed: %v", err)
 			}
-			defer response.Body.Close()
+			defer func() { _ = response.Body.Close() }()
 
 			if response.StatusCode != http.StatusForbidden {
 				t.Fatalf("expected status 403, got %d", response.StatusCode)

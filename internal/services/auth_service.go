@@ -105,6 +105,53 @@ func (service *AuthService) RegisterOwner(email string, rawPassword string, conf
 	return user, recoveryCode, nil
 }
 
+func (service *AuthService) RegisterPartner(email string, rawPassword string, confirmPassword string, createdAt time.Time) (models.User, string, error) {
+	if err := service.ValidateRegistrationCredentials(rawPassword, confirmPassword); err != nil {
+		return models.User{}, "", err
+	}
+
+	exists, err := service.RegistrationEmailExists(email)
+	if err != nil {
+		return models.User{}, "", ErrAuthRegisterFailed
+	}
+	if exists {
+		return models.User{}, "", ErrAuthEmailExists
+	}
+
+	user, recoveryCode, err := service.BuildPartnerUserWithRecovery(email, rawPassword, createdAt)
+	if err != nil {
+		return models.User{}, "", ErrAuthRegisterFailed
+	}
+
+	return user, recoveryCode, nil
+}
+
+func (service *AuthService) BuildPartnerUserWithRecovery(email string, rawPassword string, createdAt time.Time) (models.User, string, error) {
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(rawPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return models.User{}, "", err
+	}
+	recoveryCode, recoveryHash, err := GenerateRecoveryCodeHash()
+	if err != nil {
+		return models.User{}, "", err
+	}
+	if createdAt.IsZero() {
+		createdAt = time.Now().UTC()
+	}
+
+	user := models.User{
+		Email:               email,
+		PasswordHash:        string(passwordHash),
+		RecoveryCodeHash:    recoveryHash,
+		LocalAuthEnabled:    true,
+		AuthSessionVersion:  1,
+		Role:                models.RolePartner,
+		OnboardingCompleted: true, // Partners don't need onboarding
+		CreatedAt:           createdAt,
+	}
+	return user, recoveryCode, nil
+}
+
 func (service *AuthService) ValidateResetPasswordInput(password string, confirmPassword string) error {
 	password = strings.TrimSpace(password)
 	confirmPassword = strings.TrimSpace(confirmPassword)

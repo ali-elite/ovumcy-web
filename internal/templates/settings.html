@@ -374,6 +374,21 @@
             </label>
           </div>
         </section>
+
+        <section class="journal-panel settings-interface-panel space-y-3" id="push-notifications-section">
+          <div class="space-y-1">
+            <p class="field-label">Push Notifications</p>
+            <p class="journal-muted text-sm">Receive reminders and partner activity notifications.</p>
+          </div>
+          <div class="space-y-2">
+            <label class="period-toggle" data-binary-toggle>
+              <input type="checkbox" id="push-notifications-toggle" data-binary-toggle-input>
+              <span class="period-toggle-copy">
+                <span class="period-toggle-main">🔔 Enable Push Notifications</span>
+              </span>
+            </label>
+          </div>
+        </section>
       </div>
 
       <div class="settings-form-actions">
@@ -559,6 +574,48 @@
   </section>
 
   {{if eq .CurrentUser.Role "owner"}}
+  <section class="journal-card p-5 sm:p-6 space-y-4" id="settings-partner">
+    <div>
+      <h2 class="journal-subtitle">🤝 {{t .Messages "settings.partner.title"}}</h2>
+      <p class="journal-muted mt-2 text-sm">{{t .Messages "settings.partner.subtitle"}}</p>
+    </div>
+
+    {{if .HasPartner}}
+    <div class="journal-panel space-y-2">
+        <p class="field-label">{{t .Messages "settings.partner.linked_status"}}</p>
+        <div class="flex items-center gap-2">
+            <span class="text-green-500">✅</span>
+            <span>{{.PartnerName}}</span>
+        </div>
+        <p class="journal-muted text-sm">{{t .Messages "settings.partner.linked_hint"}}</p>
+    </div>
+    {{else}}
+    <div id="partner-invitation-container">
+        {{if .HasInvitation}}
+            <div class="journal-panel space-y-3">
+                <p class="field-label">{{t .Messages "settings.partner.invitation_active"}}</p>
+                <div class="flex items-center gap-3">
+                    <code class="bg-card-muted p-2 rounded text-lg font-mono tracking-widest border border-accent" style="color: var(--accent);">****-****-****-{{.InvitationCodeHint}}</code>
+                    <p class="journal-muted text-xs">{{t .Messages "settings.partner.invitation_partial_hint"}}</p>
+                </div>
+                <p class="journal-muted text-xs">{{printf (t .Messages "settings.partner.invitation_expires") (formatLocalizedDate .Lang .InvitationExpiresAt "datetime")}}</p>
+                <form hx-post="/api/partner/invitations" hx-target="#partner-invitation-container" hx-swap="innerHTML">
+                    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                    <button type="submit" class="btn-secondary text-sm" hx-disabled-elt="this">{{t .Messages "settings.partner.regenerate_invite"}}</button>
+                </form>
+            </div>
+        {{else}}
+            <form hx-post="/api/partner/invitations" hx-target="#partner-invitation-container" hx-swap="innerHTML" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                <button type="submit" class="btn-primary" hx-disabled-elt="this">{{t .Messages "settings.partner.generate_invite"}}</button>
+                <p class="journal-muted text-sm">{{t .Messages "settings.partner.generate_hint"}}</p>
+            </form>
+        {{end}}
+    </div>
+    {{end}}
+  </section>
+  {{end}}
+
   <section
     class="journal-card p-5 sm:p-6 space-y-4"
     data-export-section
@@ -661,7 +718,6 @@
     <p class="journal-muted text-xs">{{t .Messages "settings.local_data_hint"}}</p>
 
   </section>
-  {{end}}
 
   <section id="settings-danger-zone" class="journal-card danger-card-strong p-5 sm:p-6 settings-danger-zone">
     <h2 class="journal-subtitle danger-title">⚠️ {{t .Messages "settings.danger_zone.title"}}</h2>

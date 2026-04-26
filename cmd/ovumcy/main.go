@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -77,6 +78,10 @@ const (
 )
 
 func main() {
+	if err := loadDotEnvFile(".env"); err != nil {
+		log.Fatal(err)
+	}
+
 	handled, err := tryRunCLICommand()
 	if err != nil {
 		log.Fatal(err)
@@ -91,7 +96,7 @@ func main() {
 	config := mustLoadRuntimeConfig(location)
 	database := mustOpenDatabase(config.DatabaseConfig)
 	i18nManager := mustNewI18nManager(config.DefaultLanguage)
-	dependencies := buildDependencies(db.NewRepositories(database), i18nManager, config.RateLimits, config.RegistrationMode, config.OIDC)
+	dependencies := buildDependencies(db.NewRepositories(database), config.SecretKey, i18nManager, config.RateLimits, config.RegistrationMode, config.OIDC)
 	handler := mustNewHandler(config, i18nManager, dependencies)
 	app := newFiberApp(config, handler)
 	stopSignals := installGracefulShutdown(app)
@@ -227,14 +232,15 @@ func mustNewI18nManager(defaultLanguage string) *i18n.Manager {
 	return i18nManager
 }
 
-func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager, rateLimits rateLimitSettings, registrationMode services.RegistrationMode, oidcConfig security.OIDCConfig) api.Dependencies {
+func buildDependencies(repositories *db.Repositories, secretKey string, i18nManager *i18n.Manager, rateLimits rateLimitSettings, registrationMode services.RegistrationMode, oidcConfig security.OIDCConfig) api.Dependencies {
 	authService := services.NewAuthService(repositories.Users)
 	attemptLimiter := services.NewAttemptLimiter()
 	passwordResetService := services.NewPasswordResetService(authService, attemptLimiter)
 	passwordResetService.ConfigureRecoveryAttemptLimits(rateLimits.ForgotPasswordMax, rateLimits.ForgotPasswordWindow)
 	loginService := services.NewLoginService(authService, passwordResetService, attemptLimiter)
 	loginService.ConfigureAttemptLimits(rateLimits.LoginMax, rateLimits.LoginWindow)
-	dayService := services.NewDayService(repositories.DailyLogs, repositories.Users)
+	pushService := services.NewPushService(repositories.PushSubscriptions, os.Getenv("VAPID_PUBLIC_KEY"), os.Getenv("VAPID_PRIVATE_KEY"))
+	dayService := services.NewDayService(repositories.DailyLogs, repositories.Users, pushService, repositories.PartnerLinks)
 	symptomService := services.NewSymptomService(repositories.Symptoms, services.BuiltinSymptomReservedNames(i18nManager)...)
 	registrationService := services.NewRegistrationService(authService, repositories.Users, registrationMode)
 	viewerService := services.NewViewerService(dayService, symptomService)
@@ -243,6 +249,8 @@ func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager,
 	dashboardViewService := services.NewDashboardViewService(statsService, viewerService, dayService)
 	exportService := services.NewExportService(dayService, symptomService)
 	settingsService := services.NewSettingsService(repositories.Users)
+	partnerInvitationService := services.NewPartnerInvitationService(repositories.PartnerInvitations, []byte(secretKey)).
+		WithPartnerLinks(repositories.PartnerLinks)
 	notificationService := services.NewNotificationService()
 	oidcLogoutStateService := services.NewOIDCLogoutStateService(repositories.OIDCLogout)
 	oidcLoginService := services.NewOIDCLoginService(
@@ -251,6 +259,12 @@ func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager,
 		repositories.Users,
 		registrationService,
 	)
+	partnerAdviceService := services.NewPartnerAdviceService(os.Getenv("GEMINI_API_KEY")).WithModel(os.Getenv("GEMINI_MODEL"))
+	reminderService := services.NewReminderService(repositories.Users, repositories.DailyLogs, pushService, i18nManager, time.UTC)
+
+	settingsViewService := services.NewSettingsViewService(settingsService, notificationService, exportService, symptomService).
+		WithPartnerProviders(repositories.PartnerInvitations, repositories.PartnerLinks).
+		WithUserFinder(repositories.Users)
 
 	return api.Dependencies{
 		AuthService:          authService,
@@ -259,6 +273,7 @@ func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager,
 		LoginService:         loginService,
 		OIDCService:          oidcLoginService,
 		OIDCLogoutStateSvc:   oidcLogoutStateService,
+		PartnerInvitationSvc: partnerInvitationService,
 		DayService:           dayService,
 		SymptomService:       symptomService,
 		ViewerService:        viewerService,
@@ -267,9 +282,14 @@ func buildDependencies(repositories *db.Repositories, i18nManager *i18n.Manager,
 		DashboardViewService: dashboardViewService,
 		ExportService:        exportService,
 		SettingsService:      settingsService,
-		SettingsViewService:  services.NewSettingsViewService(settingsService, notificationService, exportService, symptomService),
+		SettingsViewService:  settingsViewService,
 		OnboardingService:    services.NewOnboardingService(repositories.Users),
 		SetupService:         services.NewSetupService(repositories.Users),
+		PartnerAdviceService: partnerAdviceService,
+		PushSubscriptions:    repositories.PushSubscriptions,
+		PartnerLinks:         repositories.PartnerLinks,
+		ReminderService:      reminderService,
+		VapidPublicKey:       os.Getenv("VAPID_PUBLIC_KEY"),
 	}
 }
 
@@ -286,6 +306,10 @@ func newFiberApp(config runtimeConfig, handler *api.Handler) *fiber.App {
 	configureFiberMiddleware(app, config, handler)
 	registerStaticContentTypes()
 	app.Static("/static", filepath.Join("web", "static"))
+	app.Get("/sw.js", func(c *fiber.Ctx) error {
+		c.Set("Service-Worker-Allowed", "/")
+		return c.SendFile(filepath.Join("web", "static", "sw.js"))
+	})
 	api.RegisterRoutes(app, handler)
 	app.Use(handler.NotFound)
 	return app
@@ -512,6 +536,101 @@ func getEnv(key string, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func loadDotEnvFile(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("failed to read .env: %w", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	lineNumber := 0
+	for scanner.Scan() {
+		lineNumber++
+		key, value, ok, err := parseDotEnvLine(scanner.Text())
+		if err != nil {
+			return fmt.Errorf("invalid .env line %d: %w", lineNumber, err)
+		}
+		if !ok {
+			continue
+		}
+		if _, exists := os.LookupEnv(key); exists && !shouldDotEnvOverrideExisting(key) {
+			continue
+		}
+		if err := os.Setenv(key, value); err != nil {
+			return fmt.Errorf("set .env variable %q: %w", key, err)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("read .env: %w", err)
+	}
+	return nil
+}
+
+func shouldDotEnvOverrideExisting(key string) bool {
+	return strings.HasPrefix(key, "GEMINI_")
+}
+
+func parseDotEnvLine(line string) (string, string, bool, error) {
+	line = strings.TrimSpace(line)
+	if line == "" || strings.HasPrefix(line, "#") {
+		return "", "", false, nil
+	}
+	line = strings.TrimPrefix(line, "export ")
+
+	key, value, found := strings.Cut(line, "=")
+	if !found {
+		return "", "", false, errors.New("expected KEY=value")
+	}
+	key = strings.TrimSpace(key)
+	if !isValidDotEnvKey(key) {
+		return "", "", false, fmt.Errorf("invalid key %q", key)
+	}
+
+	value = strings.TrimSpace(value)
+	if unquoted, ok, err := unquoteDotEnvValue(value); ok || err != nil {
+		return key, unquoted, true, err
+	}
+	if hash := strings.Index(value, "#"); hash >= 0 {
+		value = strings.TrimSpace(value[:hash])
+	}
+	return key, value, true, nil
+}
+
+func isValidDotEnvKey(key string) bool {
+	if key == "" {
+		return false
+	}
+	for index, char := range key {
+		if char == '_' || char >= 'A' && char <= 'Z' || char >= 'a' && char <= 'z' || index > 0 && char >= '0' && char <= '9' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func unquoteDotEnvValue(value string) (string, bool, error) {
+	if value == "" {
+		return "", false, nil
+	}
+	quote := value[0]
+	if quote != '\'' && quote != '"' {
+		return "", false, nil
+	}
+	if len(value) < 2 || value[len(value)-1] != quote {
+		return "", true, errors.New("unterminated quoted value")
+	}
+	unquoted := value[1 : len(value)-1]
+	if quote == '"' {
+		unquoted = strings.NewReplacer("\\n", "\n", "\\r", "\r", "\\t", "\t", "\\\"", "\"", "\\\\", "\\").Replace(unquoted)
+	}
+	return unquoted, true, nil
 }
 
 func resolveSecretKey() (string, error) {

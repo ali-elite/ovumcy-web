@@ -55,6 +55,16 @@ func TestLocalizedDashboardDateFrench(t *testing.T) {
 	}
 }
 
+func TestLocalizedDashboardDatePersian(t *testing.T) {
+	value := time.Date(2026, time.February, 18, 0, 0, 0, 0, time.UTC)
+
+	got := LocalizedDashboardDate("fa", value)
+	want := "چهارشنبه، 18 فوریه 2026"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
 func TestLocalizedMonthYear(t *testing.T) {
 	value := time.Date(2026, time.February, 18, 0, 0, 0, 0, time.UTC)
 
@@ -72,6 +82,9 @@ func TestLocalizedMonthYear(t *testing.T) {
 	}
 	if got := LocalizedMonthYear("fr", value); got != "Février 2026" {
 		t.Fatalf("expected french month-year, got %q", got)
+	}
+	if got := LocalizedMonthYear("fa", value); got != "فوریه 2026" {
+		t.Fatalf("expected persian month-year, got %q", got)
 	}
 }
 
@@ -93,6 +106,13 @@ func TestLocalizedDateLabel(t *testing.T) {
 	if got := LocalizedDateLabel("fr", value); got != "mer 18 fév" {
 		t.Fatalf("expected french date label, got %q", got)
 	}
+	if got := LocalizedDateLabel("fa", value); got != "چهار، 18 فوریه" {
+		t.Fatalf("expected persian date label, got %q", got)
+	}
+	april := time.Date(2026, time.April, 25, 0, 0, 0, 0, time.UTC)
+	if got := LocalizedDateLabel("fa", april); got != "شنبه، 25 آوریل" {
+		t.Fatalf("expected persian april date label with full month name, got %q", got)
+	}
 }
 
 func TestLocalizedDateDisplay(t *testing.T) {
@@ -113,6 +133,9 @@ func TestLocalizedDateDisplay(t *testing.T) {
 	if got := LocalizedDateDisplay("fr", value); got != "29 jan 2026" {
 		t.Fatalf("expected french display date, got %q", got)
 	}
+	if got := LocalizedDateDisplay("fa", value); got != "29 ژانویه 2026" {
+		t.Fatalf("expected persian display date, got %q", got)
+	}
 }
 
 func TestLocalizedDateShort(t *testing.T) {
@@ -132,5 +155,8 @@ func TestLocalizedDateShort(t *testing.T) {
 	}
 	if got := LocalizedDateShort("fr", value); got != "29 jan" {
 		t.Fatalf("expected french short date, got %q", got)
+	}
+	if got := LocalizedDateShort("fa", value); got != "29 ژانویه" {
+		t.Fatalf("expected persian short date, got %q", got)
 	}
 }
