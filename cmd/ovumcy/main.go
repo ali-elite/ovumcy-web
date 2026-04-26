@@ -72,7 +72,7 @@ const (
 	referrerPolicyStrictOrigin           = "strict-origin-when-cross-origin"
 	permissionsPolicyDefault             = "geolocation=(), camera=(), microphone=()"
 	xFrameOptionsDeny                    = "DENY"
-	contentSecurityPolicyDefault         = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'none'"
+	contentSecurityPolicyDefault         = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self'"
 	strictTransportSecurityDefault       = "max-age=31536000"
 	maxSecretKeyFileBytes          int64 = 8 << 10
 )

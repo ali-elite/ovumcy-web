@@ -1443,6 +1443,8 @@
     return outputArray;
   }
 
+  var pushRegistrationPromise = null;
+
   function initPushSubscription() {
     var pushToggle = document.getElementById('push-notifications-toggle');
     if (!pushToggle) {
@@ -1463,8 +1465,10 @@
       return;
     }
 
+    pushRegistrationPromise = registerPushServiceWorker();
+
     // Check current state
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(function(reg) {
+    pushRegistrationPromise.then(function(reg) {
       return reg.pushManager.getSubscription();
     }).then(function(subscription) {
       if (subscription) {
@@ -1486,6 +1490,13 @@
         unsubscribeUser(e.target, status);
       }
     });
+  }
+
+  function registerPushServiceWorker() {
+    if (!pushRegistrationPromise) {
+      pushRegistrationPromise = navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    }
+    return pushRegistrationPromise;
   }
 
   function setPushStatus(status, key) {
@@ -1555,10 +1566,60 @@
     });
   }
 
+  function requestPushPermission() {
+    if (typeof Notification === 'undefined') {
+      return Promise.reject(new Error('Notifications are not supported'));
+    }
+    if (Notification.permission === 'granted') {
+      return Promise.resolve('granted');
+    }
+    if (Notification.permission === 'denied') {
+      return Promise.resolve('denied');
+    }
+    if (typeof Notification.requestPermission !== 'function') {
+      return Promise.reject(new Error('Notification permission API is unavailable'));
+    }
+    return Promise.resolve(Notification.requestPermission());
+  }
+
+  function withTimeout(promise, timeoutMs, message) {
+    return new Promise(function(resolve, reject) {
+      var settled = false;
+      var timeout = window.setTimeout(function() {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        reject(new Error(message || 'Timed out'));
+      }, timeoutMs);
+
+      promise.then(function(value) {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeout);
+        resolve(value);
+      }).catch(function(err) {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeout);
+        reject(err);
+      });
+    });
+  }
+
   function subscribeUser(vapidPublicKey, toggle, status) {
     toggle.disabled = true;
     setPushStatus(status, 'enabling');
-    navigator.serviceWorker.ready.then(function(reg) {
+    requestPushPermission().then(function(permission) {
+      if (permission !== 'granted') {
+        throw new Error('Notification permission was not granted');
+      }
+      return withTimeout(registerPushServiceWorker(), 8000, 'Service worker registration timed out');
+    }).then(function(reg) {
       return reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
@@ -1579,7 +1640,7 @@
 
   function unsubscribeUser(toggle, status) {
     toggle.disabled = true;
-    navigator.serviceWorker.ready.then(function(reg) {
+    withTimeout(registerPushServiceWorker(), 8000, 'Service worker registration timed out').then(function(reg) {
       return reg.pushManager.getSubscription();
     }).then(function(subscription) {
       if (subscription) {
