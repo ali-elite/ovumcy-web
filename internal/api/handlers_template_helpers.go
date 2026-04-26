@@ -66,8 +66,9 @@ func newTemplateFuncMap() template.FuncMap {
 		"dismissibleStatusOK": func(messages map[string]string, message string) template.HTML {
 			return httpx.DismissibleStatusOKTemplateHTML(message, localizedStatusDismissLabel(messages))
 		},
-		"toJSON": templateToJSON,
-		"dict":   templateDict,
+		"renderMarkdown": renderTemplateMarkdown,
+		"toJSON":         templateToJSON,
+		"dict":           templateDict,
 	}
 }
 

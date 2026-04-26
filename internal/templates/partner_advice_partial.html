@@ -5,7 +5,7 @@
         <h2 class="journal-subtitle" style="color: var(--accent);">{{t .Messages "dashboard.partner_advice_title"}}</h2>
     </div>
     {{if .Advice}}
-    <div class="journal-muted text-sm leading-relaxed whitespace-pre-wrap">{{.Advice}}</div>
+    <div class="journal-muted text-sm leading-relaxed partner-advice-markdown">{{renderMarkdown .Advice}}</div>
     {{else}}
     <div class="journal-muted text-sm leading-relaxed">{{t .Messages "dashboard.partner_advice_unavailable"}}</div>
     {{end}}

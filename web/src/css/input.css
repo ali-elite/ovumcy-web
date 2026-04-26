@@ -2,6 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .partner-advice-markdown {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .partner-advice-markdown h2,
+  .partner-advice-markdown h3 {
+    margin-top: 0.35rem;
+    color: var(--text-primary);
+    font-weight: 800;
+    line-height: 1.25;
+  }
+
+  .partner-advice-markdown h2 {
+    font-size: 1.05rem;
+  }
+
+  .partner-advice-markdown h3 {
+    font-size: 1rem;
+  }
+
+  .partner-advice-markdown p {
+    margin: 0;
+  }
+
+  .partner-advice-markdown ul,
+  .partner-advice-markdown ol {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0;
+    padding-inline-start: 1.25rem;
+  }
+
+  .partner-advice-markdown ul {
+    list-style: disc;
+  }
+
+  .partner-advice-markdown ol {
+    list-style: decimal;
+  }
+
+  .partner-advice-markdown li {
+    padding-inline-start: 0.15rem;
+  }
+
+  .partner-advice-markdown strong {
+    color: var(--text-primary);
+    font-weight: 800;
+  }
+
+  .partner-advice-markdown code {
+    border-radius: 0.45rem;
+    background: var(--bg-soft);
+    color: var(--text-primary);
+    padding: 0.05rem 0.35rem;
+    font-size: 0.9em;
+  }
+}
+
 @layer base {
   :root {
     --bg-primary: #fff9f0;
