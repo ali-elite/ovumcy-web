@@ -377,16 +377,27 @@
 
         <section class="journal-panel settings-interface-panel space-y-3" id="push-notifications-section">
           <div class="space-y-1">
-            <p class="field-label">Push Notifications</p>
-            <p class="journal-muted text-sm">Receive reminders and partner activity notifications.</p>
+            <p class="field-label">{{t .Messages "settings.push.title"}}</p>
+            <p class="journal-muted text-sm">{{t .Messages "settings.push.subtitle"}}</p>
           </div>
           <div class="space-y-2">
             <label class="period-toggle" data-binary-toggle>
-              <input type="checkbox" id="push-notifications-toggle" data-binary-toggle-input>
+              <input type="checkbox" id="push-notifications-toggle" data-binary-toggle-input aria-describedby="push-notifications-status">
               <span class="period-toggle-copy">
-                <span class="period-toggle-main">🔔 Enable Push Notifications</span>
+                <span class="period-toggle-main">🔔 {{t .Messages "settings.push.enable"}}</span>
               </span>
             </label>
+            <p
+              id="push-notifications-status"
+              class="journal-muted text-sm"
+              aria-live="polite"
+              data-push-status
+              data-message-ready="{{t .Messages "settings.push.status_ready"}}"
+              data-message-enabling="{{t .Messages "settings.push.status_enabling"}}"
+              data-message-enabled="{{t .Messages "settings.push.status_enabled"}}"
+              data-message-disabled="{{t .Messages "settings.push.status_disabled"}}"
+              data-message-denied="{{t .Messages "settings.push.status_denied"}}"
+              data-message-error="{{t .Messages "settings.push.status_error"}}"></p>
           </div>
         </section>
       </div>

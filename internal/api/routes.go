@@ -88,6 +88,7 @@ func registerAPIRoutes(app *fiber.App, handler *Handler) {
 	settings.Post("/interface", handler.UpdateInterfaceSettings)
 	settings.Post("/cycle", handler.UpdateCycleSettings)
 	settings.Post("/push/subscribe", handler.HandlePushSubscribe)
+	settings.Post("/push/unsubscribe", handler.HandlePushUnsubscribe)
 	settings.Post("/profile", handler.UpdateProfile)
 	settings.Post("/tracking", handler.OwnerOnly, handler.UpdateTrackingSettings)
 	settings.Post("/change-password", handler.ChangePassword)
